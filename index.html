@@ -1075,19 +1075,90 @@
       document.getElementById('analisisBar').className = 'prob-big-fill ' + (m.prob >= 50 ? 'green' : 'red');
       document.getElementById('analisisPct').textContent = m.prob + '%';
       document.getElementById('analisisPct').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
-      document.getElementById('analisisRec').textContent = m.prob >= 50 ? 'Se recomienda Renovar' : 'No se recomienda Renovar';
-      document.getElementById('analisisRec').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
+      // analisisRec se actualiza abajo con lógica de vencido
 
       const status = document.getElementById('analisisStatus');
       status.className = 'badge ' + (m.estatus === 'VIGENTE' ? 'badge-vigente' : 'badge-vencido');
       status.innerHTML = `<div class="badge-dot"></div><span>${m.estatus}</span>`;
 
+      // Antigüedad
       document.getElementById('v-antiguedad').textContent = m.antiguedad + ' años';
-      document.getElementById('v-conversion').textContent = m.conversion + '%';
+      const antImpact = document.getElementById('v-antiguedad-impact');
+      if (m.antiguedad >= 15) { antImpact.textContent = 'Factor muy positivo — marca consolidada'; antImpact.className = 'var-impact pos'; }
+      else if (m.antiguedad >= 5) { antImpact.textContent = 'Factor positivo — marca en crecimiento'; antImpact.className = 'var-impact pos'; }
+      else { antImpact.textContent = 'Marca nueva — historial limitado'; antImpact.className = 'var-impact neu'; }
+
+      // Tasa de conversión
+      document.getElementById('v-conversion').textContent = m.conversion.toFixed(2) + '%';
+      const convImpact = document.getElementById('v-conversion-impact');
+      if (m.conversion >= 5) { convImpact.textContent = 'Por encima del promedio (3.5%) — señal positiva'; convImpact.className = 'var-impact pos'; }
+      else if (m.conversion >= 3.5) { convImpact.textContent = 'Cerca del promedio del mercado (3.5%)'; convImpact.className = 'var-impact neu'; }
+      else { convImpact.textContent = 'Por debajo del promedio (3.5%) — oportunidad de mejora'; convImpact.className = 'var-impact neg'; }
+
+      // Clasificación
       document.getElementById('v-clasificacion').textContent = m.clasificacion;
-      document.getElementById('v-review').textContent = m.score + ' / 5';
-      document.getElementById('v-tiempo').textContent = m.tiempo + ' meses';
-      document.getElementById('v-devolucion').textContent = m.devolucion + '%';
+      const clasImpact = document.getElementById('v-clasificacion-impact');
+      if (m.clasificacion === 'Top') { clasImpact.textContent = 'Alto desempeño comercial'; clasImpact.className = 'var-impact pos'; }
+      else if (m.clasificacion === 'Media') { clasImpact.textContent = 'Desempeño promedio del mercado'; clasImpact.className = 'var-impact neu'; }
+      else { clasImpact.textContent = 'Bajo desempeño — requiere atención'; clasImpact.className = 'var-impact neg'; }
+
+      // ReviewScore
+      document.getElementById('v-review').textContent = m.score.toFixed(2) + ' / 5';
+      const revImpact = document.getElementById('v-review-impact');
+      if (m.score >= 4.0) { revImpact.textContent = 'Calificación Top — alta satisfacción del cliente'; revImpact.className = 'var-impact pos'; }
+      else if (m.score >= 3.0) { revImpact.textContent = 'Calificación Media — satisfacción aceptable'; revImpact.className = 'var-impact neu'; }
+      else { revImpact.textContent = 'Calificación Baja — señal de alerta'; revImpact.className = 'var-impact neg'; }
+
+      // Tiempo restante — calculado desde la fecha real
+      const tiempoImpact = document.getElementById('v-tiempo-impact');
+      let mesesRestantes = m.tiempo;
+      try {
+        if (m.vigencia && m.vigencia !== 'N/A') {
+          const partes = m.vigencia.split('/');
+          const fechaVenc = new Date(partes[2], partes[1]-1, partes[0]);
+          const hoy = new Date();
+          mesesRestantes = Math.round((fechaVenc - hoy) / (1000 * 60 * 60 * 24 * 30));
+        }
+      } catch(e) {}
+
+      const esVencido = m.estatus === 'VENCIDO' || mesesRestantes < 0;
+      if (esVencido) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes < 0
+          ? 'Venció hace ' + Math.abs(mesesRestantes) + ' meses'
+          : 'Marca vencida en el IMPI';
+        tiempoImpact.textContent = 'Estatus vencido — evaluar proceso de renovación';
+        tiempoImpact.className = 'var-impact neg';
+      } else if (mesesRestantes <= 6) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Crítico — acción inmediata requerida';
+        tiempoImpact.className = 'var-impact neg';
+      } else if (mesesRestantes <= 12) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Atención — planificar renovación pronto';
+        tiempoImpact.className = 'var-impact neu';
+      } else {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Margen suficiente para planificar';
+        tiempoImpact.className = 'var-impact pos';
+      }
+
+      // Tasa de devolución
+      document.getElementById('v-devolucion').textContent = m.devolucion.toFixed(3) + '%';
+      const devImpact = document.getElementById('v-devolucion-impact');
+      if (m.devolucion <= 0.05) { devImpact.textContent = 'Muy baja tasa — excelente señal de calidad'; devImpact.className = 'var-impact pos'; }
+      else if (m.devolucion <= 0.15) { devImpact.textContent = 'Baja tasa — señal positiva de calidad'; devImpact.className = 'var-impact pos'; }
+      else if (m.devolucion <= 0.30) { devImpact.textContent = 'Tasa moderada — dentro del rango normal'; devImpact.className = 'var-impact neu'; }
+      else { devImpact.textContent = 'Tasa alta — señal de alerta'; devImpact.className = 'var-impact neg'; }
+
+      // Recomendación cuando está vencido
+      const esVencidoRec = m.estatus === 'VENCIDO';
+      let recTexto = '';
+      if (esVencidoRec && m.prob >= 50) recTexto = 'Se recomienda Evaluar Renovación (marca vencida)';
+      else if (esVencidoRec && m.prob < 50) recTexto = 'No se recomienda Renovar (marca vencida)';
+      else if (m.prob >= 50) recTexto = 'Se recomienda Renovar';
+      else recTexto = 'No se recomienda Renovar';
+      document.getElementById('analisisRec').textContent = recTexto;
+      document.getElementById('analisisRec').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
 
       const razones = {
         Top: `Esta marca muestra un sólido desempeño comercial con alta tasa de conversión y calificación Top. Su antigüedad y baja tasa de devolución son indicadores de madurez y calidad sostenida. El modelo predictivo asigna una alta probabilidad de renovación basándose principalmente en la antigüedad de la marca, la tasa de conversión y su clasificación comercial — las tres variables de mayor peso en el modelo.`,
