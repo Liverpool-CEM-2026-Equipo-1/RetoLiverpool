@@ -349,6 +349,40 @@
     .seg-bar-val { font-size: 12px; font-weight: 600; color: var(--text); width: 35px; text-align: right; }
 
     .hidden { display: none !important; }
+
+    /* DROPDOWN RESULTADOS */
+    .search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(180,120,200,0.15);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 200;
+      animation: fadeUp 0.2s ease both;
+    }
+    .search-result-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      text-align: left;
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--purple-soft); }
+    .result-nombre { font-size: 14px; font-weight: 600; color: var(--text); }
+    .result-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .result-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .result-badge.green { background: var(--green-bg); color: var(--green); }
+    .result-badge.red { background: var(--red-bg); color: var(--red); }
+    .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
   </style>
 </head>
 <body>
@@ -388,7 +422,8 @@
 
       <!-- ONE TO ONE -->
       <div id="oto-section">
-        <div class="search-wrapper">
+        <div style="position:relative;max-width:640px;margin:0 auto 32px;">
+    <div class="search-wrapper" style="margin:0">
           <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" />
           <button class="btn-analizar" onclick="analizar()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -529,32 +564,32 @@
         <div class="var-card">
           <div class="var-name">Antigüedad de Marca</div>
           <div class="var-value" id="v-antiguedad">10 años</div>
-          <div class="var-impact pos">Factor positivo — mayor antigüedad correlaciona con renovación</div>
+          <div class="var-impact pos" id="v-antiguedad-impact">Factor positivo — mayor antigüedad correlaciona con renovación</div>
         </div>
         <div class="var-card">
           <div class="var-name">Tasa de Conversión</div>
           <div class="var-value" id="v-conversion">8.5%</div>
-          <div class="var-impact pos">Por encima del promedio (3.5%)</div>
+          <div class="var-impact pos" id="v-conversion-impact">Por encima del promedio (3.5%)</div>
         </div>
         <div class="var-card">
           <div class="var-name">Clasificación de Marca</div>
           <div class="var-value" id="v-clasificacion">Top</div>
-          <div class="var-impact pos">Alto desempeño comercial</div>
+          <div class="var-impact pos" id="v-clasificacion-impact">Alto desempeño comercial</div>
         </div>
         <div class="var-card">
           <div class="var-name">ReviewScore</div>
           <div class="var-value" id="v-review">4.2 / 5</div>
-          <div class="var-impact pos">Calificación Top — alta satisfacción del cliente</div>
+          <div class="var-impact pos" id="v-review-impact">Calificación Top — alta satisfacción del cliente</div>
         </div>
         <div class="var-card">
           <div class="var-name">Tiempo Restante de Renovación</div>
           <div class="var-value" id="v-tiempo">24 meses</div>
-          <div class="var-impact neu">Margen suficiente para planificar</div>
+          <div class="var-impact neu" id="v-tiempo-impact">Margen suficiente para planificar</div>
         </div>
         <div class="var-card">
           <div class="var-name">Tasa de Devolución</div>
           <div class="var-value" id="v-devolucion">0.05%</div>
-          <div class="var-impact pos">Baja tasa — señal positiva de calidad</div>
+          <div class="var-impact pos" id="v-devolucion-impact">Baja tasa — señal positiva de calidad</div>
         </div>
       </div>
 
@@ -932,23 +967,45 @@
       document.getElementById('batchResults').classList.add('hidden');
     }
 
-    // ANALIZAR ONE TO ONE — usa modelo real via API
-    async function analizar() {
+    // BUSQUEDA EN TIEMPO REAL — muestra dropdown
+    function analizar() {
       const input = document.getElementById('searchInput').value.trim().toUpperCase();
-      if (!input) return;
+      const resultsEl = document.getElementById('searchResults');
 
-      // Buscar marca en datos locales
-      const matches = marcasData.filter(m => m.nombre.includes(input));
-      
-      if (matches.length === 0) {
-        alert('No se encontró la marca. Verifica el nombre e intenta de nuevo.');
+      if (!input || input.length < 2) {
+        resultsEl.classList.add('hidden');
         return;
       }
 
-      // Si hay múltiples registros mostrar el primero (más relevante por score)
-      const marca = matches.sort((a, b) => b.score - a.score)[0];
+      const matches = marcasData.filter(m => m.nombre.includes(input)).slice(0, 30);
+
+      if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="search-no-results">No se encontró ninguna marca con ese nombre</div>';
+        resultsEl.classList.remove('hidden');
+        return;
+      }
+
+      resultsEl.innerHTML = matches.map((m, i) => `
+        <div class="search-result-item" onclick="seleccionarMarca(${i})">
+          <div class="result-nombre">${m.nombre}
+            <span class="result-badge ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span>
+          </div>
+          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.clase} · Vigencia: ${m.vigencia}</div>
+        </div>
+      `).join('');
+
+      // Store matches for selection
+      window._searchMatches = matches;
+      resultsEl.classList.remove('hidden');
+    }
+
+    async function seleccionarMarca(index) {
+      const marca = window._searchMatches[index];
+      document.getElementById('searchInput').value = marca.nombre;
+      document.getElementById('searchResults').classList.add('hidden');
+
       currentMarca = marca;
-      currentMatches = matches;
+      currentMatches = [marca];
 
       // Mostrar datos de la marca
       document.getElementById('brandName').textContent = marca.nombre;
@@ -1129,9 +1186,16 @@
       renderPortafolio(filtrado);
     }
 
-    // KEYBOARD
+    // KEYBOARD Y LIVE SEARCH
+    document.getElementById('searchInput').addEventListener('input', () => analizar());
     document.getElementById('searchInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') analizar();
+      if (e.key === 'Escape') document.getElementById('searchResults').classList.add('hidden');
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-wrapper') && !e.target.closest('.search-results')) {
+        document.getElementById('searchResults').classList.add('hidden');
+      }
     });
 
     // INIT
