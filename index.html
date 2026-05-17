@@ -875,6 +875,7 @@
 
   <script>
     // DATOS SIMULADOS DE MARCAS (representativos del dataset)
+    const API_URL = "https://liverpool-marcas.onrender.com";
     let marcasData = [];
 
     // Cargar datos reales desde JSON
@@ -908,6 +909,7 @@
     ];
 
     let currentMarca = null;
+    let currentMatches = [];
 
     // NAV
     function showPage(page) {
@@ -930,20 +932,25 @@
       document.getElementById('batchResults').classList.add('hidden');
     }
 
-    // ANALIZAR ONE TO ONE
-    function analizar() {
+    // ANALIZAR ONE TO ONE — usa modelo real via API
+    async function analizar() {
       const input = document.getElementById('searchInput').value.trim().toUpperCase();
       if (!input) return;
 
-      const marca = marcasData.find(m => m.nombre.includes(input)) || {
-        nombre: input, clase: 9, estatus: 'VIGENTE', vigencia: '01/01/2028',
-        review: 'Media', score: 3.5, tuvoVentas: 'si',
-        antiguedad: 8, conversion: 4.2, clasificacion: 'Media',
-        devolucion: 0.08, tiempo: 20, prob: Math.floor(Math.random() * 30) + 65
-      };
+      // Buscar marca en datos locales
+      const matches = marcasData.filter(m => m.nombre.includes(input));
+      
+      if (matches.length === 0) {
+        alert('No se encontró la marca. Verifica el nombre e intenta de nuevo.');
+        return;
+      }
 
+      // Si hay múltiples registros mostrar el primero (más relevante por score)
+      const marca = matches.sort((a, b) => b.score - a.score)[0];
       currentMarca = marca;
+      currentMatches = matches;
 
+      // Mostrar datos de la marca
       document.getElementById('brandName').textContent = marca.nombre;
       document.getElementById('brandClass').textContent = 'Clase: ' + marca.clase;
       document.getElementById('vigenciaDate').textContent = marca.vigencia;
@@ -958,15 +965,66 @@
         statusText.textContent = 'VENCIDO';
       }
 
-      const renueva = marca.prob >= 50;
+      // Llamar al modelo real
       const recEl = document.getElementById('recValue');
-      recEl.textContent = renueva ? 'Renovar' : 'No Renovar';
-      recEl.className = renueva ? 'rec-value-renovar' : 'rec-value-no';
+      recEl.textContent = 'Analizando...';
+      recEl.className = 'rec-value-renovar';
+      document.getElementById('probFill').style.width = '0%';
+      document.getElementById('probPct').textContent = '...';
 
-      document.getElementById('probFill').style.width = marca.prob + '%';
-      document.getElementById('probFill').className = 'prob-fill ' + (renueva ? 'green' : 'red');
-      document.getElementById('probPct').textContent = marca.prob + '%';
-      document.getElementById('probPct').style.color = renueva ? 'var(--green)' : 'var(--red)';
+      try {
+        const response = await fetch(API_URL + '/predecir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticket_promedio: marca.ticketPromedio || 200,
+            tasa_devolucion: marca.devolucion || 0.1,
+            revenue_por_lead: marca.revenueLead || 500,
+            tasa_conversion: marca.conversion || 3.5,
+            antiguedad_marca: marca.antiguedad || 10,
+            tiempo_restante: marca.tiempo || 24,
+            review_score: marca.score || 3.5,
+            clasificacion_marca: marca.clasificacion || 'Media',
+            region: marca.region || 'Centro',
+            canal: marca.canal || 'Digital',
+            segmento: marca.segmento || 'Millennial',
+            estatus_estrategico: marca.estrategico || 'NO ESTRATÉGICA',
+            prioridad_negocio: marca.prioridad || 'NO',
+            review: marca.review || 'Media'
+          })
+        });
+
+        const data = await response.json();
+        const prob = data.probabilidad_renovar;
+        const renueva = data.renueva;
+
+        marca.prob = prob;
+        currentMarca = marca;
+
+        recEl.textContent = renueva ? 'Renovar' : 'No Renovar';
+        recEl.className = renueva ? 'rec-value-renovar' : 'rec-value-no';
+        document.getElementById('probFill').style.width = prob + '%';
+        document.getElementById('probFill').className = 'prob-fill ' + (renueva ? 'green' : 'red');
+        document.getElementById('probPct').textContent = prob + '%';
+        document.getElementById('probPct').style.color = renueva ? 'var(--green)' : 'var(--red)';
+
+      } catch(e) {
+        // Fallback si la API no responde
+        const prob = marca.prob || 75;
+        const renueva = prob >= 50;
+        recEl.textContent = renueva ? 'Renovar' : 'No Renovar';
+        recEl.className = renueva ? 'rec-value-renovar' : 'rec-value-no';
+        document.getElementById('probFill').style.width = prob + '%';
+        document.getElementById('probFill').className = 'prob-fill ' + (renueva ? 'green' : 'red');
+        document.getElementById('probPct').textContent = prob + '%';
+        document.getElementById('probPct').style.color = renueva ? 'var(--green)' : 'var(--red)';
+      }
+
+      // Si hay múltiples registros mostrar nota
+      if (matches.length > 1) {
+        document.getElementById('brandClass').textContent = 
+          'Clase: ' + marca.clase + ' · ' + matches.length + ' registros encontrados';
+      }
 
       const card = document.getElementById('marcaCard');
       card.style.animation = 'none';
