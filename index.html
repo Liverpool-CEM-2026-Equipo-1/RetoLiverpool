@@ -809,69 +809,40 @@
         <h2>Riesgo Legal</h2>
         <p>Semáforo de marcas por tiempo restante de renovación</p>
       </div>
-      <div class="stats-grid">
+
+      <!-- Buscador en riesgo -->
+      <div style="max-width:500px;margin-bottom:24px;">
+        <div class="search-wrapper" style="margin:0">
+          <input type="text" id="riesgoSearch" placeholder="Buscar marca en semáforo..." oninput="filtrarRiesgo()" />
+        </div>
+      </div>
+
+      <div class="stats-grid" id="riesgoStats">
         <div class="stat-card" style="border-left:4px solid var(--red)">
           <div class="stat-label">Crítico — menos de 6 meses</div>
-          <div class="stat-value" style="color:var(--red)">127</div>
+          <div class="stat-value" style="color:var(--red)" id="countRojo">—</div>
           <div class="stat-sub">Acción inmediata requerida</div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--amber)">
           <div class="stat-label">Atención — 6 a 12 meses</div>
-          <div class="stat-value" style="color:var(--amber)">284</div>
+          <div class="stat-value" style="color:var(--amber)" id="countAmarillo">—</div>
           <div class="stat-sub">Planificar renovación pronto</div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--green)">
           <div class="stat-label">Estable — más de 12 meses</div>
-          <div class="stat-value" style="color:var(--green)">1,597</div>
+          <div class="stat-value" style="color:var(--green)" id="countVerde">—</div>
           <div class="stat-sub">Sin urgencia inmediata</div>
         </div>
       </div>
+
       <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--red)">Crítico — Acción inmediata</h3>
-      <div class="riesgo-grid" style="margin-bottom:28px">
-        <div class="riesgo-card rojo">
-          <div class="riesgo-nombre">SUBURBIA</div>
-          <div class="riesgo-venc">Vence: 15/06/2026 · 1 mes restante</div>
-          <div class="riesgo-badge rojo">Crítico</div>
-        </div>
-        <div class="riesgo-card rojo">
-          <div class="riesgo-nombre">GALERÍAS LIVERPOOL</div>
-          <div class="riesgo-venc">Vence: 03/07/2026 · 2 meses restantes</div>
-          <div class="riesgo-badge rojo">Crítico</div>
-        </div>
-        <div class="riesgo-card rojo">
-          <div class="riesgo-nombre">BEST STYLE</div>
-          <div class="riesgo-venc">Vence: 28/07/2026 · 2 meses restantes</div>
-          <div class="riesgo-badge rojo">Crítico</div>
-        </div>
-        <div class="riesgo-card rojo">
-          <div class="riesgo-nombre">WIND</div>
-          <div class="riesgo-venc">Vence: 19/08/2026 · 3 meses restantes</div>
-          <div class="riesgo-badge rojo">Crítico</div>
-        </div>
-      </div>
+      <div class="riesgo-grid" style="margin-bottom:28px" id="gridRojo"></div>
+
       <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--amber)">Atención — Planificar pronto</h3>
-      <div class="riesgo-grid">
-        <div class="riesgo-card amarillo">
-          <div class="riesgo-nombre">COSMO & COMPANY</div>
-          <div class="riesgo-venc">Vence: 15/11/2026 · 6 meses restantes</div>
-          <div class="riesgo-badge amarillo">Atención</div>
-        </div>
-        <div class="riesgo-card amarillo">
-          <div class="riesgo-nombre">ME ENCANTA</div>
-          <div class="riesgo-venc">Vence: 03/01/2027 · 8 meses restantes</div>
-          <div class="riesgo-badge amarillo">Atención</div>
-        </div>
-        <div class="riesgo-card verde">
-          <div class="riesgo-nombre">JUST WALK OUT</div>
-          <div class="riesgo-venc">Vence: 12/07/2028 · 26 meses restantes</div>
-          <div class="riesgo-badge verde">Estable</div>
-        </div>
-        <div class="riesgo-card verde">
-          <div class="riesgo-nombre">MASTERTECH</div>
-          <div class="riesgo-venc">Vence: 20/03/2029 · 34 meses restantes</div>
-          <div class="riesgo-badge verde">Estable</div>
-        </div>
-      </div>
+      <div class="riesgo-grid" style="margin-bottom:28px" id="gridAmarillo"></div>
+
+      <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--green)">Estable — Sin urgencia</h3>
+      <div class="riesgo-grid" id="gridVerde"></div>
     </div>
   </div>
 
@@ -921,9 +892,11 @@
       .then(data => {
         marcasData = data;
         console.log('Datos cargados:', data.length, 'marcas');
-        // Si portafolio ya está visible, renderizarlo
         if (document.getElementById('page-portafolio').classList.contains('active')) {
           renderPortafolio(marcasData);
+        }
+        if (document.getElementById('page-riesgo').classList.contains('active')) {
+          renderRiesgo();
         }
       })
       .catch(() => {
@@ -956,6 +929,7 @@
       const navEl = document.getElementById('nav-' + page);
       if (navEl) navEl.classList.add('active');
       if (page === 'portafolio') renderPortafolio(marcasData);
+      if (page === 'riesgo') renderRiesgo();
       window.scrollTo(0, 0);
     }
 
@@ -979,7 +953,7 @@
         return;
       }
 
-      const matches = marcasData.filter(m => m.nombre.includes(input)).slice(0, 30);
+      const matches = marcasData.filter(m => m.nombre.includes(input)).slice(0, 100);
 
       if (matches.length === 0) {
         resultsEl.innerHTML = '<div class="search-no-results">No se encontró ninguna marca con ese nombre</div>';
@@ -992,7 +966,7 @@
           <div class="result-nombre">${m.nombre}
             <span class="result-badge ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span>
           </div>
-          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.clase} · Vigencia: ${m.vigencia}</div>
+          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · Vigencia: ${m.vigencia}</div>
         </div>
       `).join('');
 
@@ -1199,6 +1173,62 @@
         document.getElementById('searchResults').classList.add('hidden');
       }
     });
+
+    // RENDER RIESGO LEGAL CON DATOS REALES
+    function renderRiesgo(filtro='') {
+      const busqueda = filtro.toUpperCase();
+      const vigentes = marcasData.filter(m => m.estatus === 'VIGENTE');
+      const filtradas = busqueda
+        ? marcasData.filter(m => m.nombre.includes(busqueda))
+        : vigentes;
+
+      const rojos   = filtradas.filter(m => m.tiempo >= 0 && m.tiempo <= 6).sort((a,b) => a.tiempo - b.tiempo);
+      const amarillos = filtradas.filter(m => m.tiempo > 6 && m.tiempo <= 12).sort((a,b) => a.tiempo - b.tiempo);
+      const verdes  = filtradas.filter(m => m.tiempo > 12).sort((a,b) => a.tiempo - b.tiempo);
+      const vencidas = filtradas.filter(m => m.tiempo < 0 || m.estatus === 'VENCIDO');
+
+      if (!busqueda) {
+        document.getElementById('countRojo').textContent = (rojos.length + vencidas.length).toLocaleString();
+        document.getElementById('countAmarillo').textContent = amarillos.length.toLocaleString();
+        document.getElementById('countVerde').textContent = verdes.length.toLocaleString();
+      } else {
+        document.getElementById('countRojo').textContent = (rojos.length + vencidas.length);
+        document.getElementById('countAmarillo').textContent = amarillos.length;
+        document.getElementById('countVerde').textContent = verdes.length;
+      }
+
+      function tarjeta(m, tipo) {
+        const clase = tipo === 'rojo' ? 'rojo' : tipo === 'amarillo' ? 'amarillo' : 'verde';
+        const badge = tipo === 'rojo' ? 'Crítico' : tipo === 'amarillo' ? 'Atención' : 'Estable';
+        const tiempoTexto = m.tiempo < 0 || m.estatus === 'VENCIDO'
+          ? 'Marca vencida'
+          : m.tiempo === 0 ? 'Vence este mes'
+          : m.tiempo === 1 ? '1 mes restante'
+          : m.tiempo + ' meses restantes';
+        return `
+          <div class="riesgo-card ${clase}" onclick="buscarDesdeSemaforo('${m.nombre.replace(/'/g,"\'")}')">
+            <div class="riesgo-nombre">${m.nombre}</div>
+            <div class="riesgo-venc">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · Vence: ${m.vigencia} · ${tiempoTexto}</div>
+            <div class="riesgo-badge ${clase}">${badge}</div>
+          </div>`;
+      }
+
+      const todasRojas = [...vencidas, ...rojos];
+      document.getElementById('gridRojo').innerHTML = todasRojas.slice(0, 20).map(m => tarjeta(m, 'rojo')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+      document.getElementById('gridAmarillo').innerHTML = amarillos.slice(0, 20).map(m => tarjeta(m, 'amarillo')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+      document.getElementById('gridVerde').innerHTML = verdes.slice(0, 20).map(m => tarjeta(m, 'verde')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+    }
+
+    function filtrarRiesgo() {
+      const val = document.getElementById('riesgoSearch').value;
+      renderRiesgo(val);
+    }
+
+    function buscarDesdeSemaforo(nombre) {
+      showPage('inicio');
+      document.getElementById('searchInput').value = nombre;
+      analizar();
+    }
 
     // INIT
     setMode('oto');
