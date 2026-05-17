@@ -423,14 +423,16 @@
       <!-- ONE TO ONE -->
       <div id="oto-section">
         <div style="position:relative;max-width:640px;margin:0 auto 32px;">
-    <div class="search-wrapper" style="margin:0">
-          <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" />
-          <button class="btn-analizar" onclick="analizar()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            Analizar
-          </button>
+          <div class="search-wrapper" style="margin:0">
+            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" />
+            <button class="btn-analizar" onclick="analizar()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              Analizar
+            </button>
+          </div>
+          <div class="search-results hidden" id="searchResults"></div>
         </div>
       </div>
 
