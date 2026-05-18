@@ -129,10 +129,12 @@ Responde en español, de forma concisa y profesional. Máximo 3 párrafos."""
         mensajes.append({"role": h["role"], "parts": [{"text": h["content"]}]})
     mensajes.append({"role": "user", "parts": [{"text": input.mensaje}]})
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+    sistema_msg = {"role": "user", "parts": [{"text": f"Contexto del sistema: {sistema}"}]}
+    model_ack = {"role": "model", "parts": [{"text": "Entendido, actuaré como experto en marcas Liverpool."}]}
+    
     payload = {
-        "system_instruction": {"parts": [{"text": sistema}]},
-        "contents": mensajes,
+        "contents": [sistema_msg, model_ack] + mensajes,
         "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7}
     }
 
