@@ -129,7 +129,7 @@ Responde en español, de forma concisa y profesional. Máximo 3 párrafos."""
         mensajes.append({"role": h["role"], "parts": [{"text": h["content"]}]})
     mensajes.append({"role": "user", "parts": [{"text": input.mensaje}]})
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "system_instruction": {"parts": [{"text": sistema}]},
         "contents": mensajes,
