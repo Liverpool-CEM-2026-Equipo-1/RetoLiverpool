@@ -114,7 +114,7 @@ def predecir_batch(batch: BatchInput):
 async def chat(input: ChatInput):
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
     if not GEMINI_API_KEY:
-        return {"respuesta": "El chat no está configurado. Falta la API key de Gemini."}
+        return {"respuesta": "ERROR: No se encontró GEMINI_API_KEY en variables de entorno."}
 
     sistema = """Eres un asistente experto en el portafolio de marcas electrónicas de Liverpool México.
 Ayudas con análisis de vigencia, renovación de marcas registradas en el IMPI, métricas comerciales
@@ -136,13 +136,17 @@ Responde en español, de forma concisa y profesional. Máximo 3 párrafos."""
         "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7}
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(url, json=payload)
-        data = r.json()
-
     try:
-        respuesta = data["candidates"][0]["content"]["parts"][0]["text"]
-    except:
-        respuesta = "No pude procesar tu pregunta. Intenta de nuevo."
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(url, json=payload)
+            data = r.json()
+
+        if "candidates" in data:
+            respuesta = data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            respuesta = f"Error de Gemini: {data}"
+
+    except Exception as e:
+        respuesta = f"Error de conexion: {str(e)}"
 
     return {"respuesta": respuesta}
