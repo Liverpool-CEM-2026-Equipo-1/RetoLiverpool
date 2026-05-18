@@ -1395,9 +1395,9 @@
     </div>
     <div class="chat-suggestions">
       <span class="chat-sug" onclick="enviarSugerencia('¿Qué marcas vencen en los próximos 6 meses?')">Marcas por vencer</span>
-      <span class="chat-sug" onclick="enviarSugerencia('¿Qué significa el ReviewScore?')">ReviewScore</span>
-      <span class="chat-sug" onclick="enviarSugerencia('¿Cómo funciona el modelo predictivo?')">Modelo predictivo</span>
-      <span class="chat-sug" onclick="enviarSugerencia('¿Qué variables son más importantes para predecir renovación?')">Variables clave</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuáles son las marcas con mayor ReviewScore?')">Mejor ReviewScore</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuántas marcas están en riesgo crítico?')">Riesgo crítico</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuáles son las marcas con mayor probabilidad de renovar?')">Top renovación</span>
     </div>
     <div class="chat-input-row">
       <input class="chat-input" id="chatInput" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter') enviarChat()" />
@@ -1420,6 +1420,77 @@
       enviarChat();
     }
 
+    function generarResumenPortafolio(pregunta) {
+      if (!marcasData || marcasData.length === 0) return '';
+      
+      const hoy = new Date();
+      const vigentes = marcasData.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = marcasData.filter(m => m.estatus === 'VENCIDO').length;
+      const criticas = marcasData.filter(m => m.tiempo >= 0 && m.tiempo <= 6).length;
+      const atencion = marcasData.filter(m => m.tiempo > 6 && m.tiempo <= 12).length;
+      const conVentas = marcasData.filter(m => m.tuvoVentas === 'si').length;
+      
+      const reviewTop = marcasData.filter(m => m.review === 'Top').length;
+      const reviewMedia = marcasData.filter(m => m.review === 'Media').length;
+      const reviewBaja = marcasData.filter(m => m.review === 'Baja').length;
+
+      // Top 10 mayor probabilidad renovar
+      const topRenovar = [...marcasData]
+        .filter(m => m.estatus === 'VIGENTE')
+        .sort((a,b) => b.prob - a.prob)
+        .slice(0,10)
+        .map(m => `${m.nombre} (${m.prob}%, Clase ${m.clase})`)
+        .join(', ');
+
+      // Top 10 mayor riesgo
+      const topRiesgo = [...marcasData]
+        .filter(m => m.tiempo >= 0 && m.tiempo <= 6)
+        .sort((a,b) => a.tiempo - b.tiempo)
+        .slice(0,10)
+        .map(m => `${m.nombre} (vence en ${m.tiempo} meses, Clase ${m.clase})`)
+        .join(', ');
+
+      // Top ReviewScore
+      const topReview = [...marcasData]
+        .sort((a,b) => b.score - a.score)
+        .slice(0,10)
+        .map(m => `${m.nombre} (score ${m.score}, Clase ${m.clase})`)
+        .join(', ');
+
+      // Si pregunta por marca específica, incluir sus datos
+      let dataMarca = '';
+      const palabras = pregunta.toUpperCase().split(' ');
+      const marcaEncontrada = marcasData.find(m => 
+        palabras.some(p => p.length > 3 && m.nombre.includes(p))
+      );
+      if (marcaEncontrada) {
+        dataMarca = `
+DATOS ESPECÍFICOS DE LA MARCA MENCIONADA:
+Nombre: ${marcaEncontrada.nombre}
+Clase: ${marcaEncontrada.clase} | NoReg: ${marcaEncontrada.noreg}
+Estatus: ${marcaEncontrada.estatus} | Vigencia: ${marcaEncontrada.vigencia}
+ReviewScore: ${marcaEncontrada.score} (${marcaEncontrada.review})
+Clasificación Comercial: ${marcaEncontrada.clasificacion}
+Tasa Conversión: ${marcaEncontrada.conversion}% | Tasa Devolución: ${marcaEncontrada.devolucion}%
+Antigüedad: ${marcaEncontrada.antiguedad} años
+Tiempo restante renovación: ${marcaEncontrada.tiempo} meses
+Probabilidad de renovar (modelo): ${marcaEncontrada.prob}%
+Región: ${marcaEncontrada.region} | Canal: ${marcaEncontrada.canal} | Segmento: ${marcaEncontrada.segmento}`;
+      }
+
+      return `RESUMEN DEL PORTAFOLIO LIVERPOOL (datos reales):
+Total marcas: ${marcasData.length.toLocaleString()}
+Vigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}
+Con actividad comercial: ${conVentas.toLocaleString()}
+Marcas críticas (menos 6 meses): ${criticas} | En atención (6-12 meses): ${atencion}
+Review Top: ${reviewTop} | Review Media: ${reviewMedia} | Review Baja: ${reviewBaja}
+
+TOP 10 MAYOR PROBABILIDAD DE RENOVAR: ${topRenovar}
+TOP 10 EN RIESGO CRÍTICO (próximas a vencer): ${topRiesgo}
+TOP 10 MEJOR REVIEWSCORE: ${topReview}
+${dataMarca}`;
+    }
+
     async function enviarChat() {
       const input = document.getElementById('chatInput');
       const mensaje = input.value.trim();
@@ -1428,15 +1499,23 @@
       input.value = '';
       agregarMensaje(mensaje, 'user');
 
-      const loading = agregarMensaje('Pensando...', 'loading');
+      const loading = agregarMensaje('Analizando datos...', 'loading');
 
       chatHistorial.push({ role: 'user', content: mensaje });
+
+      const resumen = generarResumenPortafolio(mensaje);
+      const mensajeConContexto = resumen 
+        ? `Contexto del portafolio:
+${resumen}
+
+Pregunta del usuario: ${mensaje}`
+        : mensaje;
 
       try {
         const res = await fetch(API_URL + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mensaje, historial: chatHistorial.slice(-6) })
+          body: JSON.stringify({ mensaje: mensajeConContexto, historial: chatHistorial.slice(-4) })
         });
         const data = await res.json();
         loading.remove();
