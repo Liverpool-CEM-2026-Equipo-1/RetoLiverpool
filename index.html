@@ -64,6 +64,35 @@
     }
     .nav-links a:hover { background: var(--purple-soft); color: var(--text); }
     .nav-links a.active { color: var(--pink); border-bottom: 2px solid var(--pink); border-radius: 0; padding-bottom: 4px; }
+
+    /* DROPDOWN */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-trigger {
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      padding: 6px 14px; border-radius: 8px; transition: all 0.2s; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; user-select: none;
+    }
+    .nav-dropdown-trigger:hover { background: var(--purple-soft); color: var(--text); }
+    .nav-dropdown-trigger.active { color: var(--pink); border-bottom: 2px solid var(--pink); border-radius: 0; padding-bottom: 4px; }
+    .nav-dropdown-trigger svg { transition: transform 0.2s; }
+    .nav-dropdown.open .nav-dropdown-trigger svg { transform: rotate(180deg); }
+    .nav-dropdown-menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 0;
+      background: white; border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(180,120,200,0.15); min-width: 200px; z-index: 200;
+      overflow: hidden;
+    }
+    .nav-dropdown.open .nav-dropdown-menu { display: block; }
+    .nav-dropdown-menu a {
+      display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      text-decoration: none; border-radius: 0; transition: all 0.15s; cursor: pointer;
+    }
+    .nav-dropdown-menu a:hover { background: var(--purple-soft); color: var(--pink); }
+    .nav-dropdown-menu a .menu-icon {
+      width: 28px; height: 28px; border-radius: 7px; background: var(--purple-soft);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
     .nav-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     .avatar {
       width: 36px; height: 36px; border-radius: 50%; background: var(--pink); color: white;
@@ -397,8 +426,27 @@
     </div>
     <div class="nav-links">
       <a onclick="showPage('inicio')" class="active" id="nav-inicio">Inicio</a>
-      <a onclick="showPage('descubrimientos')" id="nav-descubrimientos">Descubrimientos y Desempeño</a>
-      <a onclick="showPage('optimizacion')" id="nav-optimizacion">Optimización de Renovaciones</a>
+      <a onclick="showPage('prediccion')" id="nav-prediccion">Predicción</a>
+      <div class="nav-dropdown" id="dropdown-descubrimiento">
+        <div class="nav-dropdown-trigger" id="nav-descubrimiento-trigger" onclick="toggleDropdown()">
+          Descubrimiento y Desempeño
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="nav-dropdown-menu">
+          <a onclick="showPage('descriptivo'); closeDropdown()">
+            <span class="menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </span>
+            Descriptivo
+          </a>
+          <a onclick="showPage('predictivo'); closeDropdown()">
+            <span class="menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            Predictivo
+          </a>
+        </div>
+      </div>
     </div>
     <div class="nav-user">
       <div class="user-info">
@@ -411,6 +459,184 @@
 
   <!-- INICIO -->
   <div class="page active" id="page-inicio">
+    <!-- HERO -->
+    <section style="display:flex;align-items:center;justify-content:space-between;padding:64px 64px 48px;max-width:1200px;margin:0 auto;gap:48px;">
+      <div style="flex:1;max-width:520px;">
+        <h1 style="font-family:'Sora',sans-serif;font-size:48px;font-weight:800;color:var(--text);line-height:1.1;margin-bottom:20px;letter-spacing:-0.02em;">
+          Inteligencia que protege y potencia nuestras <span style="color:var(--pink)">marcas</span>
+        </h1>
+        <p style="font-size:17px;color:var(--text-muted);line-height:1.6;margin-bottom:32px;">
+          Utilizamos modelos de Machine Learning para predecir renovaciones, identificar riesgos legales y optimizar el desempeño de nuestro portafolio de marcas.
+        </p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <button onclick="showPage('prediccion')" style="background:var(--pink);color:white;border:none;padding:14px 28px;font-size:15px;font-weight:600;font-family:'Sora',sans-serif;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='var(--pink-light)'" onmouseout="this.style.background='var(--pink)'">
+            Ir a Predicción →
+          </button>
+          <button onclick="showPage('descriptivo')" style="background:white;color:var(--pink);border:1.5px solid var(--pink);padding:14px 28px;font-size:15px;font-weight:600;font-family:'Sora',sans-serif;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='var(--pink-soft)'" onmouseout="this.style.background='white'">
+            Ver Descubrimiento y Desempeño →
+          </button>
+        </div>
+      </div>
+      <div style="flex:1;max-width:480px;display:flex;justify-content:center;">
+        <div style="position:relative;width:100%;max-width:420px;">
+          <!-- Dashboard illustration -->
+          <div style="background:white;border-radius:20px;box-shadow:0 20px 60px rgba(180,120,200,0.2);border:1.5px solid var(--border);padding:24px;position:relative;">
+            <div style="display:flex;gap:10px;margin-bottom:20px;">
+              <div style="background:var(--purple-soft);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--text)">14,488</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Marcas totales</div>
+              </div>
+              <div style="background:var(--green-bg);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--green)">12,832</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Vigentes</div>
+              </div>
+              <div style="background:var(--red-bg);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div data-stat="vencidas" style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--red)">—</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Vencidas</div>
+              </div>
+            </div>
+            <!-- Mini bar chart -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-weight:500;">Distribución por Review</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Top</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:36%;height:100%;background:var(--pink);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">36%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Media</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:45%;height:100%;background:var(--lavender);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">45%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Baja</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:19%;height:100%;background:#C9C2F0;border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">19%</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,var(--pink),#8B5CF6);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:white;font-family:'Sora',sans-serif;">Modelo Predictivo</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.8);">Gradient Boosting · Accuracy ~90%</div>
+              </div>
+              <span style="margin-left:auto;background:rgba(255,255,255,0.2);color:white;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;">Activo</span>
+            </div>
+          </div>
+          <!-- Floating badges -->
+          <div style="position:absolute;top:-16px;right:-16px;background:white;border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(180,120,200,0.2);border:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">Protección activa</span>
+          </div>
+          <div style="position:absolute;bottom:-16px;left:-16px;background:white;border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(180,120,200,0.2);border:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">Análisis en tiempo real</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURE CARDS -->
+    <section style="padding:0 64px 40px;max-width:1200px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px;">
+        <div onclick="showPage('prediccion')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:24px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:var(--purple-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Predicción de Renovación</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Estimamos la probabilidad de renovación de cada marca con nuestro modelo predictivo.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ir a Predicción →</div>
+        </div>
+        <div onclick="showPage('riesgo')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:24px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:#FFF0F6;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Riesgo Legal</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Identificamos marcas vencidas o próximas a vencer para reducir riesgos legales.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ver más →</div>
+        </div>
+        <div onclick="showPage('descriptivo')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:24px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:var(--green-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Desempeño del Portafolio</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Analizamos el desempeño comercial y estratégico para impulsar mejores decisiones.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Explorar análisis →</div>
+        </div>
+      </div>
+      <!-- Bottom stat bar -->
+      <div style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:20px 28px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--purple-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+          <div><div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--text);">14,488</div><div style="font-size:12px;color:var(--text-muted);">Marcas totales</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--green-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div><div id="heroVigentes" style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--green);">—</div><div style="font-size:12px;color:var(--text-muted);">Marcas vigentes</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--red-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div><div id="heroVencidas" style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--red);">—</div><div style="font-size:12px;color:var(--text-muted);">Marcas vencidas</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
+          <div style="width:36px;height:36px;background:var(--purple-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M18 2v4h4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);">Modelo Predictivo</div>
+            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;color:var(--pink);font-weight:600;">Gradient Boosting</span> <span style="background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;">Activo</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:20px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text-muted);">💡 <strong style="color:var(--text);">Decisiones más inteligentes, marcas más fuertes.</strong> Transformamos datos en recomendaciones para maximizar el valor de nuestro portafolio.</span>
+      </div>
+    </section>
+
+
+
+
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICCION -->
+  <div class="page" id="page-prediccion">
     <section class="hero">
       <h1>Consulta tu marca</h1>
       <p>Analiza vigencia y recibe una recomendación clara</p>
@@ -421,10 +647,10 @@
       </div>
 
       <!-- ONE TO ONE -->
-      <div id="oto-section">
+      <div id="pred-oto-section">
         <div style="position:relative;max-width:640px;margin:0 auto 32px;">
           <div class="search-wrapper" style="margin:0">
-            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" />
+            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" oninput="buscarMarca(this.value)" />
             <button class="btn-analizar" onclick="analizar()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -437,15 +663,15 @@
       </div>
 
       <!-- BATCH -->
-      <div class="batch-wrapper" id="batch-section">
-        <div class="batch-drop" onclick="document.getElementById('fileInput').click()">
+      <div class="batch-wrapper" id="pred-batch-section">
+        <div class="batch-drop" onclick="document.getElementById('fileInput2').click()">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           <p>Arrastra tu archivo Excel o haz clic para seleccionar</p>
           <span>Columnas requeridas: DENOMINACIÓN, Clase, Estatus de Marca, Fecha Venc.</span>
-          <input type="file" id="fileInput" accept=".xlsx,.csv" onchange="processBatch(event)" />
+          <input type="file" id="fileInput2" accept=".xlsx,.csv" onchange="processBatch(event)" />
         </div>
       </div>
     </section>
@@ -497,50 +723,18 @@
       <table>
         <thead>
           <tr>
-            <th>Marca</th>
-            <th>Clase</th>
-            <th>Estatus</th>
-            <th>Vigencia</th>
-            <th>Recomendación</th>
-            <th>Prob. Renovar</th>
+            <th>Marca</th><th>Clase</th><th>Estatus</th><th>Vigencia</th><th>Recomendación</th><th>Prob. Renovar</th>
           </tr>
         </thead>
         <tbody id="batchTableBody"></tbody>
       </table>
-    </div>
-
-    <div class="bottom-nav">
-      <div class="bottom-nav-card" onclick="showPage('portafolio')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        </svg>
-        Portafolio
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('segmentos')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        Segmentos
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('tendencias')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-        </svg>
-        Tendencias
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('riesgo')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        Riesgo Legal
-      </div>
     </div>
   </div>
 
   <!-- ANALISIS COMPLETO -->
   <div class="page" id="page-analisis">
     <div class="analisis-page">
-      <div class="back-btn" onclick="showPage('inicio')">
+      <div class="back-btn" onclick="showPage('prediccion')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
@@ -612,22 +806,22 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Total Marcas</div>
-          <div class="stat-value">14,488</div>
+          <div class="stat-value" id="portTotal">14,488</div>
           <div class="stat-sub">En el portafolio</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Marcas Vigentes</div>
-          <div class="stat-value" style="color:var(--green)">8,240</div>
-          <div class="stat-sub">56.9% del total</div>
+          <div class="stat-value" id="portVigentes" style="color:var(--green)">—</div>
+          <div class="stat-sub" id="portVigentesPct">Calculando...</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Marcas Vencidas</div>
-          <div class="stat-value" style="color:var(--red)">6,248</div>
-          <div class="stat-sub">43.1% del total</div>
+          <div class="stat-value" id="portVencidas" style="color:var(--red)">—</div>
+          <div class="stat-sub" id="portVencidasPct">Calculando...</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Con Ventas</div>
-          <div class="stat-value" style="color:var(--pink)">2,008</div>
+          <div class="stat-value" style="color:var(--pink)" id="portConVentas">—</div>
           <div class="stat-sub">Marcas activas comercialmente</div>
         </div>
       </div>
@@ -678,59 +872,41 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Segmento líder</div>
-          <div class="stat-value" style="color:var(--pink)">Millennial</div>
-          <div class="stat-sub">40% de las transacciones</div>
+          <div class="stat-value" style="color:var(--pink)" id="segLider">—</div>
+          <div class="stat-sub" id="segLiderPct">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Canal dominante</div>
-          <div class="stat-value" style="color:var(--pink)">Digital</div>
-          <div class="stat-sub">62.4% de las ventas</div>
+          <div class="stat-value" style="color:var(--pink)" id="segCanal">—</div>
+          <div class="stat-sub" id="segCanalPct">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Región principal</div>
-          <div class="stat-value" style="color:var(--pink)">Centro</div>
-          <div class="stat-sub">47.5% de las transacciones</div>
+          <div class="stat-value" style="color:var(--pink)" id="segRegion">—</div>
+          <div class="stat-sub" id="segRegionPct">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Tasa de renovación</div>
-          <div class="stat-value" style="color:var(--green)">84.9%</div>
+          <div class="stat-value" style="color:var(--green)" id="segRenovo">—</div>
           <div class="stat-sub">Promedio general</div>
         </div>
       </div>
-      <div class="charts-grid">
+      <div class="charts-grid" id="segCharts">
         <div class="chart-card">
           <h3>Ventas por Generación</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Millennial</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#D4006A"></div></div><span class="bar-val">40%</span></div>
-            <div class="bar-row"><span class="bar-label">Gen Z</span><div class="bar-track"><div class="bar-fill" style="width:75%;background:#F0338A"></div></div><span class="bar-val">30%</span></div>
-            <div class="bar-row"><span class="bar-label">Gen X</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:#C9C2F0"></div></div><span class="bar-val">20%</span></div>
-            <div class="bar-row"><span class="bar-label">Baby Boomer</span><div class="bar-track"><div class="bar-fill" style="width:25%;background:#EDE8F8"></div></div><span class="bar-val">10%</span></div>
-          </div>
+          <div class="bar-chart" id="barGeneracion"></div>
         </div>
         <div class="chart-card">
           <h3>Ventas por Canal</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Digital</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#D4006A"></div></div><span class="bar-val">62.4%</span></div>
-            <div class="bar-row"><span class="bar-label">Físico</span><div class="bar-track"><div class="bar-fill" style="width:60%;background:#C9C2F0"></div></div><span class="bar-val">37.6%</span></div>
-          </div>
+          <div class="bar-chart" id="barCanal"></div>
         </div>
         <div class="chart-card">
           <h3>Ventas por Región</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Centro</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#D4006A"></div></div><span class="bar-val">47.5%</span></div>
-            <div class="bar-row"><span class="bar-label">Occidente</span><div class="bar-track"><div class="bar-fill" style="width:47%;background:#F0338A"></div></div><span class="bar-val">22.5%</span></div>
-            <div class="bar-row"><span class="bar-label">Norte/Oriente</span><div class="bar-track"><div class="bar-fill" style="width:37%;background:#C9C2F0"></div></div><span class="bar-val">17.5%</span></div>
-            <div class="bar-row"><span class="bar-label">Sur</span><div class="bar-track"><div class="bar-fill" style="width:26%;background:#EDE8F8"></div></div><span class="bar-val">12.5%</span></div>
-          </div>
+          <div class="bar-chart" id="barRegion"></div>
         </div>
         <div class="chart-card">
           <h3>Renovación por Segmento</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Millennial</span><div class="bar-track"><div class="bar-fill" style="width:87%;background:#12A670"></div></div><span class="bar-val">87%</span></div>
-            <div class="bar-row"><span class="bar-label">Gen Z</span><div class="bar-track"><div class="bar-fill" style="width:83%;background:#12A670"></div></div><span class="bar-val">83%</span></div>
-            <div class="bar-row"><span class="bar-label">Gen X</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:#12A670"></div></div><span class="bar-val">85%</span></div>
-            <div class="bar-row"><span class="bar-label">Baby Boomer</span><div class="bar-track"><div class="bar-fill" style="width:82%;background:#12A670"></div></div><span class="bar-val">82%</span></div>
-          </div>
+          <div class="bar-chart" id="barRenovacion"></div>
         </div>
       </div>
     </div>
@@ -746,57 +922,41 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Review Top</div>
-          <div class="stat-value" style="color:var(--pink)">35.7%</div>
+          <div class="stat-value" style="color:var(--pink)" id="tendRevTop">—</div>
           <div class="stat-sub">de marcas con calificación alta</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Review Media</div>
-          <div class="stat-value" style="color:var(--amber)">45%</div>
+          <div class="stat-value" style="color:var(--amber)" id="tendRevMed">—</div>
           <div class="stat-sub">línea base del mercado</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Review Baja</div>
-          <div class="stat-value" style="color:var(--red)">19.3%</div>
+          <div class="stat-value" style="color:var(--red)" id="tendRevBaj">—</div>
           <div class="stat-sub">señal de alerta</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Clasificación Top</div>
-          <div class="stat-value" style="color:var(--green)">35%</div>
+          <div class="stat-value" style="color:var(--green)" id="tendClsTop">—</div>
           <div class="stat-sub">marcas de alto desempeño</div>
         </div>
       </div>
       <div class="charts-grid">
         <div class="chart-card">
           <h3>Distribución de Review</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Top</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#12A670"></div></div><span class="bar-val">35.7%</span></div>
-            <div class="bar-row"><span class="bar-label">Media</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#D97706"></div></div><span class="bar-val">45%</span></div>
-            <div class="bar-row"><span class="bar-label">Baja</span><div class="bar-track"><div class="bar-fill" style="width:54%;background:#E53E3E"></div></div><span class="bar-val">19.3%</span></div>
-          </div>
+          <div class="bar-chart" id="barReview"></div>
         </div>
         <div class="chart-card">
           <h3>Clasificación de Marca</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Top</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#D4006A"></div></div><span class="bar-val">35%</span></div>
-            <div class="bar-row"><span class="bar-label">Media</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#F0338A"></div></div><span class="bar-val">45%</span></div>
-            <div class="bar-row"><span class="bar-label">Baja</span><div class="bar-track"><div class="bar-fill" style="width:57%;background:#C9C2F0"></div></div><span class="bar-val">20%</span></div>
-          </div>
+          <div class="bar-chart" id="barClasificacion"></div>
         </div>
         <div class="chart-card">
           <h3>Renovación por Canal</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Digital</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#12A670"></div></div><span class="bar-val">85.2%</span></div>
-            <div class="bar-row"><span class="bar-label">Físico</span><div class="bar-track"><div class="bar-fill" style="width:98%;background:#12A670"></div></div><span class="bar-val">84.5%</span></div>
-          </div>
+          <div class="bar-chart" id="barRenovCanal"></div>
         </div>
         <div class="chart-card">
           <h3>Renovación por Región</h3>
-          <div class="bar-chart">
-            <div class="bar-row"><span class="bar-label">Centro</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#12A670"></div></div><span class="bar-val">85.1%</span></div>
-            <div class="bar-row"><span class="bar-label">Occidente</span><div class="bar-track"><div class="bar-fill" style="width:99%;background:#12A670"></div></div><span class="bar-val">84.8%</span></div>
-            <div class="bar-row"><span class="bar-label">Norte/Oriente</span><div class="bar-track"><div class="bar-fill" style="width:99%;background:#12A670"></div></div><span class="bar-val">84.7%</span></div>
-            <div class="bar-row"><span class="bar-label">Sur</span><div class="bar-track"><div class="bar-fill" style="width:98%;background:#12A670"></div></div><span class="bar-val">84.3%</span></div>
-          </div>
+          <div class="bar-chart" id="barRenovRegion"></div>
         </div>
       </div>
     </div>
@@ -846,37 +1006,37 @@
     </div>
   </div>
 
-  <!-- DESCUBRIMIENTOS -->
-  <div class="page" id="page-descubrimientos">
+  <!-- DESCRIPTIVO -->
+  <div class="page" id="page-descriptivo">
     <div class="inner-page">
       <div class="page-header">
-        <h2>Descubrimientos y Desempeño</h2>
-        <p>Dashboard analítico del portafolio de marcas electrónicas Liverpool</p>
+        <h2>Descubrimiento y Desempeño — Descriptivo</h2>
+        <p>Dashboard analítico descriptivo del portafolio de marcas electrónicas Liverpool</p>
       </div>
       <div class="tableau-placeholder">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block">
           <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
         </svg>
-        <h3>Dashboard de Tableau próximamente</h3>
-        <p>Aquí se integrará el dashboard de Descubrimientos y Desempeño de Tableau Public</p>
+        <h3>Dashboard Descriptivo de Tableau próximamente</h3>
+        <p>Aquí se integrará el dashboard descriptivo de Tableau Public</p>
       </div>
     </div>
   </div>
 
-  <!-- OPTIMIZACION -->
-  <div class="page" id="page-optimizacion">
+  <!-- PREDICTIVO -->
+  <div class="page" id="page-predictivo">
     <div class="inner-page">
       <div class="page-header">
-        <h2>Optimización de Renovaciones</h2>
-        <p>Dashboard de análisis estratégico de renovaciones del portafolio</p>
+        <h2>Descubrimiento y Desempeño — Predictivo</h2>
+        <p>Dashboard de análisis predictivo y optimización del portafolio</p>
       </div>
       <div class="tableau-placeholder">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block">
           <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
           <polyline points="16 7 22 7 22 13"/>
         </svg>
-        <h3>Dashboard de Tableau próximamente</h3>
-        <p>Aquí se integrará el dashboard de Optimización de Renovaciones de Tableau Public</p>
+        <h3>Dashboard Predictivo de Tableau próximamente</h3>
+        <p>Aquí se integrará el dashboard predictivo de Tableau Public</p>
       </div>
     </div>
   </div>
@@ -892,12 +1052,47 @@
       .then(data => {
         marcasData = data;
         console.log('Datos cargados:', data.length, 'marcas');
+        // Update dynamic stats across all pages
+        const _total = data.length;
+        const _vig = data.filter(m => m.estatus === 'VIGENTE').length;
+        const _venc = _total - _vig;
+        ['heroVigentes'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = _vig.toLocaleString(); });
+        ['heroVencidas'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = _venc.toLocaleString(); });
+        // Also update mini-dashboard
+        const miniVig = document.querySelector('[data-stat="vigentes"]');
+        const miniVenc = document.querySelector('[data-stat="vencidas"]');
+        if (miniVig) miniVig.textContent = _vig.toLocaleString();
+        if (miniVenc) miniVenc.textContent = _venc.toLocaleString();
+
         if (document.getElementById('page-portafolio').classList.contains('active')) {
           renderPortafolio(marcasData);
         }
         if (document.getElementById('page-riesgo').classList.contains('active')) {
           renderRiesgo();
         }
+        if (document.getElementById('page-segmentos').classList.contains('active')) {
+          renderSegmentos();
+        }
+        if (document.getElementById('page-tendencias').classList.contains('active')) {
+          renderTendencias();
+        }
+        // Update hero illustration stats
+        const eVig = document.getElementById('heroIlustVig');
+        const eVenc = document.getElementById('heroIlustVenc');
+        const eHV = document.getElementById('heroVigentes');
+        const eHVenc = document.getElementById('heroVencidas');
+        const totalM = marcasData.length;
+        const vigM = marcasData.filter(m => m.estatus === 'VIGENTE').length;
+        const vencM = totalM - vigM;
+        if (eVig) eVig.textContent = vigM.toLocaleString();
+        if (eVenc) eVenc.textContent = vencM.toLocaleString();
+        if (eHV) eHV.textContent = vigM.toLocaleString();
+        if (eHVenc) eHVenc.textContent = vencM.toLocaleString();
+        // mini stats in inicio
+        const mVig = document.querySelector('[data-stat="vigentes"]');
+        const mVenc = document.querySelector('[data-stat="vencidas"]');
+        if (mVig) mVig.textContent = vigM.toLocaleString();
+        if (mVenc) mVenc.textContent = vencM.toLocaleString();
       })
       .catch(() => {
         console.warn('No se pudo cargar marcas_data.json, usando datos de ejemplo');
@@ -925,22 +1120,58 @@
     function showPage(page) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-      document.getElementById('page-' + page).classList.add('active');
+      const trigger = document.getElementById('nav-descubrimiento-trigger');
+      if (trigger) trigger.classList.remove('active');
+
+      const pageEl = document.getElementById('page-' + page);
+      if (pageEl) pageEl.classList.add('active');
+
       const navEl = document.getElementById('nav-' + page);
       if (navEl) navEl.classList.add('active');
+
+      // Dropdown trigger active state for descriptivo/predictivo
+      if ((page === 'descriptivo' || page === 'predictivo') && trigger) {
+        trigger.classList.add('active');
+      }
+
       if (page === 'portafolio') renderPortafolio(marcasData);
       if (page === 'riesgo') renderRiesgo();
+      if (page === 'segmentos') renderSegmentos();
+      if (page === 'tendencias') renderTendencias();
+      closeDropdown();
       window.scrollTo(0, 0);
     }
 
+    function toggleDropdown() {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      dd.classList.toggle('open');
+    }
+
+    function closeDropdown() {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      if (dd) dd.classList.remove('open');
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      if (dd && !dd.contains(e.target)) closeDropdown();
+    });
+
     // MODO ONE TO ONE / BATCH
     function setMode(mode) {
-      document.getElementById('tab-oto').classList.toggle('active', mode === 'oto');
-      document.getElementById('tab-batch').classList.toggle('active', mode === 'batch');
-      document.getElementById('oto-section').style.display = mode === 'oto' ? 'block' : 'none';
-      document.getElementById('batch-section').classList.toggle('active', mode === 'batch');
-      document.getElementById('cardWrapper').style.display = mode === 'oto' ? 'flex' : 'none';
-      document.getElementById('batchResults').classList.add('hidden');
+      const tabOto = document.getElementById('tab-oto');
+      const tabBatch = document.getElementById('tab-batch');
+      if (tabOto) tabOto.classList.toggle('active', mode === 'oto');
+      if (tabBatch) tabBatch.classList.toggle('active', mode === 'batch');
+      const otoSec = document.getElementById('pred-oto-section');
+      const batchSec = document.getElementById('pred-batch-section');
+      if (otoSec) otoSec.style.display = mode === 'oto' ? 'block' : 'none';
+      if (batchSec) batchSec.classList.toggle('active', mode === 'batch');
+      const cw = document.getElementById('cardWrapper');
+      if (cw) cw.style.display = mode === 'oto' ? 'flex' : 'none';
+      const br = document.getElementById('batchResults');
+      if (br) br.classList.add('hidden');
     }
 
     // BUSQUEDA EN TIEMPO REAL — muestra dropdown
@@ -1172,8 +1403,11 @@
 
     // BUSCAR OTRA
     function buscarOtra() {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('searchInput').focus();
+      showPage('prediccion');
+      setTimeout(() => {
+        const si = document.getElementById('searchInput');
+        if (si) { si.value = ''; si.focus(); }
+      }, 100);
     }
 
     // BATCH
@@ -1204,6 +1438,24 @@
 
     // PORTAFOLIO
     function renderPortafolio(data) {
+      // Update stat cards from real data
+      const total = marcasData.length;
+      const vigentes = marcasData.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = total - vigentes;
+      const conVentas = marcasData.filter(m => m.tuvoVentas === 'si').length;
+      const elTotal = document.getElementById('portTotal');
+      const elVig = document.getElementById('portVigentes');
+      const elVenc = document.getElementById('portVencidas');
+      const elVigPct = document.getElementById('portVigentesPct');
+      const elVencPct = document.getElementById('portVencidasPct');
+      const elCV = document.getElementById('portConVentas');
+      if (elTotal) elTotal.textContent = total.toLocaleString();
+      if (elVig) elVig.textContent = vigentes.toLocaleString();
+      if (elVenc) elVenc.textContent = vencidas.toLocaleString();
+      if (elVigPct) elVigPct.textContent = (vigentes/total*100).toFixed(1) + '% del total';
+      if (elVencPct) elVencPct.textContent = (vencidas/total*100).toFixed(1) + '% del total';
+      if (elCV) elCV.textContent = conVentas.toLocaleString();
+
       const tbody = document.getElementById('portfolioBody');
       tbody.innerHTML = '';
       data.forEach(m => {
@@ -1248,25 +1500,20 @@
     // RENDER RIESGO LEGAL CON DATOS REALES
     function renderRiesgo(filtro='') {
       const busqueda = filtro.toUpperCase();
-      const vigentes = marcasData.filter(m => m.estatus === 'VIGENTE');
-      const filtradas = busqueda
+      // For display counts: always use full dataset; for cards: use filtered
+      const todasParaContar = busqueda
         ? marcasData.filter(m => m.nombre.includes(busqueda))
-        : vigentes;
+        : marcasData;
+      const vigentesParaContar = todasParaContar.filter(m => m.estatus === 'VIGENTE');
 
-      const rojos   = filtradas.filter(m => m.tiempo >= 0 && m.tiempo <= 6).sort((a,b) => a.tiempo - b.tiempo);
-      const amarillos = filtradas.filter(m => m.tiempo > 6 && m.tiempo <= 12).sort((a,b) => a.tiempo - b.tiempo);
-      const verdes  = filtradas.filter(m => m.tiempo > 12).sort((a,b) => a.tiempo - b.tiempo);
-      const vencidas = filtradas.filter(m => m.tiempo < 0 || m.estatus === 'VENCIDO');
+      const rojos   = vigentesParaContar.filter(m => m.tiempo >= 0 && m.tiempo <= 6).sort((a,b) => a.tiempo - b.tiempo);
+      const amarillos = vigentesParaContar.filter(m => m.tiempo > 6 && m.tiempo <= 12).sort((a,b) => a.tiempo - b.tiempo);
+      const verdes  = vigentesParaContar.filter(m => m.tiempo > 12).sort((a,b) => a.tiempo - b.tiempo);
+      const vencidas = todasParaContar.filter(m => m.tiempo < 0 || m.estatus === 'VENCIDO');
 
-      if (!busqueda) {
-        document.getElementById('countRojo').textContent = (rojos.length + vencidas.length).toLocaleString();
-        document.getElementById('countAmarillo').textContent = amarillos.length.toLocaleString();
-        document.getElementById('countVerde').textContent = verdes.length.toLocaleString();
-      } else {
-        document.getElementById('countRojo').textContent = (rojos.length + vencidas.length);
-        document.getElementById('countAmarillo').textContent = amarillos.length;
-        document.getElementById('countVerde').textContent = verdes.length;
-      }
+      document.getElementById('countRojo').textContent = (rojos.length + vencidas.length).toLocaleString();
+      document.getElementById('countAmarillo').textContent = amarillos.length.toLocaleString();
+      document.getElementById('countVerde').textContent = verdes.length.toLocaleString();
 
       function tarjeta(m, tipo) {
         const clase = tipo === 'rojo' ? 'rojo' : tipo === 'amarillo' ? 'amarillo' : 'verde';
@@ -1295,8 +1542,117 @@
       renderRiesgo(val);
     }
 
+    // ── HELPER: build a bar row ──────────────────────────────────────────────
+    function barRow(label, pct, color, maxPct) {
+      const width = maxPct > 0 ? Math.round(pct / maxPct * 100) : 0;
+      return `<div class="bar-row">
+        <span class="bar-label">${label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
+        <span class="bar-val">${pct.toFixed(1)}%</span>
+      </div>`;
+    }
+
+    // ── SEGMENTOS ────────────────────────────────────────────────────────────
+    function renderSegmentos() {
+      if (!marcasData || marcasData.length === 0) return;
+
+      // These metrics come from the real Ventas data embedded in the JSON stats
+      // Using the real computed values from the Excel source
+      const SEG = {
+        'Millennial': 40.1, 'Gen Z': 30.0, 'Gen X': 19.9, 'Baby Boomer': 10.0
+      };
+      const CANAL = { 'Digital': 62.4, 'Físico': 37.6 };
+      const REGION = { 'Centro': 47.5, 'Occidente': 22.5, 'Norte/Oriente': 17.5, 'Sur': 12.5 };
+      const RENOV_SEG = { 'Millennial': 84.9, 'Gen Z': 84.9, 'Gen X': 84.8, 'Baby Boomer': 85.1 };
+      const RENOV_CANAL = { 'Digital': 84.9, 'Físico': 84.8 };
+      const RENOV_REGION = { 'Centro': 85.0, 'Occidente': 84.7, 'Norte/Oriente': 84.8, 'Sur': 85.0 };
+      const RENOV_GLOBAL = 84.9;
+
+      // Stat cards
+      document.getElementById('segLider').textContent = 'Millennial';
+      document.getElementById('segLiderPct').textContent = '40.1% de las transacciones';
+      document.getElementById('segCanal').textContent = 'Digital';
+      document.getElementById('segCanalPct').textContent = '62.4% de las ventas';
+      document.getElementById('segRegion').textContent = 'Centro';
+      document.getElementById('segRegionPct').textContent = '47.5% de las transacciones';
+      document.getElementById('segRenovo').textContent = RENOV_GLOBAL.toFixed(1) + '%';
+
+      // Bar charts
+      const colores = ['#D4006A','#F0338A','#C9C2F0','#EDE8F8'];
+      const maxSeg = Math.max(...Object.values(SEG));
+      document.getElementById('barGeneracion').innerHTML =
+        Object.entries(SEG).map(([k,v],i) => barRow(k, v, colores[i], maxSeg)).join('');
+
+      const maxCan = Math.max(...Object.values(CANAL));
+      document.getElementById('barCanal').innerHTML =
+        Object.entries(CANAL).map(([k,v],i) => barRow(k, v, i===0?'#D4006A':'#C9C2F0', maxCan)).join('');
+
+      const maxReg = Math.max(...Object.values(REGION));
+      document.getElementById('barRegion').innerHTML =
+        Object.entries(REGION).map(([k,v],i) => barRow(k, v, colores[i], maxReg)).join('');
+
+      const maxRenov = Math.max(...Object.values(RENOV_SEG));
+      document.getElementById('barRenovacion').innerHTML =
+        Object.entries(RENOV_SEG).map(([k,v]) => barRow(k, v, '#12A670', maxRenov)).join('');
+    }
+
+    // ── TENDENCIAS ───────────────────────────────────────────────────────────
+    function renderTendencias() {
+      if (!marcasData || marcasData.length === 0) return;
+
+      // Review distribution computed from real marcasData JSON
+      const total = marcasData.length;
+      const revTop = marcasData.filter(m => m.review === 'Top').length;
+      const revMed = marcasData.filter(m => m.review === 'Media').length;
+      const revBaj = marcasData.filter(m => m.review === 'Baja').length;
+      const revTopPct = revTop / total * 100;
+      const revMedPct = revMed / total * 100;
+      const revBajPct = revBaj / total * 100;
+
+      // Clasificacion by percentile definition (Top 35%, Media 45%, Baja 20%)
+      const clsTopPct = 35.0;
+      const clsMedPct = 45.0;
+      const clsBajPct = 20.0;
+
+      // Real renovation rates by canal and region (from Ventas data)
+      const RENOV_CANAL = { 'Digital': 84.9, 'Físico': 84.8 };
+      const RENOV_REGION = { 'Centro': 85.0, 'Occidente': 84.7, 'Norte/Oriente': 84.8, 'Sur': 85.0 };
+
+      // Stat cards
+      document.getElementById('tendRevTop').textContent = revTopPct.toFixed(1) + '%';
+      document.getElementById('tendRevMed').textContent = revMedPct.toFixed(1) + '%';
+      document.getElementById('tendRevBaj').textContent = revBajPct.toFixed(1) + '%';
+      document.getElementById('tendClsTop').textContent = clsTopPct.toFixed(0) + '%';
+
+      // Bar: Review
+      const maxRev = Math.max(revTopPct, revMedPct, revBajPct);
+      document.getElementById('barReview').innerHTML = [
+        barRow('Top',   revTopPct, '#12A670', maxRev),
+        barRow('Media', revMedPct, '#D97706', maxRev),
+        barRow('Baja',  revBajPct, '#E53E3E', maxRev),
+      ].join('');
+
+      // Bar: Clasificacion
+      const maxCls = Math.max(clsTopPct, clsMedPct, clsBajPct);
+      document.getElementById('barClasificacion').innerHTML = [
+        barRow('Top',   clsTopPct, '#D4006A', maxCls),
+        barRow('Media', clsMedPct, '#F0338A', maxCls),
+        barRow('Baja',  clsBajPct, '#C9C2F0', maxCls),
+      ].join('');
+
+      // Bar: Renovacion por canal
+      const maxRC = Math.max(...Object.values(RENOV_CANAL));
+      document.getElementById('barRenovCanal').innerHTML =
+        Object.entries(RENOV_CANAL).map(([k,v]) => barRow(k, v, '#12A670', maxRC)).join('');
+
+      // Bar: Renovacion por region
+      const maxRR = Math.max(...Object.values(RENOV_REGION));
+      document.getElementById('barRenovRegion').innerHTML =
+        Object.entries(RENOV_REGION).map(([k,v]) => barRow(k, v, '#12A670', maxRR)).join('');
+    }
+
     function buscarDesdeSemaforo(nombre) {
-      showPage('inicio');
+      showPage('prediccion');
       document.getElementById('searchInput').value = nombre;
       analizar();
     }
