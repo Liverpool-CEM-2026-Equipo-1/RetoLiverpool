@@ -226,7 +226,24 @@
     .btn-outline:hover { border-color: var(--pink); color: var(--pink); background: var(--pink-soft); }
 
     /* BATCH RESULTS */
-    .batch-results { max-width: 780px; margin: 0 auto; padding: 0 24px 40px; }
+    .batch-results { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
+    .batch-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 28px; }
+    .bc-card { background: white; border-radius: 16px; border: 1.5px solid var(--border); padding: 20px 22px; box-shadow: 0 4px 20px rgba(180,120,200,.08); }
+    .bc-card h4 { font-family:'Sora',sans-serif; font-size:14px; font-weight:700; color:var(--text); margin:0 0 16px; }
+    .bc-bar-row { display:flex; align-items:center; gap:10px; margin:7px 0; }
+    .bc-label { font-size:12px; color:var(--text-muted); width:96px; flex-shrink:0; text-align:right; }
+    .bc-track { flex:1; height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
+    .bc-fill { height:100%; border-radius:5px; transition:width .6s ease; }
+    .bc-val { font-size:12px; font-weight:600; color:var(--text); width:32px; }
+    .bc-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .bc-kpi { border-radius:10px; padding:12px 14px; text-align:center; background:var(--purple-soft); }
+    .bc-kpi-val { font-family:'Sora',sans-serif; font-size:22px; font-weight:800; margin:0; }
+    .bc-kpi-lbl { font-size:11px; color:var(--text-muted); margin:2px 0 0; }
+    .bc-donut-wrap { display:flex; align-items:center; justify-content:center; gap:20px; }
+    .bc-legend { display:flex; flex-direction:column; gap:9px; }
+    .bc-legend-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
+    .bc-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+    .bc-legend-n { font-weight:700; color:var(--text); margin-left:auto; padding-left:8px; }
     .batch-results table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
     .batch-results th { background: var(--pink); color: white; padding: 12px 16px; text-align: left; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; }
     .batch-results td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
@@ -413,6 +430,7 @@
     .result-badge.red { background: var(--red-bg); color: var(--red); }
     .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
   </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -728,6 +746,36 @@
         </thead>
         <tbody id="batchTableBody"></tbody>
       </table>
+
+      <!-- GRÁFICAS -->
+      <div class="batch-charts" id="batchCharts">
+        <div class="bc-card">
+          <h4>Resumen</h4>
+          <div class="bc-kpi-grid">
+            <div class="bc-kpi"><p class="bc-kpi-val" id="bcTotal" style="color:var(--text)">—</p><p class="bc-kpi-lbl">Analizadas</p></div>
+            <div class="bc-kpi" style="background:var(--green-bg)"><p class="bc-kpi-val" id="bcRenovar" style="color:var(--green)">—</p><p class="bc-kpi-lbl">Renovar</p></div>
+            <div class="bc-kpi" style="background:#FFF0F6"><p class="bc-kpi-val" id="bcNoRenovar" style="color:var(--pink)">—</p><p class="bc-kpi-lbl">No renovar</p></div>
+            <div class="bc-kpi" style="background:var(--purple-soft)"><p class="bc-kpi-val" id="bcPromProb" style="color:#8B5CF6">—</p><p class="bc-kpi-lbl">Prob. promedio</p></div>
+          </div>
+        </div>
+        <div class="bc-card">
+          <h4>Recomendación</h4>
+          <div class="bc-donut-wrap">
+            <svg id="bcDonut" width="120" height="120" viewBox="0 0 120 120"></svg>
+            <div class="bc-legend" id="bcDonutLegend"></div>
+          </div>
+        </div>
+        <div class="bc-card">
+          <h4>Distribución de probabilidades</h4>
+          <div id="bcProbBars"></div>
+        </div>
+        <div class="bc-card">
+          <h4>Estatus</h4>
+          <div id="bcEstatusBars" style="margin-bottom:14px"></div>
+          <h4>Top clases</h4>
+          <div id="bcClaseBars"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1376,25 +1424,142 @@
       const file = event.target.files[0];
       if (!file) return;
 
-      const resultados = marcasData.slice(0, 8);
-      const tbody = document.getElementById('batchTableBody');
-      tbody.innerHTML = '';
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Parse Excel with SheetJS
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-      resultados.forEach(m => {
-        const renueva = m.prob >= 50;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-weight:600">${m.nombre}</td>
-          <td>${m.clase}</td>
-          <td><span class="badge-sm ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span></td>
-          <td>${m.vigencia}</td>
-          <td><span class="badge-sm ${renueva ? 'green' : 'red'}">${renueva ? 'Renovar' : 'No Renovar'}</span></td>
-          <td style="font-weight:600;color:${renueva ? 'var(--green)' : 'var(--red)'}">${m.prob}%</td>
-        `;
-        tbody.appendChild(tr);
+        if (!rows.length) { alert('El archivo está vacío o no tiene el formato correcto.'); return; }
+
+        // Build lookup from JSON by NoReg for fast match
+        const lookup = {};
+        marcasData.forEach(m => { lookup[String(m.noreg)] = m; });
+
+        // Process each row from Excel
+        const resultados = rows.map(row => {
+          const noreg  = String(row['No. Reg.'] || row['NoReg'] || row['noreg'] || '').trim();
+          const nombre = String(row['DENOMINACIÓN'] || row['Denominación'] || row['nombre'] || row['Marca'] || '').trim();
+          const clase  = String(row['Clase'] || row['clase'] || '').trim();
+          const match  = lookup[noreg];
+
+          if (match) {
+            return { ...match, nombre: nombre || match.nombre, clase: clase || match.clase };
+          }
+          // No match — use row data with defaults
+          const vigencia = String(row['Fecha Venc.'] || row['Vigencia'] || row['vigencia'] || '').trim();
+          const estatus  = String(row['Estatus de Marca'] || row['estatus'] || 'VIGENTE').trim().toUpperCase();
+          return {
+            nombre, clase, noreg, vigencia, estatus,
+            prob: 50, review: 'Media', score: 3.0,
+            tuvoVentas: 'no', clasificacion: 'Media',
+            antiguedad: 5, conversion: 3, devolucion: 0.1,
+            tiempo: 12, tiene_fecha: !!vigencia
+          };
+        }).filter(m => m.nombre);
+
+        // Render table
+        const tbody = document.getElementById('batchTableBody');
+        tbody.innerHTML = '';
+        resultados.forEach(m => {
+          const renueva = m.prob >= 50;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:600">${m.nombre}</td>
+            <td>${m.clase}</td>
+            <td><span class="badge-sm ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span></td>
+            <td>${m.vigencia || '—'}</td>
+            <td><span class="badge-sm ${renueva ? 'green' : 'red'}">${renueva ? 'Renovar' : 'No Renovar'}</span></td>
+            <td style="font-weight:600;color:${renueva ? 'var(--green)' : 'var(--red)'}">${m.prob}%</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById('batchResults').classList.remove('hidden');
+        renderBatchCharts(resultados);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderBatchCharts(data) {
+      const total     = data.length;
+      const renovar   = data.filter(m => m.prob >= 50).length;
+      const noRenovar = total - renovar;
+      const promProb  = total ? Math.round(data.reduce((s,m) => s + (m.prob||0), 0) / total) : 0;
+
+      // KPIs
+      const set = (id, v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+      set('bcTotal',    total);
+      set('bcRenovar',  renovar);
+      set('bcNoRenovar',noRenovar);
+      set('bcPromProb', promProb + '%');
+
+      // Donut
+      const donutData = [
+        { label:'Renovar',    n: renovar,   color:'#1D9E75' },
+        { label:'No Renovar', n: noRenovar, color:'#D4006A' },
+      ];
+      const cx=60, cy=60, r=44, sw=18, circ=2*Math.PI*r;
+      let offset=0, paths='';
+      donutData.forEach(d => {
+        const dash = (d.n/total)*circ;
+        paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}"
+          stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}"
+          stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+        offset += dash;
       });
+      paths += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+        font-size="14" font-weight="800" font-family="Sora,sans-serif" fill="#1a1a2e">
+        ${total ? Math.round(renovar/total*100) : 0}%</text>
+        <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="9" fill="#888">Renovar</text>`;
+      document.getElementById('bcDonut').innerHTML = paths;
+      document.getElementById('bcDonutLegend').innerHTML = donutData.map(d =>
+        `<div class="bc-legend-row"><span class="bc-dot" style="background:${d.color}"></span>
+         <span>${d.label}</span><span class="bc-legend-n">${d.n}</span></div>`
+      ).join('');
 
-      document.getElementById('batchResults').classList.remove('hidden');
+      // Prob buckets
+      const buckets = [
+        {l:'0–30%',  min:0,  max:30,  c:'#E24B4A'},
+        {l:'30–50%', min:30, max:50,  c:'#EF9F27'},
+        {l:'50–70%', min:50, max:70,  c:'#5DCAA5'},
+        {l:'70–90%', min:70, max:90,  c:'#1D9E75'},
+        {l:'90–100%',min:90, max:101, c:'#534AB7'},
+      ];
+      const maxB = Math.max(1, ...buckets.map(b => data.filter(m=>m.prob>=b.min&&m.prob<b.max).length));
+      document.getElementById('bcProbBars').innerHTML = buckets.map(b => {
+        const n = data.filter(m => m.prob>=b.min && m.prob<b.max).length;
+        return `<div class="bc-bar-row">
+          <span class="bc-label">${b.l}</span>
+          <div class="bc-track"><div class="bc-fill" style="width:${Math.round(n/maxB*100)}%;background:${b.c}"></div></div>
+          <span class="bc-val">${n}</span></div>`;
+      }).join('');
+
+      // Estatus
+      const vig = data.filter(m=>m.estatus==='VIGENTE').length;
+      const venc = total - vig;
+      const maxE = Math.max(1, vig, venc);
+      document.getElementById('bcEstatusBars').innerHTML = [
+        {l:'VIGENTE', n:vig,  c:'#1D9E75'},
+        {l:'VENCIDO', n:venc, c:'#E24B4A'},
+      ].map(e=>`<div class="bc-bar-row">
+        <span class="bc-label">${e.l}</span>
+        <div class="bc-track"><div class="bc-fill" style="width:${Math.round(e.n/maxE*100)}%;background:${e.c}"></div></div>
+        <span class="bc-val">${e.n}</span></div>`).join('');
+
+      // Top clases
+      const cc = {};
+      data.forEach(m => { if(m.clase) cc[m.clase]=(cc[m.clase]||0)+1; });
+      const top = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const maxC = top[0]?.[1]||1;
+      const cols = ['#D4006A','#F0338A','#8B5CF6','#534AB7','#C9C2F0'];
+      document.getElementById('bcClaseBars').innerHTML = top.map(([cl,n],i)=>
+        `<div class="bc-bar-row">
+          <span class="bc-label">Clase ${cl}</span>
+          <div class="bc-track"><div class="bc-fill" style="width:${Math.round(n/maxC*100)}%;background:${cols[i]}"></div></div>
+          <span class="bc-val">${n}</span></div>`
+      ).join('');
     }
 
     // PORTAFOLIO
