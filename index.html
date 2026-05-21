@@ -1447,17 +1447,32 @@
       document.getElementById('searchInput').value = marca.nombre;
       document.getElementById('searchResults').classList.add('hidden');
 
-      currentMarca = marca;
-      currentMatches = [marca];
+      // ── Recalcular estatus y tiempo desde fecha real ──────────────────────
+      const today = new Date();
+      let estatusReal = marca.estatus;
+      let tiempoReal  = marca.tiempo;
 
-      // Mostrar datos de la marca
+      if (marca.vigencia && marca.vigencia !== '—') {
+        const parts = marca.vigencia.split('/');
+        if (parts.length === 3) {
+          const fechaVenc = new Date(+parts[2], +parts[1]-1, +parts[0]);
+          const diffDias  = (fechaVenc - today) / (1000 * 60 * 60 * 24);
+          tiempoReal  = Math.round(diffDias / 30.44 * 10) / 10;
+          estatusReal = diffDias < 0 ? 'VENCIDO' : 'VIGENTE';
+        }
+      }
+
+      currentMarca = { ...marca, estatus: estatusReal, tiempo: tiempoReal };
+      currentMatches = [currentMarca];
+
+      // Mostrar datos con estatus recalculado
       document.getElementById('brandName').textContent = marca.nombre;
       document.getElementById('brandClass').textContent = 'Clase: ' + marca.clase;
       document.getElementById('vigenciaDate').textContent = marca.vigencia;
 
-      const badge = document.getElementById('statusBadge');
+      const badge      = document.getElementById('statusBadge');
       const statusText = document.getElementById('statusText');
-      if (marca.estatus === 'VIGENTE') {
+      if (estatusReal === 'VIGENTE') {
         badge.className = 'badge badge-vigente';
         statusText.textContent = 'VIGENTE';
       } else {
@@ -1465,7 +1480,7 @@
         statusText.textContent = 'VENCIDO';
       }
 
-      // Llamar al modelo real
+      // Llamar al modelo real con variables reales
       const recEl = document.getElementById('recValue');
       recEl.textContent = 'Analizando...';
       recEl.className = 'rec-value-renovar';
@@ -1477,47 +1492,49 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ticket_promedio: marca.ticketPromedio || 200,
-            tasa_devolucion: marca.devolucion || 0.1,
-            revenue_por_lead: marca.revenueLead || 500,
-            tasa_conversion: marca.conversion || 3.5,
-            antiguedad_marca: marca.antiguedad || 10,
-            tiempo_restante: marca.tiempo || 24,
-            review_score: marca.score || 3.5,
-            clasificacion_marca: marca.clasificacion || 'Media',
-            region: marca.region || 'Centro',
-            canal: marca.canal || 'Digital',
-            segmento: marca.segmento || 'Millennial',
-            estatus_estrategico: marca.estrategico || 'NO ESTRATÉGICA',
-            prioridad_negocio: marca.prioridad || 'NO',
-            review: marca.review || 'Media'
+            ticket_promedio:    marca.ticketPromedio || 200,
+            tasa_devolucion:    marca.devolucion     || 0.1,
+            revenue_por_lead:   marca.revenueLead    || 500,
+            tasa_conversion:    marca.conversion     || 3.5,
+            antiguedad_marca:   marca.antiguedad     || 10,
+            tiempo_restante:    tiempoReal,
+            review_score:       marca.score          || 3.5,
+            clasificacion_marca:marca.clasificacion  || 'Media',
+            region:             marca.region         || 'Centro',
+            canal:              marca.canal          || 'Digital',
+            segmento:           marca.segmento       || 'Millennial',
+            estatus_estrategico:marca.estrategico    || 'NO ESTRATÉGICA',
+            prioridad_negocio:  marca.prioridad      || 'NO',
+            review:             marca.review         || 'Media'
           })
         });
 
         const data = await response.json();
-        const prob = data.probabilidad_renovar;
+        const prob   = data.probabilidad_renovar;
         const renueva = data.renueva;
 
-        marca.prob = prob;
-        currentMarca = marca;
+        currentMarca.prob = prob;
 
-        recEl.textContent = renueva ? 'Renovar' : 'No Renovar';
-        recEl.className = renueva ? 'rec-value-renovar' : 'rec-value-no';
-        document.getElementById('probFill').style.width = prob + '%';
-        document.getElementById('probFill').className = 'prob-fill ' + (renueva ? 'green' : 'red');
-        document.getElementById('probPct').textContent = prob + '%';
-        document.getElementById('probPct').style.color = renueva ? 'var(--green)' : 'var(--red)';
+        recEl.textContent  = renueva ? 'Renovar' : 'No Renovar';
+        recEl.className    = renueva ? 'rec-value-renovar' : 'rec-value-no';
+        document.getElementById('probFill').style.width     = prob + '%';
+        document.getElementById('probFill').className       = 'prob-fill ' + (renueva ? 'green' : 'red');
+        document.getElementById('probPct').textContent      = prob + '%';
+        document.getElementById('probPct').style.color      = renueva ? 'var(--green)' : 'var(--red)';
 
       } catch(e) {
-        // Fallback si la API no responde
-        const prob = marca.prob || 75;
+        // Fallback: usar prob del JSON pero aplicar penalización si está vencida
+        let prob = marca.prob || 50;
+        if (estatusReal === 'VENCIDO') prob = Math.min(prob, 45);
         const renueva = prob >= 50;
-        recEl.textContent = renueva ? 'Renovar' : 'No Renovar';
-        recEl.className = renueva ? 'rec-value-renovar' : 'rec-value-no';
-        document.getElementById('probFill').style.width = prob + '%';
-        document.getElementById('probFill').className = 'prob-fill ' + (renueva ? 'green' : 'red');
-        document.getElementById('probPct').textContent = prob + '%';
-        document.getElementById('probPct').style.color = renueva ? 'var(--green)' : 'var(--red)';
+        currentMarca.prob = prob;
+
+        recEl.textContent  = renueva ? 'Renovar' : 'No Renovar';
+        recEl.className    = renueva ? 'rec-value-renovar' : 'rec-value-no';
+        document.getElementById('probFill').style.width     = prob + '%';
+        document.getElementById('probFill').className       = 'prob-fill ' + (renueva ? 'green' : 'red');
+        document.getElementById('probPct').textContent      = prob + '%';
+        document.getElementById('probPct').style.color      = renueva ? 'var(--green)' : 'var(--red)';
       }
 
       // Si hay múltiples registros mostrar nota
@@ -1544,9 +1561,22 @@
       document.getElementById('analisisPct').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
       // analisisRec se actualiza abajo con lógica de vencido
 
+      // Recalcular estatus y tiempo desde fecha real (igual que en seleccionarMarca)
+      let estatusReal = m.estatus;
+      let tiempoCalc  = m.tiempo;
+      try {
+        if (m.vigencia && m.vigencia !== '—' && m.vigencia !== 'N/A') {
+          const partes   = m.vigencia.split('/');
+          const fechaVenc = new Date(+partes[2], +partes[1]-1, +partes[0]);
+          const diffDias  = (fechaVenc - new Date()) / (1000 * 60 * 60 * 24);
+          tiempoCalc  = Math.round(diffDias / 30.44 * 10) / 10;
+          estatusReal = diffDias < 0 ? 'VENCIDO' : 'VIGENTE';
+        }
+      } catch(e) {}
+
       const status = document.getElementById('analisisStatus');
-      status.className = 'badge ' + (m.estatus === 'VIGENTE' ? 'badge-vigente' : 'badge-vencido');
-      status.innerHTML = `<div class="badge-dot"></div><span>${m.estatus}</span>`;
+      status.className = 'badge ' + (estatusReal === 'VIGENTE' ? 'badge-vigente' : 'badge-vencido');
+      status.innerHTML = `<div class="badge-dot"></div><span>${estatusReal}</span>`;
 
       // Antigüedad
       document.getElementById('v-antiguedad').textContent = m.antiguedad + ' años';
@@ -1576,19 +1606,10 @@
       else if (m.score >= 3.0) { revImpact.textContent = 'Calificación Media — satisfacción aceptable'; revImpact.className = 'var-impact neu'; }
       else { revImpact.textContent = 'Calificación Baja — señal de alerta'; revImpact.className = 'var-impact neg'; }
 
-      // Tiempo restante — calculado desde la fecha real
+      // Tiempo restante — usar el recalculado arriba
       const tiempoImpact = document.getElementById('v-tiempo-impact');
-      let mesesRestantes = m.tiempo;
-      try {
-        if (m.vigencia && m.vigencia !== 'N/A') {
-          const partes = m.vigencia.split('/');
-          const fechaVenc = new Date(partes[2], partes[1]-1, partes[0]);
-          const hoy = new Date();
-          mesesRestantes = Math.round((fechaVenc - hoy) / (1000 * 60 * 60 * 24 * 30));
-        }
-      } catch(e) {}
-
-      const esVencido = m.estatus === 'VENCIDO' || mesesRestantes < 0;
+      const mesesRestantes = tiempoCalc;
+      const esVencido = estatusReal === 'VENCIDO' || mesesRestantes < 0;
       if (esVencido) {
         document.getElementById('v-tiempo').textContent = mesesRestantes < 0
           ? 'Venció hace ' + Math.abs(mesesRestantes) + ' meses'
@@ -1618,7 +1639,7 @@
       else { devImpact.textContent = 'Tasa alta — señal de alerta'; devImpact.className = 'var-impact neg'; }
 
       // Recomendación cuando está vencido
-      const esVencidoRec = m.estatus === 'VENCIDO';
+      const esVencidoRec = estatusReal === 'VENCIDO';
       let recTexto = '';
       if (esVencidoRec && m.prob >= 50) recTexto = 'Se recomienda Evaluar Renovación (marca vencida)';
       else if (esVencidoRec && m.prob < 50) recTexto = 'No se recomienda Renovar (marca vencida)';
