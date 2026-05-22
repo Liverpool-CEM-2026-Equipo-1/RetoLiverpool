@@ -697,7 +697,7 @@
       <div id="pred-oto-section">
         <div style="position:relative;max-width:640px;margin:0 auto 32px;">
           <div class="search-wrapper" style="margin:0">
-            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" oninput="buscarMarca(this.value)" />
+            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" oninput="analizar()" />
             <button class="btn-analizar" onclick="analizar()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -1497,11 +1497,12 @@
         const tiempoLabel = m.tiempo < 0
           ? `Venció hace ${Math.abs(Math.round(m.tiempo))}m`
           : `Vence en ${Math.round(m.tiempo)}m`;
+        const claseLabel = String(m.clase).includes(',') ? `Clases: ${m.clase}` : `Clase: ${m.clase}`;
         return `<div class="search-result-item" onclick="seleccionarMarca(${i})">
           <div class="result-nombre">${m.nombre}
             <span class="result-badge ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span>
           </div>
-          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · ${m.vigencia} · ${tiempoLabel}</div>
+          <div class="result-meta">${claseLabel} · NoReg: ${m.noreg || 'N/A'} · ${m.vigencia} · ${tiempoLabel}</div>
         </div>`;
       }).join('');
 
@@ -1533,7 +1534,8 @@
 
       // Mostrar datos con estatus recalculado
       document.getElementById('brandName').textContent = marca.nombre;
-      document.getElementById('brandClass').textContent = 'Clase: ' + marca.clase;
+      const claseStr = String(marca.clase).includes(',') ? 'Clases: ' + marca.clase : 'Clase: ' + marca.clase;
+      document.getElementById('brandClass').textContent = claseStr;
       document.getElementById('vigenciaDate').textContent = marca.vigencia;
 
       const badge      = document.getElementById('statusBadge');
