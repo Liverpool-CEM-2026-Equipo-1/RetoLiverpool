@@ -1256,12 +1256,24 @@
         <h2>Visual 1</h2>
         
       </div>
-      <div class="tableau-placeholder">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-        </svg>
-        <h3>Dashboard Descriptivo de Tableau próximamente</h3>
-        <p>Aquí se integrará el dashboard descriptivo de Tableau Public</p>
+      <!-- Tableau Embed Visual 1 -->
+      <div style="width:100%;overflow:hidden;border-radius:16px;border:1.5px solid var(--border);background:white;">
+        <div class='tableauPlaceholder' id='viz_visual1' style='position:relative;width:100%;'>
+          <noscript>
+            <a href='https://public.tableau.com/views/Segmentov1/Dashboard1'>
+              <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Se/Segmentov1/Dashboard1/1_rss.png' style='border:none' />
+            </a>
+          </noscript>
+          <object class='tableauViz' style='display:none;'>
+            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+            <param name='embed_code_version' value='3' />
+            <param name='site_root' value='' />
+            <param name='name' value='Segmentov1/Dashboard1' />
+            <param name='tabs' value='no' />
+            <param name='toolbar' value='yes' />
+            <param name='language' value='es-ES' />
+          </object>
+        </div>
       </div>
     </div>
   </div>
@@ -1319,6 +1331,59 @@
   <script>
     // DATOS SIMULADOS DE MARCAS (representativos del dataset)
     const API_URL = "https://liverpool-marcas.onrender.com";
+
+    // ── Gradient Boosting model running in-browser ───────────────────────────
+    let GB_MODEL = null;
+
+    fetch('model_gb.json')
+      .then(r => r.json())
+      .then(m => { GB_MODEL = m; console.log('Modelo GB cargado en browser'); })
+      .catch(() => console.warn('model_gb.json no encontrado — usando backend'));
+
+    const ENCODE = {
+      clasificacion: {"Baja": 0, "Media": 1, "Top": 2},
+      region:        {"Centro": 0, "Norte/Oriente": 1, "Occidente": 2, "Sur": 3},
+      canal:         {"Digital": 0, "Fisico": 1},
+      segmento:      {"Baby Boomer": 0, "Gen X": 1, "Gen Z": 2, "Millennial": 3},
+      estrategico:   {"ESTRATÉGICA": 0, "NO ESTRATÉGICA": 1},
+      prioridad:     {"NO": 0, "SI": 1},
+      review:        {"Baja": 0, "Media": 1, "Top": 2},
+    };
+
+    function gbPredict(inp) {
+      if (!GB_MODEL) return null;
+      // Build feature vector in exact model order
+      const X = [
+        inp.ticket_promedio,
+        inp.tasa_devolucion,
+        inp.revenue_por_lead,
+        inp.tasa_conversion,
+        inp.antiguedad_marca,
+        inp.tiempo_restante,
+        inp.review_score,
+        ENCODE.clasificacion[inp.clasificacion_marca] ?? 1,
+        ENCODE.region[inp.region] ?? 0,
+        ENCODE.canal[inp.canal] ?? 0,
+        ENCODE.segmento[inp.segmento] ?? 3,
+        ENCODE.estrategico[inp.estatus_estrategico] ?? 1,
+        ENCODE.prioridad[inp.prioridad_negocio] ?? 0,
+        ENCODE.review[inp.review] ?? 1,
+      ];
+      // Run all trees
+      let score = GB_MODEL.init_pred;
+      for (const tree of GB_MODEL.trees) {
+        let node = 0;
+        while (tree.children_left[node] !== -1) {
+          node = X[tree.feature[node]] <= tree.threshold[node]
+            ? tree.children_left[node]
+            : tree.children_right[node];
+        }
+        score += GB_MODEL.learning_rate * tree.value[node];
+      }
+      // Sigmoid
+      const prob = 1 / (1 + Math.exp(-score));
+      return Math.round(prob * 1000) / 10; // 0-100 with 1 decimal
+    }
     let marcasData = [];
 
     // Cargar datos reales desde JSON
@@ -1373,6 +1438,7 @@
       if (page === 'portafolio') renderPortafolio(marcasData);
       if (page === 'riesgo') renderRiesgo();
       if (page === 'segmentos') renderSegmentos();
+      if (page === 'descriptivo') { setTimeout(initTableau, 100); }
       if (page === 'tendencias') renderTendencias();
       closeDropdown();
       window.scrollTo(0, 0);
@@ -1428,14 +1494,19 @@
         return;
       }
 
-      resultsEl.innerHTML = matches.map((m, i) => `
-        <div class="search-result-item" onclick="seleccionarMarca(${i})">
+      resultsEl.innerHTML = matches.map((m, i) => {
+        // Estatus real desde tiempo del JSON (ya recalculado desde fecha)
+        const estatusReal = m.tiempo < 0 ? 'VENCIDO' : m.estatus;
+        const tiempoLabel = m.tiempo < 0
+          ? `Venció hace ${Math.abs(Math.round(m.tiempo))}m`
+          : `Vence en ${Math.round(m.tiempo)}m`;
+        return `<div class="search-result-item" onclick="seleccionarMarca(${i})">
           <div class="result-nombre">${m.nombre}
-            <span class="result-badge ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span>
+            <span class="result-badge ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span>
           </div>
-          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · Vigencia: ${m.vigencia}</div>
-        </div>
-      `).join('');
+          <div class="result-meta">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · ${m.vigencia} · ${tiempoLabel}</div>
+        </div>`;
+      }).join('');
 
       // Store matches for selection
       window._searchMatches = matches;
@@ -1447,21 +1518,19 @@
       document.getElementById('searchInput').value = marca.nombre;
       document.getElementById('searchResults').classList.add('hidden');
 
-      // ── Recalcular estatus y tiempo desde fecha real ──────────────────────
+      // ── Calcular estatus y tiempo SIEMPRE desde la fecha de vigencia real ──
       const today = new Date();
-      let estatusReal = marca.estatus;
-      let tiempoReal  = marca.tiempo;
-
-      if (marca.vigencia && marca.vigencia !== '—') {
-        const parts = marca.vigencia.split('/');
-        if (parts.length === 3) {
-          const fechaVenc = new Date(+parts[2], +parts[1]-1, +parts[0]);
-          const diffDias  = (fechaVenc - today) / (1000 * 60 * 60 * 24);
+      let tiempoReal  = typeof marca.tiempo === 'number' ? marca.tiempo : 0;
+      let estatusReal = marca.estatus || 'VIGENTE';
+      if (marca.vigencia && marca.vigencia !== '—' && marca.vigencia !== 'N/A') {
+        const p = marca.vigencia.split('/');
+        if (p.length === 3) {
+          const fv = new Date(+p[2], +p[1]-1, +p[0]);
+          const diffDias = (fv - today) / (1000*60*60*24);
           tiempoReal  = Math.round(diffDias / 30.44 * 10) / 10;
           estatusReal = diffDias < 0 ? 'VENCIDO' : 'VIGENTE';
         }
       }
-
       currentMarca = { ...marca, estatus: estatusReal, tiempo: tiempoReal };
       currentMatches = [currentMarca];
 
@@ -1487,54 +1556,66 @@
       document.getElementById('probFill').style.width = '0%';
       document.getElementById('probPct').textContent = '...';
 
-      try {
-        const response = await fetch(API_URL + '/predecir', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ticket_promedio:    marca.ticketPromedio || 200,
-            tasa_devolucion:    marca.devolucion     || 0.1,
-            revenue_por_lead:   marca.revenueLead    || 500,
-            tasa_conversion:    marca.conversion     || 3.5,
-            antiguedad_marca:   marca.antiguedad     || 10,
-            tiempo_restante:    tiempoReal,
-            review_score:       marca.score          || 3.5,
-            clasificacion_marca:marca.clasificacion  || 'Media',
-            region:             marca.region         || 'Centro',
-            canal:              marca.canal          || 'Digital',
-            segmento:           marca.segmento       || 'Millennial',
-            estatus_estrategico:marca.estrategico    || 'NO ESTRATÉGICA',
-            prioridad_negocio:  marca.prioridad      || 'NO',
-            review:             marca.review         || 'Media'
-          })
-        });
+      // Parámetros del modelo
+      const modelInput = {
+        ticket_promedio:     marca.ticketPromedio || 200,
+        tasa_devolucion:     marca.devolucion     || 0.1,
+        revenue_por_lead:    marca.revenueLead    || 500,
+        tasa_conversion:     marca.conversion     || 3.5,
+        antiguedad_marca:    marca.antiguedad     || 10,
+        tiempo_restante:     tiempoReal,
+        review_score:        marca.score          || 3.5,
+        clasificacion_marca: marca.clasificacion  || 'Media',
+        region:              marca.region         || 'Centro',
+        canal:               marca.canal          || 'Digital',
+        segmento:            marca.segmento       || 'Millennial',
+        estatus_estrategico: marca.estrategico    || 'NO ESTRATÉGICA',
+        prioridad_negocio:   marca.prioridad      || 'NO',
+        review:              marca.review         || 'Media',
+      };
 
-        const data = await response.json();
-        const prob   = data.probabilidad_renovar;
-        const renueva = data.renueva;
+      // Intentar modelo en browser primero (instantáneo)
+      const probBrowser = gbPredict(modelInput);
 
+      function mostrarResultado(prob) {
         currentMarca.prob = prob;
+        const vencida = estatusReal === 'VENCIDO';
+        const renueva = prob >= 50 && !vencida;
+        // Label: vencida siempre "Evaluar Renovación" sin importar prob
+        const label = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
+        const color = vencida ? '#EF9F27' : (renueva ? 'green' : 'red');
+        recEl.textContent = label;
+        recEl.className   = vencida ? 'rec-value-evaluar' : (renueva ? 'rec-value-renovar' : 'rec-value-no');
+        document.getElementById('probFill').style.width   = prob + '%';
+        document.getElementById('probFill').className     = 'prob-fill ' + color;
+        document.getElementById('probPct').textContent    = prob + '%';
+        document.getElementById('probPct').style.color    = `var(--${color === 'green' ? 'green' : color === 'red' ? 'red' : 'amber'})`;
+      }
 
-        recEl.textContent  = renueva ? 'Renovar' : 'No Renovar';
-        recEl.className    = renueva ? 'rec-value-renovar' : 'rec-value-no';
-        document.getElementById('probFill').style.width     = prob + '%';
-        document.getElementById('probFill').className       = 'prob-fill ' + (renueva ? 'green' : 'red');
-        document.getElementById('probPct').textContent      = prob + '%';
-        document.getElementById('probPct').style.color      = renueva ? 'var(--green)' : 'var(--red)';
-
-      } catch(e) {
-        // Fallback: usar prob del JSON pero aplicar penalización si está vencida
-        let prob = marca.prob || 50;
-        if (estatusReal === 'VENCIDO') prob = Math.min(prob, 45);
-        const renueva = prob >= 50;
-        currentMarca.prob = prob;
-
-        recEl.textContent  = renueva ? 'Renovar' : 'No Renovar';
-        recEl.className    = renueva ? 'rec-value-renovar' : 'rec-value-no';
-        document.getElementById('probFill').style.width     = prob + '%';
-        document.getElementById('probFill').className       = 'prob-fill ' + (renueva ? 'green' : 'red');
-        document.getElementById('probPct').textContent      = prob + '%';
-        document.getElementById('probPct').style.color      = renueva ? 'var(--green)' : 'var(--red)';
+      if (probBrowser !== null) {
+        // Modelo browser disponible — resultado instantáneo
+        mostrarResultado(probBrowser);
+      } else {
+        // Fallback: backend
+        try {
+          const response = await fetch(API_URL + '/predecir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(modelInput),
+            signal: AbortSignal.timeout(8000)
+          });
+          const data = await response.json();
+          mostrarResultado(data.probabilidad_renovar);
+        } catch(e) {
+          // Sin backend ni modelo: estimación por variables clave
+          const clsScore  = modelInput.clasificacion_marca === 'Top' ? 40 : modelInput.clasificacion_marca === 'Media' ? 20 : 0;
+          const antScore  = Math.min(modelInput.antiguedad_marca * 1.0, 28);
+          const convScore = Math.min(modelInput.tasa_conversion * 1.5, 13);
+          const tScore    = tiempoReal >= 0 ? 8 : 0;
+          const devPen    = modelInput.tasa_devolucion * 30;
+          const est = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + tScore - devPen)));
+          mostrarResultado(est);
+        }
       }
 
       // Si hay múltiples registros mostrar nota
@@ -1561,18 +1642,18 @@
       document.getElementById('analisisPct').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
       // analisisRec se actualiza abajo con lógica de vencido
 
-      // Recalcular estatus y tiempo desde fecha real (igual que en seleccionarMarca)
-      let estatusReal = m.estatus;
-      let tiempoCalc  = m.tiempo;
-      try {
-        if (m.vigencia && m.vigencia !== '—' && m.vigencia !== 'N/A') {
-          const partes   = m.vigencia.split('/');
-          const fechaVenc = new Date(+partes[2], +partes[1]-1, +partes[0]);
-          const diffDias  = (fechaVenc - new Date()) / (1000 * 60 * 60 * 24);
-          tiempoCalc  = Math.round(diffDias / 30.44 * 10) / 10;
-          estatusReal = diffDias < 0 ? 'VENCIDO' : 'VIGENTE';
+      // Recalcular desde vigencia real (fuente de verdad)
+      let tiempoCalc  = typeof m.tiempo === 'number' ? m.tiempo : 0;
+      let estatusReal = m.estatus || 'VIGENTE';
+      if (m.vigencia && m.vigencia !== '—' && m.vigencia !== 'N/A') {
+        const p2 = m.vigencia.split('/');
+        if (p2.length === 3) {
+          const fv2 = new Date(+p2[2], +p2[1]-1, +p2[0]);
+          const diff2 = (fv2 - new Date()) / (1000*60*60*24);
+          tiempoCalc  = Math.round(diff2 / 30.44 * 10) / 10;
+          estatusReal = diff2 < 0 ? 'VENCIDO' : 'VIGENTE';
         }
-      } catch(e) {}
+      }
 
       const status = document.getElementById('analisisStatus');
       status.className = 'badge ' + (estatusReal === 'VIGENTE' ? 'badge-vigente' : 'badge-vencido');
@@ -1709,67 +1790,44 @@
           return { noreg, nombre, clase, vigencia, estatus, score, review, ant, conv, cls, dev, tiempo, region, canal, segmento, match };
         }).filter(r => r.nombre);
 
-        // Llamar al backend /predecir-batch con todas las marcas
-        const BACKEND = 'https://liverpool-marcas.onrender.com';
-        const payload = {
-          marcas: parsedRows.map(r => ({
-            ticket_promedio:   500,
-            tasa_devolucion:   r.dev,
-            revenue_por_lead:  500,
-            tasa_conversion:   r.conv,
-            antiguedad_marca:  r.ant,
-            tiempo_restante:   r.tiempo,
-            review_score:      r.score,
+        // Calcular con modelo en browser (instantáneo)
+        const resultados = parsedRows.map(r => {
+          const inp = {
+            ticket_promedio:     500,
+            tasa_devolucion:     r.dev,
+            revenue_por_lead:    500,
+            tasa_conversion:     r.conv,
+            antiguedad_marca:    r.ant,
+            tiempo_restante:     r.tiempo,
+            review_score:        r.score,
             clasificacion_marca: r.cls,
-            region:            r.region,
-            canal:             r.canal,
-            segmento:          r.segmento,
+            region:              r.region,
+            canal:               r.canal,
+            segmento:            r.segmento,
             estatus_estrategico: 'NO ESTRATÉGICA',
-            prioridad_negocio: 'NO',
-            review:            r.review
-          }))
-        };
-
-        // Mostrar loading
-        const tbody = document.getElementById('batchTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">⏳ Calculando predicciones...</td></tr>';
-        document.getElementById('batchResults').classList.remove('hidden');
-
-        fetch(BACKEND + '/predecir-batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        .then(r => r.json())
-        .then(data => {
-          const resultados = parsedRows.map((r, i) => ({
-            ...r,
-            prob: data.resultados[i]?.probabilidad_renovar ?? 50,
-            recomendacion: data.resultados[i]?.recomendacion ?? 'Revisar'
-          }));
-          renderBatchTable(resultados);
-          renderBatchCharts(resultados);
-        })
-        .catch(() => {
-          // Si falla el backend, usar prob del JSON match o calcular por estatus/review
-          const resultados = parsedRows.map(r => {
-            let prob;
-            if (r.match) {
-              prob = r.match.prob;
-            } else {
-              // Estimación simple por variables clave
-              const clsScore = r.cls === 'Top' ? 30 : r.cls === 'Media' ? 15 : 0;
-              const antScore = Math.min(r.ant * 1.2, 30);
-              const convScore= Math.min(r.conv * 3, 22);
-              const tiempoScore = r.tiempo >= 0 ? 10 : 0;
-              const devPenalty = r.dev * 40;
-              prob = Math.min(99, Math.max(1, Math.round(clsScore + antScore + convScore + tiempoScore - devPenalty)));
-            }
-            return { ...r, prob };
-          });
-          renderBatchTable(resultados);
-          renderBatchCharts(resultados);
+            prioridad_negocio:   'NO',
+            review:              r.review,
+          };
+          const probBrowser = gbPredict(inp);
+          let prob;
+          if (probBrowser !== null) {
+            prob = probBrowser;
+          } else if (r.match) {
+            prob = r.match.prob;
+          } else {
+            const clsScore  = r.cls === 'Top' ? 40 : r.cls === 'Media' ? 20 : 0;
+            const antScore  = Math.min(r.ant * 1.0, 28);
+            const convScore = Math.min(r.conv * 1.5, 13);
+            const tScore    = r.tiempo >= 0 ? 8 : 0;
+            const devPen    = r.dev * 30;
+            prob = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + tScore - devPen)));
+          }
+          return { ...r, prob };
         });
+
+        document.getElementById('batchResults').classList.remove('hidden');
+        renderBatchTable(resultados);
+        renderBatchCharts(resultados);
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1777,16 +1835,32 @@
     function renderBatchTable(resultados) {
       const tbody = document.getElementById('batchTableBody');
       tbody.innerHTML = '';
+      const today = new Date();
+
       resultados.forEach(m => {
-        const renueva = m.prob >= 50;
+        // Recalculate estatus from real date
+        let estatusReal = m.estatus || 'VIGENTE';
+        if (m.vigencia && m.vigencia !== '—') {
+          const parts = m.vigencia.split('/');
+          if (parts.length === 3) {
+            const fv = new Date(+parts[2], +parts[1]-1, +parts[0]);
+            estatusReal = fv < today ? 'VENCIDO' : 'VIGENTE';
+          }
+        }
+        const vencida = estatusReal === 'VENCIDO';
+        const renueva = m.prob >= 50 && !vencida;
+        const label   = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
+        const color   = vencida ? '#D97706' : (renueva ? 'var(--green)' : 'var(--red)');
+        const badgeCls= vencida ? 'amber' : (renueva ? 'green' : 'red');
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-weight:600">${m.nombre}</td>
           <td>${m.clase}</td>
-          <td><span class="badge-sm ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span></td>
+          <td><span class="badge-sm ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span></td>
           <td>${m.vigencia || '—'}</td>
-          <td><span class="badge-sm ${renueva ? 'green' : 'red'}">${renueva ? 'Renovar' : 'No Renovar'}</span></td>
-          <td style="font-weight:600;color:${renueva ? 'var(--green)' : 'var(--red)'}">${m.prob}%</td>
+          <td><span class="badge-sm ${badgeCls}" style="${vencida ? 'background:#FEF3C7;color:#92400E' : ''}">${label}</span></td>
+          <td style="font-weight:600;color:${color}">${m.prob}%</td>
         `;
         tbody.appendChild(tr);
       });
@@ -2326,6 +2400,35 @@ Pregunta del usuario: ${mensaje}`
       msgs.scrollTop = msgs.scrollHeight;
       return div;
     }
+  </script>
+  <script type='text/javascript'>
+    function initTableau() {
+      var divEl = document.getElementById('viz_visual1');
+      if (!divEl) return;
+      var vizEl = divEl.getElementsByTagName('object')[0];
+      if (divEl.offsetWidth > 800) {
+        vizEl.style.width = '100%';
+        vizEl.style.height = (divEl.offsetWidth * 0.6) + 'px';
+      } else if (divEl.offsetWidth > 500) {
+        vizEl.style.width = '100%';
+        vizEl.style.height = (divEl.offsetWidth * 0.75) + 'px';
+      } else {
+        vizEl.style.width = '100%';
+        vizEl.style.height = '750px';
+      }
+      var scriptEl = document.createElement('script');
+      scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+      vizEl.parentNode.insertBefore(scriptEl, vizEl);
+    }
+    // Init when Visual 1 is shown
+    const _origShowPage = showPage;
+    // Hook into page navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      // If already on descriptivo, init immediately
+      if (document.getElementById('page-descriptivo').classList.contains('active')) {
+        initTableau();
+      }
+    });
   </script>
 </body>
 </html>
