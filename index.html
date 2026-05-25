@@ -1580,12 +1580,11 @@
 
       function mostrarResultado(prob) {
         currentMarca.prob = prob;
-        const vencida = estatusReal === 'VENCIDO';
-        const renueva = prob >= 50 && !vencida;
-        const label    = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
-        const colorKey = vencida ? 'amber' : (renueva ? 'green' : 'red');
+        const renueva  = prob >= 50;
+        const label    = renueva ? 'Renovar' : 'No Renovar';
+        const colorKey = renueva ? 'green' : 'red';
         recEl.textContent = label;
-        recEl.className   = vencida ? 'rec-value-evaluar' : (renueva ? 'rec-value-renovar' : 'rec-value-no');
+        recEl.className   = renueva ? 'rec-value-renovar' : 'rec-value-no';
         document.getElementById('probFill').style.width = prob + '%';
         document.getElementById('probFill').className   = 'prob-fill ' + colorKey;
         document.getElementById('probPct').textContent  = prob + '%';
