@@ -229,7 +229,8 @@
 
     /* BATCH RESULTS */
     .batch-results { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
-    .batch-charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+    #batchContent { width: 100%; overflow-x: hidden; }
+    .batch-charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; width: 100%; box-sizing: border-box; }
     .bc-card { background: white; border-radius: 16px; border: 1.5px solid var(--border); padding: 20px 22px; box-shadow: 0 4px 20px rgba(180,120,200,.08); }
     .bc-card h4 { font-family:'Sora',sans-serif; font-size:14px; font-weight:700; color:var(--text); margin:0 0 16px; }
     .bc-bar-row { display:flex; align-items:center; gap:10px; margin:7px 0; }
@@ -246,7 +247,8 @@
     .bc-legend-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
     .bc-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
     .bc-legend-n { font-weight:700; color:var(--text); margin-left:auto; padding-left:8px; }
-    .batch-results table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
+    .batch-results table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(180,120,200,0.1); table-layout: fixed; }
+    .batch-results td:first-child, .batch-results th:first-child { width: 35%; word-break: break-word; }
     .batch-results th { background: var(--pink); color: white; padding: 12px 16px; text-align: left; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; }
     .batch-results td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
     .batch-results tr:last-child td { border-bottom: none; }
@@ -781,7 +783,7 @@
         <p class="spinner-text" id="batchSpinnerText">Leyendo archivo...</p>
       </div>
 
-      <div id="batchContent" style="display:none;">
+      <div id="batchContent" style="display:none;width:100%;max-width:960px;margin:0 auto;">
         <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
 
         <!-- GRÁFICAS PRIMERO -->
