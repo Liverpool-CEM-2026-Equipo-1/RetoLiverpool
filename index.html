@@ -247,8 +247,11 @@
     .bc-legend-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
     .bc-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
     .bc-legend-n { font-weight:700; color:var(--text); margin-left:auto; padding-left:8px; }
-    .batch-results table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(180,120,200,0.1); table-layout: fixed; }
-    .batch-results td:first-child, .batch-results th:first-child { width: 35%; word-break: break-word; }
+    .batch-table-wrap { width: 100%; overflow-x: auto; border-radius: 16px; box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
+    .batch-results table { width: 100%; min-width: 600px; border-collapse: collapse; background: white; }
+    .batch-results th { white-space: nowrap; }
+    .batch-results td { white-space: nowrap; }
+    .batch-results td:first-child { white-space: normal; max-width: 200px; word-break: break-word; }
     .batch-results th { background: var(--pink); color: white; padding: 12px 16px; text-align: left; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; }
     .batch-results td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
     .batch-results tr:last-child td { border-bottom: none; }
@@ -820,47 +823,9 @@
         </div>
       </div>
     </div>
-    <div class="bottom-nav">
-      <div class="bottom-nav-card" onclick="showPage('portafolio')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        </svg>
-        Portafolio
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('segmentos')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        Segmentos
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('tendencias')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-        </svg>
-        Tendencias
-      </div>
-      <div class="bottom-nav-card" onclick="showPage('riesgo')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        Riesgo Legal
-        </div>
-
-        <!-- TABLA DESPUÉS -->
-        <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin:28px 0 12px;color:var(--text)">Detalle de marcas</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Marca</th><th>Clase</th><th>Estatus</th><th>Vigencia</th><th>Recomendación</th><th>Prob. Renovar</th>
-            </tr>
-          </thead>
-          <tbody id="batchTableBody"></tbody>
-        </table>
-      </div><!-- /batchContent -->
-    </div>
   </div>
 
-  <!-- ANALISIS COMPLETO -->
+<!-- ANALISIS COMPLETO -->
   <div class="page" id="page-analisis">
     <div class="analisis-page">
       <div class="back-btn" onclick="showPage('prediccion')">
