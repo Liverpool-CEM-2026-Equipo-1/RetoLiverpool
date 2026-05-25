@@ -727,6 +727,13 @@
 
     <!-- CARD RESULTADO ONE TO ONE -->
     <div class="card-wrapper" id="cardWrapper">
+      <!-- Spinner de carga -->
+      <div class="marca-card" id="marcaSpinner" style="display:none;">
+        <div class="spinner-wrap">
+          <div class="spinner"></div>
+          <span class="spinner-text" id="spinnerText">Prediciendo...</span>
+        </div>
+      </div>
       <div class="marca-card" id="marcaCard">
         <div class="card-top">
           <div class="brand-icon">
@@ -768,18 +775,17 @@
 
     <!-- BATCH RESULTADOS -->
     <div class="batch-results hidden" id="batchResults">
-      <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Marca</th><th>Clase</th><th>Estatus</th><th>Vigencia</th><th>Recomendación</th><th>Prob. Renovar</th>
-          </tr>
-        </thead>
-        <tbody id="batchTableBody"></tbody>
-      </table>
+      <!-- Spinner batch -->
+      <div id="batchSpinner" style="display:none;text-align:center;padding:48px 0;">
+        <div class="spinner" style="margin:0 auto 16px;"></div>
+        <p class="spinner-text" id="batchSpinnerText">Leyendo archivo...</p>
+      </div>
 
-      <!-- GRÁFICAS -->
-      <div class="batch-charts" id="batchCharts">
+      <div id="batchContent" style="display:none;">
+        <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
+
+        <!-- GRÁFICAS PRIMERO -->
+        <div class="batch-charts" id="batchCharts">
         <!-- Fila 1: Resumen + Donut + Estatus/Clases -->
         <div class="bc-card">
           <h4>Resumen</h4>
@@ -836,7 +842,19 @@
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
         Riesgo Legal
-      </div>
+        </div>
+
+        <!-- TABLA DESPUÉS -->
+        <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin:28px 0 12px;color:var(--text)">Detalle de marcas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Marca</th><th>Clase</th><th>Estatus</th><th>Vigencia</th><th>Recomendación</th><th>Prob. Renovar</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div><!-- /batchContent -->
     </div>
   </div>
 
@@ -1554,10 +1572,20 @@
         statusText.textContent = 'VENCIDO';
       }
 
-      // Llamar al modelo real con variables reales
+      // Mostrar spinner, ocultar card
+      document.getElementById('cardWrapper').style.display = 'flex';
+      document.getElementById('marcaCard').style.display = 'none';
+      document.getElementById('marcaSpinner').style.display = 'block';
+      const spinnerTexts = ['Prediciendo...', 'Analizando variables...', 'Consultando modelo...', 'Calculando probabilidad...'];
+      let spinIdx = 0;
+      document.getElementById('spinnerText').textContent = spinnerTexts[0];
+      const spinInterval = setInterval(() => {
+        spinIdx = (spinIdx + 1) % spinnerTexts.length;
+        document.getElementById('spinnerText').textContent = spinnerTexts[spinIdx];
+      }, 600);
+
       const recEl = document.getElementById('recValue');
-      recEl.textContent = 'Analizando...';
-      recEl.className = 'rec-value-renovar';
+      recEl.textContent = '...';
       document.getElementById('probFill').style.width = '0%';
       document.getElementById('probPct').textContent = '...';
 
@@ -1583,6 +1611,13 @@
       const probBrowser = gbPredict(modelInput);
 
       function mostrarResultado(prob) {
+        clearInterval(spinInterval);
+        // Hide spinner, show card with animation
+        document.getElementById('marcaSpinner').style.display = 'none';
+        const card = document.getElementById('marcaCard');
+        card.style.display = 'block';
+        card.style.animation = 'fadeInUp 0.4s ease';
+
         currentMarca.prob = prob;
         const renueva  = prob >= 50;
         const label    = renueva ? 'Renovar' : 'No Renovar';
@@ -1756,6 +1791,19 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      // Show spinner immediately
+      document.getElementById('batchResults').classList.remove('hidden');
+      document.getElementById('batchSpinner').style.display = 'block';
+      document.getElementById('batchContent').style.display = 'none';
+
+      const batchTexts = ['Leyendo archivo...', 'Procesando marcas...', 'Calculando predicciones...', 'Casi listo...'];
+      let batchIdx = 0;
+      document.getElementById('batchSpinnerText').textContent = batchTexts[0];
+      const batchInterval = setInterval(() => {
+        batchIdx = (batchIdx + 1) % batchTexts.length;
+        document.getElementById('batchSpinnerText').textContent = batchTexts[batchIdx];
+      }, 700);
+
       const reader = new FileReader();
       reader.onload = function(e) {
         // Parse Excel with SheetJS
@@ -1828,9 +1876,16 @@
           return { ...r, prob };
         });
 
-        document.getElementById('batchResults').classList.remove('hidden');
-        renderBatchTable(resultados);
-        renderBatchCharts(resultados);
+        // Small delay for UX feel, then show results
+        setTimeout(() => {
+          clearInterval(batchInterval);
+          document.getElementById('batchSpinner').style.display = 'none';
+          const bc = document.getElementById('batchContent');
+          bc.style.display = 'block';
+          bc.style.animation = 'fadeInUp 0.4s ease';
+          renderBatchTable(resultados);
+          renderBatchCharts(resultados);
+        }, 800);
       };
       reader.readAsArrayBuffer(file);
     }
