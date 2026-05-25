@@ -1579,11 +1579,10 @@
 
       function mostrarResultado(prob) {
         clearInterval(spinInterval);
-        // Hide spinner, show card with animation
         document.getElementById('marcaSpinner').style.display = 'none';
         const card = document.getElementById('marcaCard');
         card.style.display = 'block';
-        card.style.animation = 'fadeInUp 0.4s ease';
+        card.style.animation = 'none';
 
         currentMarca.prob = prob;
         const renueva  = prob >= 50;
@@ -1638,6 +1637,9 @@
     // VER ANALISIS COMPLETO
     function showAnalisis() {
       if (!currentMarca) return;
+      // Reset spinner state before navigating
+      document.getElementById('marcaSpinner').style.display = 'none';
+      document.getElementById('marcaCard').style.display = 'block';
       const m = currentMarca;
       document.getElementById('analisisBrand').textContent = m.nombre;
       document.getElementById('analisisVig').textContent = m.vigencia;
@@ -1843,28 +1845,19 @@
           return { ...r, prob };
         });
 
-        // Show results with spinner transition
-        setTimeout(() => {
-          clearInterval(batchInterval);
-          document.getElementById('batchSpinner').style.display = 'none';
-          const bc = document.getElementById('batchContent');
-          bc.style.display = 'block';
-          bc.style.animation = 'fadeInUp 0.4s ease';
+        // Show results
+        clearInterval(batchInterval);
+        document.getElementById('batchSpinner').style.display = 'none';
+        const bc = document.getElementById('batchContent');
+        bc.style.display = 'block';
 
-          // Validate resultados
-          if (!resultados || resultados.length === 0) {
-            bc.innerHTML = '<p style="color:var(--red);padding:24px;text-align:center;">No se encontraron marcas válidas. Verifica que el archivo tenga la columna DENOMINACIÓN.</p>';
-            return;
-          }
+        if (!resultados || resultados.length === 0) {
+          bc.innerHTML = '<p style="color:var(--red);padding:24px;text-align:center;">No se encontraron marcas. Verifica que el archivo tenga la columna DENOMINACIÓN.</p>';
+          return;
+        }
 
-          renderBatchTable(resultados);
-          // Wait one frame for DOM to have real dimensions before drawing canvas
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              renderBatchCharts(resultados);
-            });
-          });
-        }, 800);
+        renderBatchTable(resultados);
+        renderBatchCharts(resultados);
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1903,8 +1896,9 @@
     }
 
     function renderBatchCharts(data) {
+      if (!data || data.length === 0) return;
+      
       const today = new Date();
-      // Recalculate estatus from real dates
       data = data.map(m => {
         let estatusReal = m.estatus || 'VIGENTE';
         if (m.vigencia && m.vigencia !== '—') {
@@ -1920,14 +1914,14 @@
       const total     = data.length;
       const renovar   = data.filter(m => m.prob >= 50).length;
       const noRenovar = total - renovar;
-      const promProb  = total ? Math.round(data.reduce((s,m) => s + (m.prob||0), 0) / total) : 0;
+      const promProb  = total ? Math.round(data.reduce((s,m) => s+(m.prob||0), 0) / total) : 0;
 
-      // KPIs
-      const set = (id, v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-      set('bcTotal',    total);
-      set('bcRenovar',  renovar);
-      set('bcNoRenovar',noRenovar);
-      set('bcPromProb', promProb + '%');
+      // KPIs — set directly
+      const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      setEl('bcTotal',    total);
+      setEl('bcRenovar',  renovar);
+      setEl('bcNoRenovar',noRenovar);
+      setEl('bcPromProb', promProb + '%');
 
       // Donut - verde Renovar, rojo No Renovar
       const donutData = [
@@ -1986,9 +1980,8 @@
       const canvas = document.getElementById('bcLineChart');
       if (!canvas) return;
       const sorted = [...data].sort((a,b) => b.prob - a.prob);
-      // Use batchContent width as reference since canvas may not have own width
-      const container = document.getElementById('batchContent');
-      const W = (container ? container.offsetWidth : 0) || canvas.parentElement.offsetWidth || 800;
+      // Force canvas dimensions based on parent
+      const W = Math.max(canvas.parentElement.offsetWidth || 0, document.body.offsetWidth - 120, 600);
       const H = 200;
       canvas.width  = W;
       canvas.height = H;
