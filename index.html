@@ -1843,15 +1843,27 @@
           return { ...r, prob };
         });
 
-        // Small delay for UX feel, then show results
+        // Show results with spinner transition
         setTimeout(() => {
           clearInterval(batchInterval);
           document.getElementById('batchSpinner').style.display = 'none';
           const bc = document.getElementById('batchContent');
           bc.style.display = 'block';
           bc.style.animation = 'fadeInUp 0.4s ease';
+
+          // Validate resultados
+          if (!resultados || resultados.length === 0) {
+            bc.innerHTML = '<p style="color:var(--red);padding:24px;text-align:center;">No se encontraron marcas válidas. Verifica que el archivo tenga la columna DENOMINACIÓN.</p>';
+            return;
+          }
+
           renderBatchTable(resultados);
-          renderBatchCharts(resultados);
+          // Wait one frame for DOM to have real dimensions before drawing canvas
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              renderBatchCharts(resultados);
+            });
+          });
         }, 800);
       };
       reader.readAsArrayBuffer(file);
@@ -1974,7 +1986,9 @@
       const canvas = document.getElementById('bcLineChart');
       if (!canvas) return;
       const sorted = [...data].sort((a,b) => b.prob - a.prob);
-      const W = canvas.parentElement.offsetWidth || 800;
+      // Use batchContent width as reference since canvas may not have own width
+      const container = document.getElementById('batchContent');
+      const W = (container ? container.offsetWidth : 0) || canvas.parentElement.offsetWidth || 800;
       const H = 200;
       canvas.width  = W;
       canvas.height = H;
