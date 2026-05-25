@@ -215,6 +215,8 @@
     .prob-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
     .prob-fill.green { background: var(--green); }
     .prob-fill.red { background: var(--red); }
+    .prob-fill.amber { background: var(--amber); }
+    .rec-value-evaluar { color: var(--amber); font-weight: 700; }
     .prob-pct { font-size: 13px; font-weight: 600; margin-top: 4px; }
     .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .btn-outline {
@@ -1580,15 +1582,14 @@
         currentMarca.prob = prob;
         const vencida = estatusReal === 'VENCIDO';
         const renueva = prob >= 50 && !vencida;
-        // Label: vencida siempre "Evaluar Renovación" sin importar prob
-        const label = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
-        const color = vencida ? '#EF9F27' : (renueva ? 'green' : 'red');
+        const label    = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
+        const colorKey = vencida ? 'amber' : (renueva ? 'green' : 'red');
         recEl.textContent = label;
         recEl.className   = vencida ? 'rec-value-evaluar' : (renueva ? 'rec-value-renovar' : 'rec-value-no');
-        document.getElementById('probFill').style.width   = prob + '%';
-        document.getElementById('probFill').className     = 'prob-fill ' + color;
-        document.getElementById('probPct').textContent    = prob + '%';
-        document.getElementById('probPct').style.color    = `var(--${color === 'green' ? 'green' : color === 'red' ? 'red' : 'amber'})`;
+        document.getElementById('probFill').style.width = prob + '%';
+        document.getElementById('probFill').className   = 'prob-fill ' + colorKey;
+        document.getElementById('probPct').textContent  = prob + '%';
+        document.getElementById('probPct').style.color  = 'var(--' + colorKey + ')';
       }
 
       if (probBrowser !== null) {
