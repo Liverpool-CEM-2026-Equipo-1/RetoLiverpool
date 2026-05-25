@@ -229,7 +229,7 @@
 
     /* BATCH RESULTS */
     .batch-results { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
-    .batch-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 28px; }
+    .batch-charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
     .bc-card { background: white; border-radius: 16px; border: 1.5px solid var(--border); padding: 20px 22px; box-shadow: 0 4px 20px rgba(180,120,200,.08); }
     .bc-card h4 { font-family:'Sora',sans-serif; font-size:14px; font-weight:700; color:var(--text); margin:0 0 16px; }
     .bc-bar-row { display:flex; align-items:center; gap:10px; margin:7px 0; }
@@ -780,12 +780,13 @@
 
       <!-- GRÁFICAS -->
       <div class="batch-charts" id="batchCharts">
+        <!-- Fila 1: Resumen + Donut + Estatus/Clases -->
         <div class="bc-card">
           <h4>Resumen</h4>
           <div class="bc-kpi-grid">
             <div class="bc-kpi"><p class="bc-kpi-val" id="bcTotal" style="color:var(--text)">—</p><p class="bc-kpi-lbl">Analizadas</p></div>
             <div class="bc-kpi" style="background:var(--green-bg)"><p class="bc-kpi-val" id="bcRenovar" style="color:var(--green)">—</p><p class="bc-kpi-lbl">Renovar</p></div>
-            <div class="bc-kpi" style="background:#FFF0F6"><p class="bc-kpi-val" id="bcNoRenovar" style="color:var(--pink)">—</p><p class="bc-kpi-lbl">No renovar</p></div>
+            <div class="bc-kpi" style="background:#FFF0F6"><p class="bc-kpi-val" id="bcNoRenovar" style="color:var(--red)">—</p><p class="bc-kpi-lbl">No Renovar</p></div>
             <div class="bc-kpi" style="background:var(--purple-soft)"><p class="bc-kpi-val" id="bcPromProb" style="color:#8B5CF6">—</p><p class="bc-kpi-lbl">Prob. promedio</p></div>
           </div>
         </div>
@@ -797,14 +798,17 @@
           </div>
         </div>
         <div class="bc-card">
-          <h4>Distribución de probabilidades</h4>
-          <div id="bcProbBars"></div>
-        </div>
-        <div class="bc-card">
           <h4>Estatus</h4>
           <div id="bcEstatusBars" style="margin-bottom:14px"></div>
           <h4>Top clases</h4>
           <div id="bcClaseBars"></div>
+        </div>
+        <!-- Fila 2: Gráfica de línea probabilidades -->
+        <div class="bc-card" style="grid-column:1/-1;">
+          <h4>Probabilidad de renovar por marca</h4>
+          <div style="position:relative;width:100%;overflow-x:auto;">
+            <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -1837,7 +1841,6 @@
       const today = new Date();
 
       resultados.forEach(m => {
-        // Recalculate estatus from real date
         let estatusReal = m.estatus || 'VIGENTE';
         if (m.vigencia && m.vigencia !== '—') {
           const parts = m.vigencia.split('/');
@@ -1846,11 +1849,11 @@
             estatusReal = fv < today ? 'VENCIDO' : 'VIGENTE';
           }
         }
-        const vencida = estatusReal === 'VENCIDO';
-        const renueva = m.prob >= 50 && !vencida;
-        const label   = vencida ? 'Evaluar Renovación' : (renueva ? 'Renovar' : 'No Renovar');
-        const color   = vencida ? '#D97706' : (renueva ? 'var(--green)' : 'var(--red)');
-        const badgeCls= vencida ? 'amber' : (renueva ? 'green' : 'red');
+        // Simple: verde Renovar, rojo No Renovar
+        const renueva  = m.prob >= 50;
+        const label    = renueva ? 'Renovar' : 'No Renovar';
+        const probColor= renueva ? 'var(--green)' : 'var(--red)';
+        const badgeCls = renueva ? 'green' : 'red';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1858,14 +1861,28 @@
           <td>${m.clase}</td>
           <td><span class="badge-sm ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span></td>
           <td>${m.vigencia || '—'}</td>
-          <td><span class="badge-sm ${badgeCls}" style="${vencida ? 'background:#FEF3C7;color:#92400E' : ''}">${label}</span></td>
-          <td style="font-weight:600;color:${color}">${m.prob}%</td>
+          <td><span class="badge-sm ${badgeCls}">${label}</span></td>
+          <td style="font-weight:600;color:${probColor}">${m.prob}%</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
     function renderBatchCharts(data) {
+      const today = new Date();
+      // Recalculate estatus from real dates
+      data = data.map(m => {
+        let estatusReal = m.estatus || 'VIGENTE';
+        if (m.vigencia && m.vigencia !== '—') {
+          const p = m.vigencia.split('/');
+          if (p.length === 3) {
+            const fv = new Date(+p[2], +p[1]-1, +p[0]);
+            estatusReal = fv < today ? 'VENCIDO' : 'VIGENTE';
+          }
+        }
+        return { ...m, estatusReal };
+      });
+
       const total     = data.length;
       const renovar   = data.filter(m => m.prob >= 50).length;
       const noRenovar = total - renovar;
@@ -1878,14 +1895,15 @@
       set('bcNoRenovar',noRenovar);
       set('bcPromProb', promProb + '%');
 
-      // Donut
+      // Donut - verde Renovar, rojo No Renovar
       const donutData = [
         { label:'Renovar',    n: renovar,   color:'#1D9E75' },
-        { label:'No Renovar', n: noRenovar, color:'#D4006A' },
+        { label:'No Renovar', n: noRenovar, color:'#E24B4A' },
       ];
       const cx=60, cy=60, r=44, sw=18, circ=2*Math.PI*r;
       let offset=0, paths='';
       donutData.forEach(d => {
+        if (d.n === 0) return;
         const dash = (d.n/total)*circ;
         paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}"
           stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}"
@@ -1902,26 +1920,9 @@
          <span>${d.label}</span><span class="bc-legend-n">${d.n}</span></div>`
       ).join('');
 
-      // Prob buckets
-      const buckets = [
-        {l:'0–30%',  min:0,  max:30,  c:'#E24B4A'},
-        {l:'30–50%', min:30, max:50,  c:'#EF9F27'},
-        {l:'50–70%', min:50, max:70,  c:'#5DCAA5'},
-        {l:'70–90%', min:70, max:90,  c:'#1D9E75'},
-        {l:'90–100%',min:90, max:101, c:'#534AB7'},
-      ];
-      const maxB = Math.max(1, ...buckets.map(b => data.filter(m=>m.prob>=b.min&&m.prob<b.max).length));
-      document.getElementById('bcProbBars').innerHTML = buckets.map(b => {
-        const n = data.filter(m => m.prob>=b.min && m.prob<b.max).length;
-        return `<div class="bc-bar-row">
-          <span class="bc-label">${b.l}</span>
-          <div class="bc-track"><div class="bc-fill" style="width:${Math.round(n/maxB*100)}%;background:${b.c}"></div></div>
-          <span class="bc-val">${n}</span></div>`;
-      }).join('');
-
-      // Estatus
-      const vig = data.filter(m=>m.estatus==='VIGENTE').length;
-      const venc = total - vig;
+      // Estatus usando estatusReal recalculado
+      const vig  = data.filter(m => m.estatusReal === 'VIGENTE').length;
+      const venc = data.filter(m => m.estatusReal === 'VENCIDO').length;
       const maxE = Math.max(1, vig, venc);
       document.getElementById('bcEstatusBars').innerHTML = [
         {l:'VIGENTE', n:vig,  c:'#1D9E75'},
@@ -1933,7 +1934,10 @@
 
       // Top clases
       const cc = {};
-      data.forEach(m => { if(m.clase) cc[m.clase]=(cc[m.clase]||0)+1; });
+      data.forEach(m => {
+        const cls = String(m.clase).split(',')[0].trim();
+        if (cls) cc[cls] = (cc[cls]||0) + 1;
+      });
       const top = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
       const maxC = top[0]?.[1]||1;
       const cols = ['#D4006A','#F0338A','#8B5CF6','#534AB7','#C9C2F0'];
@@ -1943,6 +1947,75 @@
           <div class="bc-track"><div class="bc-fill" style="width:${Math.round(n/maxC*100)}%;background:${cols[i]}"></div></div>
           <span class="bc-val">${n}</span></div>`
       ).join('');
+
+      // Línea chart: probabilidades por marca (ordenadas)
+      const canvas = document.getElementById('bcLineChart');
+      if (!canvas) return;
+      const sorted = [...data].sort((a,b) => b.prob - a.prob);
+      const W = canvas.parentElement.offsetWidth || 800;
+      const H = 200;
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+
+      // Grid lines
+      ctx.strokeStyle = '#EDE8F8';
+      ctx.lineWidth = 1;
+      [25, 50, 75, 100].forEach(v => {
+        const y = H - 32 - ((v/100) * (H-48));
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W-10, y); ctx.stroke();
+        ctx.fillStyle = '#B4B2A9'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText(v+'%', 36, y+4);
+      });
+
+      // Threshold line at 50%
+      const y50 = H - 32 - (0.5 * (H-48));
+      ctx.strokeStyle = '#C9C2F0'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(40, y50); ctx.lineTo(W-10, y50); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Data points
+      const n = sorted.length;
+      const xStep = n > 1 ? (W - 60) / (n-1) : W - 60;
+
+      // Line
+      ctx.lineWidth = 2.5;
+      sorted.forEach((m, i) => {
+        const x = 40 + i * xStep;
+        const y = H - 32 - ((m.prob/100) * (H-48));
+        const color = m.prob >= 50 ? '#1D9E75' : '#E24B4A';
+        if (i === 0) { ctx.beginPath(); ctx.strokeStyle = color; ctx.moveTo(x, y); }
+        else {
+          const prevColor = sorted[i-1].prob >= 50 ? '#1D9E75' : '#E24B4A';
+          if (color !== prevColor) { ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = color; ctx.moveTo(x, y); }
+          else ctx.lineTo(x, y);
+        }
+        if (i === n-1) ctx.stroke();
+      });
+
+      // Dots
+      sorted.forEach((m, i) => {
+        const x = 40 + i * xStep;
+        const y = H - 32 - ((m.prob/100) * (H-48));
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI*2);
+        ctx.fillStyle = m.prob >= 50 ? '#1D9E75' : '#E24B4A';
+        ctx.fill();
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      // X labels (show every few)
+      ctx.fillStyle = '#B4B2A9'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      const step = Math.ceil(n / 10);
+      sorted.forEach((m, i) => {
+        if (i % step === 0 || i === n-1) {
+          const x = 40 + i * xStep;
+          const label = m.nombre.split(' ')[0].slice(0,8);
+          ctx.fillText(label, x, H-10);
+        }
+      });
     }
 
     // PORTAFOLIO
