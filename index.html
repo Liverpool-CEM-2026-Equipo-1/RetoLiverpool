@@ -954,7 +954,7 @@
           <div class="analisis-brand" id="analisisBrand">JUST WALK OUT</div>
           <div class="badge badge-vigente" id="analisisStatus"><div class="badge-dot"></div><span>VIGENTE</span></div>
         </div>
-        <div style="font-size:13px;color:var(--text-muted)">Clase: 9 · Vigencia: <span id="analisisVig">12/07/2026</span></div>
+        <div style="font-size:13px;color:var(--text-muted)">Clase: <span id="analisisClase">9</span> · Vigencia: <span id="analisisVig">12/07/2026</span></div>
         <div class="prob-big">
           <div class="prob-big-label">Probabilidad de renovar según el modelo predictivo</div>
           <div class="prob-big-bar"><div class="prob-big-fill green" id="analisisBar" style="width:85%"></div></div>
@@ -1775,6 +1775,7 @@
       document.getElementById('marcaCard').style.display = 'block';
       const m = currentMarca;
       document.getElementById('analisisBrand').textContent = m.nombre;
+      document.getElementById('analisisClase').textContent = m.clase || '—';
       document.getElementById('analisisVig').textContent = m.vigencia;
       document.getElementById('analisisBar').style.width = m.prob + '%';
       document.getElementById('analisisBar').className = 'prob-big-fill ' + (m.prob >= 50 ? 'green' : 'red');
