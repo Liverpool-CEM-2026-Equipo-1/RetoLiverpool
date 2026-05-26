@@ -451,6 +451,103 @@
     .result-badge.green { background: var(--green-bg); color: var(--green); }
     .result-badge.red { background: var(--red-bg); color: var(--red); }
     .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+
+
+    /* === FIX FINAL RESPONSIVE: TABLAS Y BATCH === */
+    .page,
+    .inner-page,
+    .batch-results,
+    #batchContent {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .inner-page {
+      padding-left: 48px;
+      padding-right: 48px;
+      overflow-x: hidden;
+    }
+
+    #batchContent {
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+
+    .batch-results {
+      max-width: 1280px !important;
+      margin: 0 auto !important;
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    .batch-charts {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      max-width: 1200px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .batch-table-wrap {
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .batch-table-wrap table,
+    .batch-results table {
+      width: 100% !important;
+      min-width: 900px !important;
+      table-layout: auto !important;
+    }
+
+    .batch-results th,
+    .batch-results td {
+      white-space: normal !important;
+      word-break: break-word !important;
+      vertical-align: middle;
+    }
+
+    .batch-results td:first-child {
+      min-width: 160px !important;
+      max-width: 260px !important;
+    }
+
+    .table-responsive {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 4px 24px rgba(180,120,200,0.1);
+    }
+
+    .table-responsive .portfolio-table {
+      min-width: 1000px;
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .portfolio-table th,
+    .portfolio-table td {
+      white-space: normal;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 16px; }
+      .inner-page { padding: 28px 16px; }
+      .batch-results { padding-left: 12px !important; padding-right: 12px !important; }
+      #batchContent { padding-left: 0; padding-right: 0; }
+      .batch-charts { grid-template-columns: 1fr !important; }
+      .bc-card { padding: 16px; }
+    }
+
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -786,7 +883,7 @@
         <p class="spinner-text" id="batchSpinnerText">Leyendo archivo...</p>
       </div>
 
-      <div id="batchContent" style="display:none;width:100%;max-width:960px;margin:0 auto;">
+      <div id="batchContent" style="display:none;width:100%;max-width:1200px;margin:0 auto;">
         <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
 
         <!-- GRÁFICAS PRIMERO -->
@@ -967,22 +1064,24 @@
           <option value="no">Sin ventas</option>
         </select>
       </div>
-      <table class="portfolio-table" id="portfolioTable">
-        <thead>
-          <tr>
-            <th>Denominación</th>
-            <th>Clase</th>
-            <th>Estatus</th>
-            <th>Vigencia</th>
-            <th>Review</th>
-            <th>ReviewScore</th>
-            <th>Tuvo Ventas</th>
-          </tr>
-        </thead>
-        <tbody id="portfolioBody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Cargando datos...</td></tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="portfolio-table" id="portfolioTable">
+          <thead>
+            <tr>
+              <th>Denominación</th>
+              <th>Clase</th>
+              <th>Estatus</th>
+              <th>Vigencia</th>
+              <th>Review</th>
+              <th>ReviewScore</th>
+              <th>Tuvo Ventas</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <div class="bottom-nav">
       <div class="bottom-nav-card" onclick="showPage('portafolio')">
@@ -2398,6 +2497,103 @@
       font-family: 'Inter', sans-serif; transition: all 0.2s;
     }
     .chat-sug:hover { background: var(--pink); color: white; }
+
+
+    /* === FIX FINAL RESPONSIVE: TABLAS Y BATCH === */
+    .page,
+    .inner-page,
+    .batch-results,
+    #batchContent {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .inner-page {
+      padding-left: 48px;
+      padding-right: 48px;
+      overflow-x: hidden;
+    }
+
+    #batchContent {
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+
+    .batch-results {
+      max-width: 1280px !important;
+      margin: 0 auto !important;
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    .batch-charts {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      max-width: 1200px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .batch-table-wrap {
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .batch-table-wrap table,
+    .batch-results table {
+      width: 100% !important;
+      min-width: 900px !important;
+      table-layout: auto !important;
+    }
+
+    .batch-results th,
+    .batch-results td {
+      white-space: normal !important;
+      word-break: break-word !important;
+      vertical-align: middle;
+    }
+
+    .batch-results td:first-child {
+      min-width: 160px !important;
+      max-width: 260px !important;
+    }
+
+    .table-responsive {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 4px 24px rgba(180,120,200,0.1);
+    }
+
+    .table-responsive .portfolio-table {
+      min-width: 1000px;
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .portfolio-table th,
+    .portfolio-table td {
+      white-space: normal;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 16px; }
+      .inner-page { padding: 28px 16px; }
+      .batch-results { padding-left: 12px !important; padding-right: 12px !important; }
+      #batchContent { padding-left: 0; padding-right: 0; }
+      .batch-charts { grid-template-columns: 1fr !important; }
+      .bc-card { padding: 16px; }
+    }
+
   </style>
 
   <!-- FAB -->
