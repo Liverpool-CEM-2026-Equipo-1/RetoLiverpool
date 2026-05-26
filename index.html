@@ -1381,17 +1381,27 @@
         if (!Array.isArray(data) || data.length === 0) throw new Error('Empty data');
         marcasData = data;
         console.log('marcas_data.json cargado:', data.length, 'registros');
-        // Render active page
-        try {
-          const active = document.querySelector('.page.active');
-          const pid = active ? active.id : '';
-          if (pid === 'page-portafolio') renderPortafolio(marcasData);
-          else if (pid === 'page-riesgo') renderRiesgo();
-          else if (pid === 'page-segmentos') renderSegmentos();
-          else if (pid === 'page-tendencias') renderTendencias();
-        } catch(e) { console.error('Render error:', e); }
+        onMarcasLoaded();
       })
-      .catch(e => console.error('Error cargando marcas_data.json:', e));
+      .catch(e => {
+        console.error('Error cargando marcas_data.json:', e);
+        // Show error banner so user knows what's wrong
+        const banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:#E24B4A;color:white;text-align:center;padding:10px;z-index:9999;font-size:13px;';
+        banner.textContent = '⚠️ Error cargando marcas_data.json — verifica que el archivo esté en el repositorio';
+        document.body.appendChild(banner);
+      });
+
+    function onMarcasLoaded() {
+      try {
+        const active = document.querySelector('.page.active');
+        const pid = active ? active.id : '';
+        if (pid === 'page-portafolio') renderPortafolio(marcasData);
+        else if (pid === 'page-riesgo') renderRiesgo();
+        else if (pid === 'page-segmentos') renderSegmentos();
+        else if (pid === 'page-tendencias') renderTendencias();
+      } catch(e) { console.error('Render error:', e); }
+    }
 
     const _placeholder = [
       { nombre: 'JUST WALK OUT', clase: 9, estatus: 'VIGENTE', vigencia: '12/07/2026', review: 'Top', score: 4.5, tuvoVentas: 'si', antiguedad: 10, conversion: 8.5, clasificacion: 'Top', devolucion: 0.05, tiempo: 24, prob: 98 },
@@ -1429,11 +1439,11 @@
         trigger.classList.add('active');
       }
 
-      if (page === 'portafolio') renderPortafolio(marcasData);
-      if (page === 'riesgo') renderRiesgo();
-      if (page === 'segmentos') renderSegmentos();
+      if (page === 'portafolio') { if (marcasData.length) renderPortafolio(marcasData); }
+      if (page === 'riesgo')     { if (marcasData.length) renderRiesgo(); }
+      if (page === 'segmentos')  { if (marcasData.length) renderSegmentos(); }
+      if (page === 'tendencias') { if (marcasData.length) renderTendencias(); }
       if (page === 'descriptivo') { setTimeout(initTableau, 100); }
-      if (page === 'tendencias') renderTendencias();
       closeDropdown();
       window.scrollTo(0, 0);
     }
