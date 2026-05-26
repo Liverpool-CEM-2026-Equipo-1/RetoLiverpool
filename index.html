@@ -1376,16 +1376,22 @@
 
     // Cargar datos reales desde JSON
     fetch('marcas_data.json')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(data => {
+        if (!Array.isArray(data) || data.length === 0) throw new Error('Empty data');
         marcasData = data;
-        // Render pages if active — stats are hardcoded, no dynamic update needed
-        if (document.getElementById('page-portafolio').classList.contains('active')) renderPortafolio(marcasData);
-        if (document.getElementById('page-riesgo').classList.contains('active'))     renderRiesgo();
-        if (document.getElementById('page-segmentos').classList.contains('active'))  renderSegmentos();
-        if (document.getElementById('page-tendencias').classList.contains('active')) renderTendencias();
+        console.log('marcas_data.json cargado:', data.length, 'registros');
+        // Render active page
+        try {
+          const active = document.querySelector('.page.active');
+          const pid = active ? active.id : '';
+          if (pid === 'page-portafolio') renderPortafolio(marcasData);
+          else if (pid === 'page-riesgo') renderRiesgo();
+          else if (pid === 'page-segmentos') renderSegmentos();
+          else if (pid === 'page-tendencias') renderTendencias();
+        } catch(e) { console.error('Render error:', e); }
       })
-      .catch(() => console.warn('No se pudo cargar marcas_data.json'));
+      .catch(e => console.error('Error cargando marcas_data.json:', e));
 
     const _placeholder = [
       { nombre: 'JUST WALK OUT', clase: 9, estatus: 'VIGENTE', vigencia: '12/07/2026', review: 'Top', score: 4.5, tuvoVentas: 'si', antiguedad: 10, conversion: 8.5, clasificacion: 'Top', devolucion: 0.05, tiempo: 24, prob: 98 },
