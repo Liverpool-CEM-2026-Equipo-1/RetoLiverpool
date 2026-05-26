@@ -821,6 +821,23 @@
             <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
           </div>
         </div>
+
+        <!-- TABLA DE RESULTADOS -->
+        <div class="batch-table-wrap" style="margin-top:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Marca</th>
+                <th>Clase</th>
+                <th>Estatus</th>
+                <th>Vigencia</th>
+                <th>Recomendación</th>
+                <th>Probabilidad</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1797,7 +1814,45 @@
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        if (!rows.length) { alert('El archivo está vacío o no tiene el formato correcto.'); return; }
+        if (!rows.length) {
+          clearInterval(batchInterval);
+          document.getElementById('batchSpinner').style.display = 'none';
+          alert('El archivo está vacío o no tiene el formato correcto.');
+          return;
+        }
+
+        // Helpers: permiten leer encabezados aunque vengan sin acentos, con espacios o con nombres similares
+        const normalizeKey = v => String(v || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[.\s_\-]/g, '')
+          .toUpperCase();
+
+        const getCell = (row, aliases) => {
+          const normalized = {};
+          Object.keys(row).forEach(k => { normalized[normalizeKey(k)] = row[k]; });
+          for (const a of aliases) {
+            const key = normalizeKey(a);
+            const value = normalized[key];
+            if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+          }
+          return '';
+        };
+
+        const toNumber = (value, fallback) => {
+          if (value === undefined || value === null || String(value).trim() === '') return fallback;
+          const n = parseFloat(String(value).replace('%', '').replace(',', '.'));
+          return Number.isFinite(n) ? n : fallback;
+        };
+
+        const formatDateCell = value => {
+          if (value === undefined || value === null || String(value).trim() === '') return '';
+          if (typeof value === 'number') {
+            const d = XLSX.SSF.parse_date_code(value);
+            if (d) return `${String(d.d).padStart(2, '0')}/${String(d.m).padStart(2, '0')}/${d.y}`;
+          }
+          return String(value).trim();
+        };
 
         // Build lookup from JSON by NoReg for fast match
         const lookup = {};
@@ -1805,24 +1860,24 @@
 
         // Parse cada fila extrayendo todas las variables disponibles
         const parsedRows = rows.map(row => {
-          const noreg   = String(row['No. Reg.'] || row['NoReg'] || row['noreg'] || '').trim();
-          const nombre  = String(row['DENOMINACIÓN'] || row['Denominación'] || row['nombre'] || row['Marca'] || '').trim();
-          const clase   = String(row['Clase'] || row['clase'] || '').trim();
-          const vigencia= String(row['Fecha Venc.'] || row['Vigencia'] || row['vigencia'] || '').trim();
-          const estatus = String(row['Estatus de Marca'] || row['estatus'] || 'VIGENTE').trim().toUpperCase();
+          const noreg   = String(getCell(row, ['No. Reg.', 'No Reg', 'NoReg', 'noreg', 'Registro', 'No Registro'])).trim();
+          const nombre  = String(getCell(row, ['DENOMINACIÓN', 'DENOMINACION', 'Denominación', 'Denominacion', 'nombre', 'Marca', 'Nombre de Marca'])).trim();
+          const clase   = String(getCell(row, ['Clase', 'clase', 'CLASE'])).trim();
+          const vigencia= formatDateCell(getCell(row, ['Fecha Venc.', 'Fecha Venc', 'Fecha Vencimiento', 'Fecha de Vencimiento', 'Vigencia', 'vigencia']));
+          const estatus = String(getCell(row, ['Estatus de Marca', 'Estatus Marca', 'Estatus', 'estatus', 'Status']) || 'VIGENTE').trim().toUpperCase();
           const match   = lookup[noreg];
 
           // Variables del modelo — de la columna del Excel si existen, si no del JSON match, si no default
-          const score   = parseFloat(row['ReviewScore']           || (match && match.score)        || 3.5);
-          const review  = String(row['Review']                    || (match && match.review)       || 'Media');
-          const ant     = parseFloat(row['Antiguedad']            || (match && match.antiguedad)   || 10);
-          const conv    = parseFloat(row['Tasa de conversión']    || (match && match.conversion)   || 3);
-          const cls     = String(row['Clasificación de Marca']    || (match && match.clasificacion)|| 'Media');
-          const dev     = parseFloat(row['Tasa de devolución']    || (match && match.devolucion)   || 0.1);
-          const tiempo  = parseFloat(row['Tiempo restante']       || (match && match.tiempo)       || 12);
-          const region  = String(row['Region']                    || (match && match.region)       || 'Centro');
-          const canal   = String(row['Canal']                     || (match && match.canal)        || 'Digital');
-          const segmento= String(row['Segmento']                  || (match && match.segmento)     || 'Millennial');
+          const score   = toNumber(getCell(row, ['ReviewScore', 'Review Score', 'Score', 'Calificación']), (match && match.score) || 3.5);
+          const review  = String(getCell(row, ['Review', 'review']) || (match && match.review) || 'Media').trim();
+          const ant     = toNumber(getCell(row, ['Antiguedad', 'Antigüedad', 'Antigüedad (años)', 'Antiguedad años']), (match && match.antiguedad) || 10);
+          const conv    = toNumber(getCell(row, ['Tasa de conversión', 'Tasa Conversion', 'Conversion', 'Conversión']), (match && match.conversion) || 3);
+          const cls     = String(getCell(row, ['Clasificación de Marca', 'Clasificacion de Marca', 'Clasificación', 'Clasificacion']) || (match && match.clasificacion) || 'Media').trim();
+          const dev     = toNumber(getCell(row, ['Tasa de devolución', 'Tasa Devolucion', 'Devolución', 'Devolucion']), (match && match.devolucion) || 0.1);
+          const tiempo  = toNumber(getCell(row, ['Tiempo restante', 'Tiempo Restante', 'Tiempo', 'Meses Restantes']), (match && match.tiempo) || 12);
+          const region  = String(getCell(row, ['Region', 'Región']) || (match && match.region) || 'Centro').trim();
+          const canal   = String(getCell(row, ['Canal']) || (match && match.canal) || 'Digital').trim();
+          const segmento= String(getCell(row, ['Segmento']) || (match && match.segmento) || 'Millennial').trim();
 
           return { noreg, nombre, clase, vigencia, estatus, score, review, ant, conv, cls, dev, tiempo, region, canal, segmento, match };
         }).filter(r => r.nombre);
@@ -1881,6 +1936,10 @@
 
     function renderBatchTable(resultados) {
       const tbody = document.getElementById('batchTableBody');
+      if (!tbody) {
+        console.error('No existe <tbody id="batchTableBody">. Revisa la sección HTML de Batch.');
+        return;
+      }
       tbody.innerHTML = '';
       const today = new Date();
 
