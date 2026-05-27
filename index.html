@@ -740,6 +740,48 @@ iframe {
 }
 </style>
 
+
+
+<style>
+/* FIX VISUAL 2 TABLEAU: ocupar pantalla completa y evitar miniatura/corte */
+#page-predictivo .inner-page{
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:24px 24px 32px !important;
+  overflow:visible !important;
+}
+#page-predictivo .page-header{
+  max-width:1280px !important;
+  margin:0 auto 18px !important;
+}
+#visual2-tableau-card{
+  width:100% !important;
+  max-width:1280px !important;
+  margin:0 auto !important;
+  height:calc(100vh - 150px) !important;
+  min-height:620px !important;
+  border-radius:18px !important;
+  border:1.5px solid var(--border) !important;
+  overflow:hidden !important;
+  background:#fff !important;
+  box-shadow:0 4px 24px rgba(180,120,200,0.10) !important;
+}
+#viz_visual2,
+#viz_visual2 object,
+#viz_visual2 iframe,
+#viz_visual2 .tableauViz{
+  width:100% !important;
+  height:100% !important;
+  min-width:100% !important;
+  min-height:100% !important;
+  max-width:none !important;
+  display:block !important;
+  border:0 !important;
+}
+#page-predictivo .bottom-nav{display:none !important;}
+</style>
+
 </head>
 <body>
 
@@ -1587,14 +1629,14 @@ iframe {
         
       </div>
       <!-- Tableau embed — Visual 2 -->
-      <div style="width:100%;border-radius:16px;border:1.5px solid var(--border);overflow:hidden;background:white;">
-        <div class='tableauPlaceholder' id='viz_visual2' style='position:relative;width:100%;'>
+      <div id="visual2-tableau-card">
+        <div class='tableauPlaceholder' id='viz_visual2' style='position:relative;width:100%;height:100%;'>
           <noscript>
             <a href='https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1'>
               <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Ri/RiesgodeMarcas-Liverpool/Dashboard1/1_rss.png' style='border:none;width:100%;' />
             </a>
           </noscript>
-          <object class='tableauViz' style='display:none;'>
+          <object class='tableauViz' style='display:none;width:100%;height:100%;'>
             <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
             <param name='embed_code_version' value='3' />
             <param name='site_root' value='' />
@@ -1602,6 +1644,11 @@ iframe {
             <param name='tabs' value='no' />
             <param name='toolbar' value='yes' />
             <param name='language' value='es-ES' />
+            <param name='device' value='desktop' />
+            <param name='showVizHome' value='no' />
+            <param name='showAppBanner' value='false' />
+            <param name='display_count' value='n' />
+            <param name='origin' value='viz_share_link' />
           </object>
         </div>
       </div>
@@ -2981,14 +3028,26 @@ Pregunta del usuario: ${mensaje}`
     function initTableau(vizId) {
       vizId = vizId || 'viz_visual1';
       var divEl = document.getElementById(vizId);
-      if (!divEl || divEl.dataset.loaded) return;
-      divEl.dataset.loaded = 'true';
+      if (!divEl) return;
       var vizEl = divEl.getElementsByTagName('object')[0];
-      // Size to full viewport height minus nav bar (~60px), so dashboard fits without scroll
-      var h = Math.max(700, window.innerHeight - 180);
-      vizEl.style.width  = '100%';
-      vizEl.style.height = h + 'px';
+      if (!vizEl) return;
+
+      var isVisual2 = vizId === 'viz_visual2';
+      var card = isVisual2 ? document.getElementById('visual2-tableau-card') : divEl.parentElement;
+      var h = isVisual2
+        ? Math.max(620, window.innerHeight - 150)
+        : Math.max(700, window.innerHeight - 180);
+
+      if (card) card.style.height = h + 'px';
+      divEl.style.width = '100%';
       divEl.style.height = h + 'px';
+      vizEl.style.width = '100%';
+      vizEl.style.height = h + 'px';
+      vizEl.style.minWidth = '100%';
+      vizEl.style.minHeight = h + 'px';
+
+      if (divEl.dataset.loaded) return;
+      divEl.dataset.loaded = 'true';
       var scriptEl = document.createElement('script');
       scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
       vizEl.parentNode.insertBefore(scriptEl, vizEl);
@@ -2996,6 +3055,10 @@ Pregunta del usuario: ${mensaje}`
     // Init when Visual 1 is shown
     const _origShowPage = showPage;
     // Hook into page navigation
+    window.addEventListener('resize', function(){
+      if (document.getElementById('page-predictivo') && document.getElementById('page-predictivo').classList.contains('active')) { initTableau('viz_visual2'); }
+      if (document.getElementById('page-descriptivo') && document.getElementById('page-descriptivo').classList.contains('active')) { initTableau('viz_visual1'); }
+    });
     document.addEventListener('DOMContentLoaded', function() {
       // If already on descriptivo, init immediately
       if (document.getElementById('page-descriptivo').classList.contains('active')) {
