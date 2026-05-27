@@ -451,6 +451,279 @@
     .result-badge.green { background: var(--green-bg); color: var(--green); }
     .result-badge.red { background: var(--red-bg); color: var(--red); }
     .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+
+
+    /* === FIX FINAL RESPONSIVE: TABLAS Y BATCH === */
+    .page,
+    .inner-page,
+    .batch-results,
+    #batchContent {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .inner-page {
+      padding-left: 48px;
+      padding-right: 48px;
+      overflow-x: hidden;
+    }
+
+    #batchContent {
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+
+    .batch-results {
+      max-width: 1280px !important;
+      margin: 0 auto !important;
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    .batch-charts {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      max-width: 1200px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .batch-table-wrap {
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .batch-table-wrap table,
+    .batch-results table {
+      width: 100% !important;
+      min-width: 900px !important;
+      table-layout: auto !important;
+    }
+
+    .batch-results th,
+    .batch-results td {
+      white-space: normal !important;
+      word-break: break-word !important;
+      vertical-align: middle;
+    }
+
+    .batch-results td:first-child {
+      min-width: 160px !important;
+      max-width: 260px !important;
+    }
+
+    .table-responsive {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 4px 24px rgba(180,120,200,0.1);
+    }
+
+    .table-responsive .portfolio-table {
+      min-width: 1000px;
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .portfolio-table th,
+    .portfolio-table td {
+      white-space: normal;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 16px; }
+      .inner-page { padding: 28px 16px; }
+      .batch-results { padding-left: 12px !important; padding-right: 12px !important; }
+      #batchContent { padding-left: 0; padding-right: 0; }
+      .batch-charts { grid-template-columns: 1fr !important; }
+      .bc-card { padding: 16px; }
+    }
+
+  
+
+    /* === FIX SEPARADO: PORTAFOLIO VS BATCH ===
+       Portafolio y Batch tienen necesidades distintas:
+       - Portafolio debe verse compacto y legible.
+       - Batch puede tener scroll horizontal por resultados masivos.
+    */
+
+    /* PORTAFOLIO: tabla compacta, sin headers verticales */
+    #page-portafolio .inner-page{
+      width:100% !important;
+      max-width:1280px !important;
+      margin:0 auto !important;
+      padding-left:48px !important;
+      padding-right:48px !important;
+      overflow-x:visible !important;
+    }
+
+    #page-portafolio .table-responsive{
+      width:100% !important;
+      max-width:100% !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      border-radius:16px !important;
+      box-shadow:0 4px 24px rgba(180,120,200,0.1) !important;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    #page-portafolio .portfolio-table{
+      width:100% !important;
+      min-width:980px !important;
+      table-layout:fixed !important;
+      border-collapse:collapse !important;
+      background:white !important;
+      box-shadow:none !important;
+    }
+
+    #page-portafolio .portfolio-table th,
+    #page-portafolio .portfolio-table td{
+      padding:14px 16px !important;
+      vertical-align:middle !important;
+      font-size:13px !important;
+      line-height:1.35 !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+    }
+
+    #page-portafolio .portfolio-table th{
+      white-space:nowrap !important;
+      text-align:left !important;
+    }
+
+    #page-portafolio .portfolio-table td{
+      white-space:normal !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(1),
+    #page-portafolio .portfolio-table td:nth-child(1){
+      width:38% !important;
+      font-weight:600;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(2),
+    #page-portafolio .portfolio-table td:nth-child(2){
+      width:8% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(3),
+    #page-portafolio .portfolio-table td:nth-child(3){
+      width:13% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(4),
+    #page-portafolio .portfolio-table td:nth-child(4){
+      width:12% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(5),
+    #page-portafolio .portfolio-table td:nth-child(5){
+      width:10% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(6),
+    #page-portafolio .portfolio-table td:nth-child(6){
+      width:10% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(7),
+    #page-portafolio .portfolio-table td:nth-child(7){
+      width:9% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .badge-sm,
+    #page-portafolio .result-badge{
+      white-space:nowrap !important;
+      word-break:normal !important;
+    }
+
+    /* BATCH: tabla independiente con scroll horizontal real */
+    #page-prediccion .batch-results{
+      max-width:1280px !important;
+      width:100% !important;
+      margin:0 auto !important;
+      padding-left:24px !important;
+      padding-right:24px !important;
+    }
+
+    #page-prediccion #batchContent{
+      width:100% !important;
+      max-width:1200px !important;
+      margin:0 auto !important;
+      overflow-x:visible !important;
+    }
+
+    #page-prediccion .batch-table-wrap{
+      grid-column:1 / -1 !important;
+      width:100% !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      border-radius:16px !important;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    #page-prediccion .batch-table-wrap table{
+      min-width:850px !important;
+      width:100% !important;
+      table-layout:auto !important;
+      border-collapse:collapse !important;
+    }
+
+    #page-prediccion .batch-table-wrap th{
+      white-space:nowrap !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+      text-align:left !important;
+    }
+
+    #page-prediccion .batch-table-wrap td{
+      white-space:nowrap !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+    }
+
+    #page-prediccion .batch-table-wrap td:first-child{
+      white-space:normal !important;
+      min-width:220px !important;
+      max-width:320px !important;
+      word-break:normal !important;
+      overflow-wrap:break-word !important;
+    }
+
+    @media (max-width:900px){
+      #page-portafolio .inner-page{
+        padding-left:16px !important;
+        padding-right:16px !important;
+      }
+
+      #page-portafolio .portfolio-table{
+        min-width:900px !important;
+      }
+
+      #page-prediccion .batch-results{
+        padding-left:12px !important;
+        padding-right:12px !important;
+      }
+    }
+
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -786,7 +1059,7 @@
         <p class="spinner-text" id="batchSpinnerText">Leyendo archivo...</p>
       </div>
 
-      <div id="batchContent" style="display:none;width:100%;max-width:960px;margin:0 auto;">
+      <div id="batchContent" style="display:none;width:100%;max-width:1200px;margin:0 auto;">
         <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
 
         <!-- GRÁFICAS PRIMERO -->
@@ -823,7 +1096,7 @@
         </div>
 
         <!-- TABLA DE RESULTADOS -->
-        <div class="batch-table-wrap" style="grid-column:1/-1;margin-top:20px;">
+        <div class="batch-table-wrap" style="margin-top:20px;">
           <table>
             <thead>
               <tr>
@@ -857,7 +1130,7 @@
           <div class="analisis-brand" id="analisisBrand">JUST WALK OUT</div>
           <div class="badge badge-vigente" id="analisisStatus"><div class="badge-dot"></div><span>VIGENTE</span></div>
         </div>
-        <div style="font-size:13px;color:var(--text-muted)">Clase: 9 · Vigencia: <span id="analisisVig">12/07/2026</span></div>
+        <div style="font-size:13px;color:var(--text-muted)">Clase: <span id="analisisClase">9</span> · Vigencia: <span id="analisisVig">12/07/2026</span></div>
         <div class="prob-big">
           <div class="prob-big-label">Probabilidad de renovar según el modelo predictivo</div>
           <div class="prob-big-bar"><div class="prob-big-fill green" id="analisisBar" style="width:85%"></div></div>
@@ -967,22 +1240,24 @@
           <option value="no">Sin ventas</option>
         </select>
       </div>
-      <table class="portfolio-table" id="portfolioTable">
-        <thead>
-          <tr>
-            <th>Denominación</th>
-            <th>Clase</th>
-            <th>Estatus</th>
-            <th>Vigencia</th>
-            <th>Review</th>
-            <th>ReviewScore</th>
-            <th>Tuvo Ventas</th>
-          </tr>
-        </thead>
-        <tbody id="portfolioBody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Cargando datos...</td></tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="portfolio-table" id="portfolioTable">
+          <thead>
+            <tr>
+              <th>Denominación</th>
+              <th>Clase</th>
+              <th>Estatus</th>
+              <th>Vigencia</th>
+              <th>Review</th>
+              <th>ReviewScore</th>
+              <th>Tuvo Ventas</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <div class="bottom-nav">
       <div class="bottom-nav-card" onclick="showPage('portafolio')">
@@ -1292,24 +1567,31 @@
         Volver al inicio
       </div>
     </div>
-
-    <div class="inner-page" style="max-width:1280px;">
+    <div class="inner-page">
       <div class="page-header">
         <h2>Visual 2</h2>
-        <p>Dashboard de riesgo de marcas Liverpool</p>
+        
       </div>
-
-      <div style="background:white;border-radius:20px;border:1.5px solid var(--border);box-shadow:0 4px 24px rgba(180,120,200,0.1);padding:16px;overflow:hidden;">
-        <iframe
-          id="tableauVisual2"
-          title="Riesgo de Marcas Liverpool - Dashboard 1"
-          src="https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1?:language=es-ES&:showVizHome=no&:embed=true&:display_count=n&:origin=viz_share_link"
-          style="width:100%;height:820px;border:0;border-radius:14px;background:white;"
-          allowfullscreen>
-        </iframe>
+      <!-- Tableau embed — Visual 2 -->
+      <div style="width:100%;border-radius:16px;border:1.5px solid var(--border);overflow:hidden;background:white;">
+        <div class='tableauPlaceholder' id='viz_visual2' style='position:relative;width:100%;'>
+          <noscript>
+            <a href='https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1'>
+              <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Ri/RiesgodeMarcas-Liverpool/Dashboard1/1_rss.png' style='border:none;width:100%;' />
+            </a>
+          </noscript>
+          <object class='tableauViz' style='display:none;'>
+            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+            <param name='embed_code_version' value='3' />
+            <param name='site_root' value='' />
+            <param name='name' value='RiesgodeMarcas-Liverpool/Dashboard1' />
+            <param name='tabs' value='no' />
+            <param name='toolbar' value='yes' />
+            <param name='language' value='es-ES' />
+          </object>
+        </div>
       </div>
     </div>
-
     <div class="bottom-nav">
       <div class="bottom-nav-card" onclick="showPage('portafolio')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1465,14 +1747,8 @@
       if (page === 'riesgo')     { if (marcasData.length) renderRiesgo(); }
       if (page === 'segmentos')  { if (marcasData.length) renderSegmentos(); }
       if (page === 'tendencias') { if (marcasData.length) renderTendencias(); }
-      if (page === 'descriptivo') { setTimeout(initTableau, 100); }
-      // Visual 2 usa iframe para evitar que Tableau se rompa cuando la página está oculta.
-      if (page === 'predictivo') {
-        const iframe = document.getElementById('tableauVisual2');
-        if (iframe && !iframe.src) {
-          iframe.src = 'https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1?:language=es-ES&:showVizHome=no&:embed=true&:display_count=n&:origin=viz_share_link';
-        }
-      }
+      if (page === 'descriptivo') { setTimeout(function(){ initTableau('viz_visual1'); }, 100); }
+      if (page === 'predictivo') { setTimeout(function(){ initTableau('viz_visual2'); }, 100); }
       closeDropdown();
       window.scrollTo(0, 0);
     }
@@ -1687,6 +1963,7 @@
       document.getElementById('marcaCard').style.display = 'block';
       const m = currentMarca;
       document.getElementById('analisisBrand').textContent = m.nombre;
+      document.getElementById('analisisClase').textContent = m.clase || '—';
       document.getElementById('analisisVig').textContent = m.vigencia;
       document.getElementById('analisisBar').style.width = m.prob + '%';
       document.getElementById('analisisBar').className = 'prob-big-fill ' + (m.prob >= 50 ? 'green' : 'red');
@@ -1825,7 +2102,45 @@
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        if (!rows.length) { alert('El archivo está vacío o no tiene el formato correcto.'); return; }
+        if (!rows.length) {
+          clearInterval(batchInterval);
+          document.getElementById('batchSpinner').style.display = 'none';
+          alert('El archivo está vacío o no tiene el formato correcto.');
+          return;
+        }
+
+        // Helpers: permiten leer encabezados aunque vengan sin acentos, con espacios o con nombres similares
+        const normalizeKey = v => String(v || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[.\s_\-]/g, '')
+          .toUpperCase();
+
+        const getCell = (row, aliases) => {
+          const normalized = {};
+          Object.keys(row).forEach(k => { normalized[normalizeKey(k)] = row[k]; });
+          for (const a of aliases) {
+            const key = normalizeKey(a);
+            const value = normalized[key];
+            if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+          }
+          return '';
+        };
+
+        const toNumber = (value, fallback) => {
+          if (value === undefined || value === null || String(value).trim() === '') return fallback;
+          const n = parseFloat(String(value).replace('%', '').replace(',', '.'));
+          return Number.isFinite(n) ? n : fallback;
+        };
+
+        const formatDateCell = value => {
+          if (value === undefined || value === null || String(value).trim() === '') return '';
+          if (typeof value === 'number') {
+            const d = XLSX.SSF.parse_date_code(value);
+            if (d) return `${String(d.d).padStart(2, '0')}/${String(d.m).padStart(2, '0')}/${d.y}`;
+          }
+          return String(value).trim();
+        };
 
         // Build lookup from JSON by NoReg for fast match
         const lookup = {};
@@ -1833,24 +2148,24 @@
 
         // Parse cada fila extrayendo todas las variables disponibles
         const parsedRows = rows.map(row => {
-          const noreg   = String(row['No. Reg.'] || row['NoReg'] || row['noreg'] || '').trim();
-          const nombre  = String(row['DENOMINACIÓN'] || row['Denominación'] || row['nombre'] || row['Marca'] || '').trim();
-          const clase   = String(row['Clase'] || row['clase'] || '').trim();
-          const vigencia= String(row['Fecha Venc.'] || row['Vigencia'] || row['vigencia'] || '').trim();
-          const estatus = String(row['Estatus de Marca'] || row['estatus'] || 'VIGENTE').trim().toUpperCase();
+          const noreg   = String(getCell(row, ['No. Reg.', 'No Reg', 'NoReg', 'noreg', 'Registro', 'No Registro'])).trim();
+          const nombre  = String(getCell(row, ['DENOMINACIÓN', 'DENOMINACION', 'Denominación', 'Denominacion', 'nombre', 'Marca', 'Nombre de Marca'])).trim();
+          const clase   = String(getCell(row, ['Clase', 'clase', 'CLASE'])).trim();
+          const vigencia= formatDateCell(getCell(row, ['Fecha Venc.', 'Fecha Venc', 'Fecha Vencimiento', 'Fecha de Vencimiento', 'Vigencia', 'vigencia']));
+          const estatus = String(getCell(row, ['Estatus de Marca', 'Estatus Marca', 'Estatus', 'estatus', 'Status']) || 'VIGENTE').trim().toUpperCase();
           const match   = lookup[noreg];
 
           // Variables del modelo — de la columna del Excel si existen, si no del JSON match, si no default
-          const score   = parseFloat(row['ReviewScore']           || (match && match.score)        || 3.5);
-          const review  = String(row['Review']                    || (match && match.review)       || 'Media');
-          const ant     = parseFloat(row['Antiguedad']            || (match && match.antiguedad)   || 10);
-          const conv    = parseFloat(row['Tasa de conversión']    || (match && match.conversion)   || 3);
-          const cls     = String(row['Clasificación de Marca']    || (match && match.clasificacion)|| 'Media');
-          const dev     = parseFloat(row['Tasa de devolución']    || (match && match.devolucion)   || 0.1);
-          const tiempo  = parseFloat(row['Tiempo restante']       || (match && match.tiempo)       || 12);
-          const region  = String(row['Region']                    || (match && match.region)       || 'Centro');
-          const canal   = String(row['Canal']                     || (match && match.canal)        || 'Digital');
-          const segmento= String(row['Segmento']                  || (match && match.segmento)     || 'Millennial');
+          const score   = toNumber(getCell(row, ['ReviewScore', 'Review Score', 'Score', 'Calificación']), (match && match.score) || 3.5);
+          const review  = String(getCell(row, ['Review', 'review']) || (match && match.review) || 'Media').trim();
+          const ant     = toNumber(getCell(row, ['Antiguedad', 'Antigüedad', 'Antigüedad (años)', 'Antiguedad años']), (match && match.antiguedad) || 10);
+          const conv    = toNumber(getCell(row, ['Tasa de conversión', 'Tasa Conversion', 'Conversion', 'Conversión']), (match && match.conversion) || 3);
+          const cls     = String(getCell(row, ['Clasificación de Marca', 'Clasificacion de Marca', 'Clasificación', 'Clasificacion']) || (match && match.clasificacion) || 'Media').trim();
+          const dev     = toNumber(getCell(row, ['Tasa de devolución', 'Tasa Devolucion', 'Devolución', 'Devolucion']), (match && match.devolucion) || 0.1);
+          const tiempo  = toNumber(getCell(row, ['Tiempo restante', 'Tiempo Restante', 'Tiempo', 'Meses Restantes']), (match && match.tiempo) || 12);
+          const region  = String(getCell(row, ['Region', 'Región']) || (match && match.region) || 'Centro').trim();
+          const canal   = String(getCell(row, ['Canal']) || (match && match.canal) || 'Digital').trim();
+          const segmento= String(getCell(row, ['Segmento']) || (match && match.segmento) || 'Millennial').trim();
 
           return { noreg, nombre, clase, vigencia, estatus, score, review, ant, conv, cls, dev, tiempo, region, canal, segmento, match };
         }).filter(r => r.nombre);
@@ -1909,6 +2224,10 @@
 
     function renderBatchTable(resultados) {
       const tbody = document.getElementById('batchTableBody');
+      if (!tbody) {
+        console.error('No existe <tbody id="batchTableBody">. Revisa la sección HTML de Batch.');
+        return;
+      }
       tbody.innerHTML = '';
       const today = new Date();
 
@@ -2367,6 +2686,103 @@
       font-family: 'Inter', sans-serif; transition: all 0.2s;
     }
     .chat-sug:hover { background: var(--pink); color: white; }
+
+
+    /* === FIX FINAL RESPONSIVE: TABLAS Y BATCH === */
+    .page,
+    .inner-page,
+    .batch-results,
+    #batchContent {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .inner-page {
+      padding-left: 48px;
+      padding-right: 48px;
+      overflow-x: hidden;
+    }
+
+    #batchContent {
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+
+    .batch-results {
+      max-width: 1280px !important;
+      margin: 0 auto !important;
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    .batch-charts {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      max-width: 1200px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .batch-table-wrap {
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .batch-table-wrap table,
+    .batch-results table {
+      width: 100% !important;
+      min-width: 900px !important;
+      table-layout: auto !important;
+    }
+
+    .batch-results th,
+    .batch-results td {
+      white-space: normal !important;
+      word-break: break-word !important;
+      vertical-align: middle;
+    }
+
+    .batch-results td:first-child {
+      min-width: 160px !important;
+      max-width: 260px !important;
+    }
+
+    .table-responsive {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 4px 24px rgba(180,120,200,0.1);
+    }
+
+    .table-responsive .portfolio-table {
+      min-width: 1000px;
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .portfolio-table th,
+    .portfolio-table td {
+      white-space: normal;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 16px; }
+      .inner-page { padding: 28px 16px; }
+      .batch-results { padding-left: 12px !important; padding-right: 12px !important; }
+      #batchContent { padding-left: 0; padding-right: 0; }
+      .batch-charts { grid-template-columns: 1fr !important; }
+      .bc-card { padding: 16px; }
+    }
+
   </style>
 
   <!-- FAB -->
@@ -2548,8 +2964,9 @@ Pregunta del usuario: ${mensaje}`
     }
   </script>
   <script type='text/javascript'>
-    function initTableau() {
-      var divEl = document.getElementById('viz_visual1');
+    function initTableau(vizId) {
+      vizId = vizId || 'viz_visual1';
+      var divEl = document.getElementById(vizId);
       if (!divEl || divEl.dataset.loaded) return;
       divEl.dataset.loaded = 'true';
       var vizEl = divEl.getElementsByTagName('object')[0];
@@ -2568,7 +2985,10 @@ Pregunta del usuario: ${mensaje}`
     document.addEventListener('DOMContentLoaded', function() {
       // If already on descriptivo, init immediately
       if (document.getElementById('page-descriptivo').classList.contains('active')) {
-        initTableau();
+        initTableau('viz_visual1');
+      }
+      if (document.getElementById('page-predictivo').classList.contains('active')) {
+        initTableau('viz_visual2');
       }
     });
   </script>
