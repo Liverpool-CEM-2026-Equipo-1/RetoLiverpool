@@ -451,21 +451,6 @@
     .result-badge.green { background: var(--green-bg); color: var(--green); }
     .result-badge.red { background: var(--red-bg); color: var(--red); }
     .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
-    /* TABLEAU EMBED */
-    .tableau-embed-card{
-      background:white;
-      border:1.5px solid var(--border);
-      border-radius:20px;
-      box-shadow:0 4px 24px rgba(180,120,200,0.10);
-      padding:18px;
-      overflow:hidden;
-      margin:32px 0;
-    }
-    .tableau-embed-card .tableauPlaceholder{
-      width:100%;
-      min-height:700px;
-    }
-
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -836,8 +821,26 @@
             <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
           </div>
         </div>
+
+        <!-- TABLA DE RESULTADOS -->
+        <div class="batch-table-wrap" style="grid-column:1/-1;margin-top:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Marca</th>
+                <th>Clase</th>
+                <th>Estatus</th>
+                <th>Vigencia</th>
+                <th>Recomendación</th>
+                <th>Probabilidad</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
+  </div>
   </div>
 
 <!-- ANALISIS COMPLETO -->
@@ -1289,30 +1292,24 @@
         Volver al inicio
       </div>
     </div>
-    <div class="inner-page">
+
+    <div class="inner-page" style="max-width:1280px;">
       <div class="page-header">
         <h2>Visual 2</h2>
-        
+        <p>Dashboard de riesgo de marcas Liverpool</p>
       </div>
-      <div class="tableau-embed-card">
-        <div class='tableauPlaceholder' id='viz_visual2' style='position:relative;width:100%;'>
-          <noscript>
-            <a href='https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1'>
-              <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Ri/RiesgodeMarcas-Liverpool/Dashboard1/1_rss.png' style='border:none;width:100%;' />
-            </a>
-          </noscript>
-          <object class='tableauViz' style='display:none;'>
-            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
-            <param name='embed_code_version' value='3' />
-            <param name='site_root' value='' />
-            <param name='name' value='RiesgodeMarcas-Liverpool/Dashboard1' />
-            <param name='tabs' value='no' />
-            <param name='toolbar' value='yes' />
-            <param name='language' value='es-ES' />
-          </object>
-        </div>
+
+      <div style="background:white;border-radius:20px;border:1.5px solid var(--border);box-shadow:0 4px 24px rgba(180,120,200,0.1);padding:16px;overflow:hidden;">
+        <iframe
+          id="tableauVisual2"
+          title="Riesgo de Marcas Liverpool - Dashboard 1"
+          src="https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1?:language=es-ES&:showVizHome=no&:embed=true&:display_count=n&:origin=viz_share_link"
+          style="width:100%;height:820px;border:0;border-radius:14px;background:white;"
+          allowfullscreen>
+        </iframe>
       </div>
     </div>
+
     <div class="bottom-nav">
       <div class="bottom-nav-card" onclick="showPage('portafolio')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1468,8 +1465,14 @@
       if (page === 'riesgo')     { if (marcasData.length) renderRiesgo(); }
       if (page === 'segmentos')  { if (marcasData.length) renderSegmentos(); }
       if (page === 'tendencias') { if (marcasData.length) renderTendencias(); }
-      if (page === 'descriptivo') { setTimeout(() => initTableau('viz_visual1'), 100); }
-      if (page === 'predictivo') { setTimeout(() => initTableau('viz_visual2'), 100); }
+      if (page === 'descriptivo') { setTimeout(initTableau, 100); }
+      // Visual 2 usa iframe para evitar que Tableau se rompa cuando la página está oculta.
+      if (page === 'predictivo') {
+        const iframe = document.getElementById('tableauVisual2');
+        if (iframe && !iframe.src) {
+          iframe.src = 'https://public.tableau.com/views/RiesgodeMarcas-Liverpool/Dashboard1?:language=es-ES&:showVizHome=no&:embed=true&:display_count=n&:origin=viz_share_link';
+        }
+      }
       closeDropdown();
       window.scrollTo(0, 0);
     }
@@ -2364,21 +2367,6 @@
       font-family: 'Inter', sans-serif; transition: all 0.2s;
     }
     .chat-sug:hover { background: var(--pink); color: white; }
-    /* TABLEAU EMBED */
-    .tableau-embed-card{
-      background:white;
-      border:1.5px solid var(--border);
-      border-radius:20px;
-      box-shadow:0 4px 24px rgba(180,120,200,0.10);
-      padding:18px;
-      overflow:hidden;
-      margin:32px 0;
-    }
-    .tableau-embed-card .tableauPlaceholder{
-      width:100%;
-      min-height:700px;
-    }
-
   </style>
 
   <!-- FAB -->
@@ -2560,30 +2548,27 @@ Pregunta del usuario: ${mensaje}`
     }
   </script>
   <script type='text/javascript'>
-    function initTableau(vizId) {
-      var divEl = document.getElementById(vizId || 'viz_visual1');
+    function initTableau() {
+      var divEl = document.getElementById('viz_visual1');
       if (!divEl || divEl.dataset.loaded) return;
       divEl.dataset.loaded = 'true';
-
       var vizEl = divEl.getElementsByTagName('object')[0];
-      if (!vizEl) return;
-
+      // Size to full viewport height minus nav bar (~60px), so dashboard fits without scroll
       var h = Math.max(700, window.innerHeight - 180);
       vizEl.style.width  = '100%';
       vizEl.style.height = h + 'px';
       divEl.style.height = h + 'px';
-
       var scriptEl = document.createElement('script');
       scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
       vizEl.parentNode.insertBefore(scriptEl, vizEl);
     }
-
+    // Init when Visual 1 is shown
+    const _origShowPage = showPage;
+    // Hook into page navigation
     document.addEventListener('DOMContentLoaded', function() {
-      if (document.getElementById('page-descriptivo')?.classList.contains('active')) {
-        initTableau('viz_visual1');
-      }
-      if (document.getElementById('page-predictivo')?.classList.contains('active')) {
-        initTableau('viz_visual2');
+      // If already on descriptivo, init immediately
+      if (document.getElementById('page-descriptivo').classList.contains('active')) {
+        initTableau();
       }
     });
   </script>
