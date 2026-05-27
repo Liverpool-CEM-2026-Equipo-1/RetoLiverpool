@@ -548,6 +548,182 @@
       .bc-card { padding: 16px; }
     }
 
+  
+
+    /* === FIX SEPARADO: PORTAFOLIO VS BATCH ===
+       Portafolio y Batch tienen necesidades distintas:
+       - Portafolio debe verse compacto y legible.
+       - Batch puede tener scroll horizontal por resultados masivos.
+    */
+
+    /* PORTAFOLIO: tabla compacta, sin headers verticales */
+    #page-portafolio .inner-page{
+      width:100% !important;
+      max-width:1280px !important;
+      margin:0 auto !important;
+      padding-left:48px !important;
+      padding-right:48px !important;
+      overflow-x:visible !important;
+    }
+
+    #page-portafolio .table-responsive{
+      width:100% !important;
+      max-width:100% !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      border-radius:16px !important;
+      box-shadow:0 4px 24px rgba(180,120,200,0.1) !important;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    #page-portafolio .portfolio-table{
+      width:100% !important;
+      min-width:980px !important;
+      table-layout:fixed !important;
+      border-collapse:collapse !important;
+      background:white !important;
+      box-shadow:none !important;
+    }
+
+    #page-portafolio .portfolio-table th,
+    #page-portafolio .portfolio-table td{
+      padding:14px 16px !important;
+      vertical-align:middle !important;
+      font-size:13px !important;
+      line-height:1.35 !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+    }
+
+    #page-portafolio .portfolio-table th{
+      white-space:nowrap !important;
+      text-align:left !important;
+    }
+
+    #page-portafolio .portfolio-table td{
+      white-space:normal !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(1),
+    #page-portafolio .portfolio-table td:nth-child(1){
+      width:38% !important;
+      font-weight:600;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(2),
+    #page-portafolio .portfolio-table td:nth-child(2){
+      width:8% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(3),
+    #page-portafolio .portfolio-table td:nth-child(3){
+      width:13% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(4),
+    #page-portafolio .portfolio-table td:nth-child(4){
+      width:12% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(5),
+    #page-portafolio .portfolio-table td:nth-child(5){
+      width:10% !important;
+      text-align:center !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(6),
+    #page-portafolio .portfolio-table td:nth-child(6){
+      width:10% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .portfolio-table th:nth-child(7),
+    #page-portafolio .portfolio-table td:nth-child(7){
+      width:9% !important;
+      text-align:center !important;
+      white-space:nowrap !important;
+    }
+
+    #page-portafolio .badge-sm,
+    #page-portafolio .result-badge{
+      white-space:nowrap !important;
+      word-break:normal !important;
+    }
+
+    /* BATCH: tabla independiente con scroll horizontal real */
+    #page-prediccion .batch-results{
+      max-width:1280px !important;
+      width:100% !important;
+      margin:0 auto !important;
+      padding-left:24px !important;
+      padding-right:24px !important;
+    }
+
+    #page-prediccion #batchContent{
+      width:100% !important;
+      max-width:1200px !important;
+      margin:0 auto !important;
+      overflow-x:visible !important;
+    }
+
+    #page-prediccion .batch-table-wrap{
+      grid-column:1 / -1 !important;
+      width:100% !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      border-radius:16px !important;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    #page-prediccion .batch-table-wrap table{
+      min-width:850px !important;
+      width:100% !important;
+      table-layout:auto !important;
+      border-collapse:collapse !important;
+    }
+
+    #page-prediccion .batch-table-wrap th{
+      white-space:nowrap !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+      text-align:left !important;
+    }
+
+    #page-prediccion .batch-table-wrap td{
+      white-space:nowrap !important;
+      word-break:normal !important;
+      overflow-wrap:normal !important;
+    }
+
+    #page-prediccion .batch-table-wrap td:first-child{
+      white-space:normal !important;
+      min-width:220px !important;
+      max-width:320px !important;
+      word-break:normal !important;
+      overflow-wrap:break-word !important;
+    }
+
+    @media (max-width:900px){
+      #page-portafolio .inner-page{
+        padding-left:16px !important;
+        padding-right:16px !important;
+      }
+
+      #page-portafolio .portfolio-table{
+        min-width:900px !important;
+      }
+
+      #page-prediccion .batch-results{
+        padding-left:12px !important;
+        padding-right:12px !important;
+      }
+    }
+
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
