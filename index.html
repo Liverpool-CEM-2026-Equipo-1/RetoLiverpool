@@ -724,64 +724,47 @@
       }
     }
 
+
+    /* === VISUAL 2 TABLEAU ONLY: no afecta Visual 1 === */
+    #page-predictivo .inner-page{
+      width:100% !important;
+      max-width:none !important;
+      margin:0 !important;
+      padding:24px 24px 32px !important;
+      overflow:visible !important;
+    }
+    #page-predictivo .page-header{
+      max-width:1280px !important;
+      margin:0 auto 18px !important;
+    }
+    #visual2-tableau-card{
+      width:100% !important;
+      max-width:1280px !important;
+      margin:0 auto !important;
+      height:calc(100vh - 150px) !important;
+      min-height:620px !important;
+      border-radius:18px !important;
+      border:1.5px solid var(--border) !important;
+      overflow:hidden !important;
+      background:#fff !important;
+      box-shadow:0 4px 24px rgba(180,120,200,0.10) !important;
+    }
+    #viz_visual2,
+    #viz_visual2 object,
+    #viz_visual2 iframe,
+    #viz_visual2 .tableauViz{
+      width:100% !important;
+      height:100% !important;
+      min-width:100% !important;
+      min-height:100% !important;
+      max-width:none !important;
+      display:block !important;
+      border:0 !important;
+    }
+    #page-predictivo .bottom-nav{display:none !important;}
+
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<style>
-.tableauPlaceholder,
-.tableauViz,
-iframe {
-    width: 100% !important;
-    min-width: 100% !important;
-}
-
-.tableauPlaceholder {
-    height: 850px !important;
-}
-</style>
-
-
-
-<style>
-/* FIX VISUAL 2 TABLEAU: ocupar pantalla completa y evitar miniatura/corte */
-#page-predictivo .inner-page{
-  width:100% !important;
-  max-width:none !important;
-  margin:0 !important;
-  padding:24px 24px 32px !important;
-  overflow:visible !important;
-}
-#page-predictivo .page-header{
-  max-width:1280px !important;
-  margin:0 auto 18px !important;
-}
-#visual2-tableau-card{
-  width:100% !important;
-  max-width:1280px !important;
-  margin:0 auto !important;
-  height:calc(100vh - 150px) !important;
-  min-height:620px !important;
-  border-radius:18px !important;
-  border:1.5px solid var(--border) !important;
-  overflow:hidden !important;
-  background:#fff !important;
-  box-shadow:0 4px 24px rgba(180,120,200,0.10) !important;
-}
-#viz_visual2,
-#viz_visual2 object,
-#viz_visual2 iframe,
-#viz_visual2 .tableauViz{
-  width:100% !important;
-  height:100% !important;
-  min-width:100% !important;
-  min-height:100% !important;
-  max-width:none !important;
-  display:block !important;
-  border:0 !important;
-}
-#page-predictivo .bottom-nav{display:none !important;}
-</style>
-
 </head>
 <body>
 
@@ -1628,7 +1611,6 @@ iframe {
         <h2>Visual 2</h2>
         
       </div>
-      <!-- Tableau embed — Visual 2 -->
       <div id="visual2-tableau-card">
         <div class='tableauPlaceholder' id='viz_visual2' style='position:relative;width:100%;height:100%;'>
           <noscript>
@@ -1808,8 +1790,8 @@ iframe {
       if (page === 'riesgo')     { if (marcasData.length) renderRiesgo(); }
       if (page === 'segmentos')  { if (marcasData.length) renderSegmentos(); }
       if (page === 'tendencias') { if (marcasData.length) renderTendencias(); }
-      if (page === 'descriptivo') { setTimeout(function(){ initTableau('viz_visual1'); }, 100); }
-      if (page === 'predictivo') { setTimeout(function(){ initTableau('viz_visual2'); }, 100); }
+      if (page === 'descriptivo') { setTimeout(initTableau, 100); }
+      if (page === 'predictivo') { setTimeout(initTableau2, 100); }
       closeDropdown();
       window.scrollTo(0, 0);
     }
@@ -3025,19 +3007,29 @@ Pregunta del usuario: ${mensaje}`
     }
   </script>
   <script type='text/javascript'>
-    function initTableau(vizId) {
-      vizId = vizId || 'viz_visual1';
-      var divEl = document.getElementById(vizId);
-      if (!divEl) return;
+    function initTableau() {
+      var divEl = document.getElementById('viz_visual1');
+      if (!divEl || divEl.dataset.loaded) return;
+      divEl.dataset.loaded = 'true';
       var vizEl = divEl.getElementsByTagName('object')[0];
-      if (!vizEl) return;
+      // Size to full viewport height minus nav bar (~60px), so dashboard fits without scroll
+      var h = Math.max(700, window.innerHeight - 180);
+      vizEl.style.width  = '100%';
+      vizEl.style.height = h + 'px';
+      divEl.style.height = h + 'px';
+      var scriptEl = document.createElement('script');
+      scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+      vizEl.parentNode.insertBefore(scriptEl, vizEl);
+    }
 
-      var isVisual2 = vizId === 'viz_visual2';
-      var card = isVisual2 ? document.getElementById('visual2-tableau-card') : divEl.parentElement;
-      var h = isVisual2
-        ? Math.max(620, window.innerHeight - 150)
-        : Math.max(700, window.innerHeight - 180);
 
+    function initTableau2() {
+      var divEl = document.getElementById('viz_visual2');
+      if (!divEl || divEl.dataset.loaded) return;
+      divEl.dataset.loaded = 'true';
+      var vizEl = divEl.getElementsByTagName('object')[0];
+      var card = document.getElementById('visual2-tableau-card');
+      var h = Math.max(620, window.innerHeight - 150);
       if (card) card.style.height = h + 'px';
       divEl.style.width = '100%';
       divEl.style.height = h + 'px';
@@ -3045,27 +3037,33 @@ Pregunta del usuario: ${mensaje}`
       vizEl.style.height = h + 'px';
       vizEl.style.minWidth = '100%';
       vizEl.style.minHeight = h + 'px';
-
-      if (divEl.dataset.loaded) return;
-      divEl.dataset.loaded = 'true';
       var scriptEl = document.createElement('script');
       scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
       vizEl.parentNode.insertBefore(scriptEl, vizEl);
     }
+
     // Init when Visual 1 is shown
     const _origShowPage = showPage;
     // Hook into page navigation
-    window.addEventListener('resize', function(){
-      if (document.getElementById('page-predictivo') && document.getElementById('page-predictivo').classList.contains('active')) { initTableau('viz_visual2'); }
-      if (document.getElementById('page-descriptivo') && document.getElementById('page-descriptivo').classList.contains('active')) { initTableau('viz_visual1'); }
-    });
     document.addEventListener('DOMContentLoaded', function() {
       // If already on descriptivo, init immediately
       if (document.getElementById('page-descriptivo').classList.contains('active')) {
-        initTableau('viz_visual1');
+        initTableau();
       }
-      if (document.getElementById('page-predictivo').classList.contains('active')) {
-        initTableau('viz_visual2');
+      if (document.getElementById('page-predictivo') && document.getElementById('page-predictivo').classList.contains('active')) {
+        initTableau2();
+      }
+    });
+    window.addEventListener('resize', function(){
+      var p2 = document.getElementById('page-predictivo');
+      if (p2 && p2.classList.contains('active')) {
+        var card = document.getElementById('visual2-tableau-card');
+        var divEl = document.getElementById('viz_visual2');
+        var vizEl = divEl ? divEl.getElementsByTagName('object')[0] : null;
+        var h = Math.max(620, window.innerHeight - 150);
+        if (card) card.style.height = h + 'px';
+        if (divEl) divEl.style.height = h + 'px';
+        if (vizEl) vizEl.style.height = h + 'px';
       }
     });
   </script>
