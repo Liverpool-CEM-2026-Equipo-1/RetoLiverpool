@@ -2946,6 +2946,135 @@ TOP 10 MEJOR REVIEWSCORE: ${topReview}
 ${dataMarca}`;
     }
 
+    function normalizarTextoChat(texto) {
+      return String(texto || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[¿?¡!,.;:]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function formatoMeses(meses) {
+      const n = Number(meses);
+      if (!Number.isFinite(n)) return 'sin dato';
+      if (n < 0) return `vencida hace ${Math.abs(n).toFixed(1)} meses`;
+      if (n === 0) return 'vence este mes';
+      return `vence en ${n.toFixed(1)} meses`;
+    }
+
+    function scorePrioridadRenovacion(m) {
+      const prob = Number(m.prob) || 0;
+      const tiempo = Number(m.tiempo);
+      const score = Number(m.score) || 0;
+      const revenue = Number(m.revenueLead) || 0;
+      let puntos = 0;
+
+      // 1) Riesgo legal de vigencia: vencida o cercana a vencer pesa más.
+      if (m.estatus === 'VENCIDO' || tiempo < 0) puntos += 1000;
+      else if (Number.isFinite(tiempo) && tiempo <= 6) puntos += 800;
+      else if (Number.isFinite(tiempo) && tiempo <= 12) puntos += 500;
+      else if (Number.isFinite(tiempo) && tiempo <= 24) puntos += 250;
+
+      // 2) Valor/atractivo de renovación según modelo y desempeño comercial.
+      puntos += prob * 4;
+      puntos += score * 20;
+      if (m.tuvoVentas === 'si') puntos += 80;
+      if (m.review === 'Top') puntos += 60;
+      if (m.clasificacion === 'Top') puntos += 40;
+      puntos += Math.min(revenue / 60, 80);
+      return puntos;
+    }
+
+    function topPrioridadRenovacion(limite = 10) {
+      return [...marcasData]
+        .filter(m => m && m.nombre)
+        .filter(m => m.estatus === 'VENCIDO' || Number(m.tiempo) <= 24)
+        .sort((a, b) => scorePrioridadRenovacion(b) - scorePrioridadRenovacion(a))
+        .slice(0, limite);
+    }
+
+    function renderListaMarcas(titulo, marcas, nota = '') {
+      if (!marcas.length) return `${titulo}\nNo encontré registros que cumplan ese criterio en marcas_data.json.`;
+      const filas = marcas.map((m, i) => {
+        const estado = (m.estatus === 'VENCIDO' || Number(m.tiempo) < 0) ? 'VENCIDA' : 'VIGENTE';
+        return `${i + 1}. ${m.nombre} — Clase ${m.clase} | No. Reg. ${m.noreg || 'N/A'} | ${estado} | Vigencia: ${m.vigencia || 'N/A'} | ${formatoMeses(m.tiempo)} | Prob. renovación: ${m.prob}% | ReviewScore: ${m.score} (${m.review})`;
+      }).join('\n');
+      return `${titulo}\n${nota ? nota + '\n' : ''}${filas}`;
+    }
+
+    function responderConDatosLocales(mensaje) {
+      if (!marcasData || marcasData.length === 0) {
+        return 'Todavía estoy cargando marcas_data.json. Intenta de nuevo en unos segundos.';
+      }
+
+      const q = normalizarTextoChat(mensaje);
+      const pidePrioridad = (
+        q.includes('atencion prioritaria') ||
+        q.includes('prioridad') ||
+        q.includes('prioritarias') ||
+        (q.includes('que marcas') && q.includes('renovacion')) ||
+        (q.includes('cuales marcas') && q.includes('renovacion'))
+      );
+      const pideVencen = q.includes('vencen') || q.includes('por vencer') || q.includes('proximos 6 meses') || q.includes('riesgo critico');
+      const pideMayorProb = q.includes('mayor probabilidad') || q.includes('top renovacion') || q.includes('probabilidad de renovar');
+      const pideReview = q.includes('reviewscore') || q.includes('mejor review') || q.includes('mayor review');
+      const pideCuantas = q.includes('cuantas') || q.includes('cuantos') || q.includes('total');
+
+      if (pidePrioridad) {
+        const top = topPrioridadRenovacion(10);
+        return renderListaMarcas(
+          '**Marcas que necesitan atención prioritaria para renovación:**',
+          top,
+          'Criterio usado: vencimiento/vigencia + probabilidad del modelo + actividad comercial + ReviewScore. Esta respuesta salió directo de marcas_data.json, sin Gemini.'
+        );
+      }
+
+      if (pideVencen) {
+        const top = [...marcasData]
+          .filter(m => Number(m.tiempo) >= 0 && Number(m.tiempo) <= 6)
+          .sort((a, b) => Number(a.tiempo) - Number(b.tiempo))
+          .slice(0, 10);
+        return renderListaMarcas(
+          '**Marcas vigentes que vencen en los próximos 6 meses:**',
+          top,
+          'Criterio usado: tiempo restante entre 0 y 6 meses. Esta respuesta salió directo de marcas_data.json, sin Gemini.'
+        );
+      }
+
+      if (pideMayorProb) {
+        const top = [...marcasData]
+          .filter(m => m.estatus === 'VIGENTE')
+          .sort((a, b) => Number(b.prob) - Number(a.prob))
+          .slice(0, 10);
+        return renderListaMarcas(
+          '**Top 10 marcas vigentes con mayor probabilidad de renovar:**',
+          top,
+          'Criterio usado: probabilidad de renovación del modelo. Esta respuesta salió directo de marcas_data.json, sin Gemini.'
+        );
+      }
+
+      if (pideReview) {
+        const top = [...marcasData]
+          .sort((a, b) => Number(b.score) - Number(a.score))
+          .slice(0, 10);
+        return renderListaMarcas(
+          '**Top 10 marcas con mayor ReviewScore:**',
+          top,
+          'Criterio usado: ReviewScore descendente. Esta respuesta salió directo de marcas_data.json, sin Gemini.'
+        );
+      }
+
+      if (pideCuantas && (q.includes('riesgo') || q.includes('critico'))) {
+        const criticas = marcasData.filter(m => Number(m.tiempo) >= 0 && Number(m.tiempo) <= 6).length;
+        const vencidas = marcasData.filter(m => m.estatus === 'VENCIDO' || Number(m.tiempo) < 0).length;
+        const atencion = marcasData.filter(m => Number(m.tiempo) > 6 && Number(m.tiempo) <= 12).length;
+        return `**Resumen de riesgo legal:**\nMarcas críticas vigentes, 0 a 6 meses: ${criticas.toLocaleString()}\nMarcas vencidas: ${vencidas.toLocaleString()}\nMarcas en atención, 6 a 12 meses: ${atencion.toLocaleString()}\n\nEsta respuesta salió directo de marcas_data.json, sin Gemini.`;
+      }
+
+      return null;
+    }
+
     async function enviarChat() {
       const input = document.getElementById('chatInput');
       const mensaje = input.value.trim();
@@ -2954,9 +3083,19 @@ ${dataMarca}`;
       input.value = '';
       agregarMensaje(mensaje, 'user');
 
-      const loading = agregarMensaje('Analizando datos...', 'loading');
-
       chatHistorial.push({ role: 'user', content: mensaje });
+
+      // MIX INTELIGENTE:
+      // Preguntas de datos frecuentes se responden localmente para que el demo sea rápido.
+      // Preguntas abiertas/estratégicas siguen usando Gemini vía /chat.
+      const respuestaLocal = responderConDatosLocales(mensaje);
+      if (respuestaLocal) {
+        agregarMensaje(respuestaLocal, 'bot');
+        chatHistorial.push({ role: 'model', content: respuestaLocal });
+        return;
+      }
+
+      const loading = agregarMensaje('Analizando con IA...', 'loading');
 
       const resumen = generarResumenPortafolio(mensaje);
       const mensajeConContexto = resumen 
