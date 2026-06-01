@@ -1,13 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import joblib
-import pandas as pd
 import os
 import httpx
 import json
 import re
 from typing import Optional
+
+try:
+    import joblib
+except ImportError:
+    joblib = None
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 
 app = FastAPI(title="Liverpool Marcas API")
 
@@ -18,17 +26,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL_PATH = "gradient_boosted_liverpool.joblib"
-DATA_PATH = "marcas_data.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "gradient_boosted_liverpool.joblib")
+DATA_PATH = os.path.join(BASE_DIR, "marcas_data.json")
 model = None
 marcas_cache = []
 
 @app.on_event("startup")
 def load_assets():
     global model, marcas_cache
-    if os.path.exists(MODEL_PATH):
+    if joblib is not None and os.path.exists(MODEL_PATH):
         model = joblib.load(MODEL_PATH)
         print("Modelo cargado correctamente")
+    elif joblib is None:
+        print("ADVERTENCIA: joblib no está instalado; /predecir usará el modelo del navegador")
     else:
         print("ADVERTENCIA: No se encontró gradient_boosted_liverpool.joblib")
 
@@ -63,7 +74,9 @@ class ChatInput(BaseModel):
     historial: list = []
 
 
-def encode_features(data: dict) -> pd.DataFrame:
+def encode_features(data: dict):
+    if pd is None:
+        raise RuntimeError("pandas no está instalado")
     clasificacion_map = {"Baja": 0, "Media": 1, "Top": 2}
     region_map = {"Centro": 0, "Norte/Oriente": 1, "Occidente": 2, "Sur": 3}
     canal_map = {"Digital": 0, "Fisico": 1, "Físico": 1}
@@ -148,6 +161,24 @@ def top_renovacion_operativa(limite=8):
     return (vigentes_0_12 + vigentes_12_24 + vencidas_recientes)[:limite]
 
 
+def top_renovacion_agrupada(limite=5):
+    agrupadas = []
+    por_nombre = {}
+    for m in top_renovacion_operativa(50):
+        nombre = str(m.get("nombre", "")).strip()
+        if not nombre:
+            continue
+        if nombre not in por_nombre:
+            item = dict(m)
+            item["clases"] = []
+            por_nombre[nombre] = item
+            agrupadas.append(item)
+        clase = str(m.get("clase", "")).strip()
+        if clase and clase not in por_nombre[nombre]["clases"]:
+            por_nombre[nombre]["clases"].append(clase)
+    return agrupadas[:limite]
+
+
 
 def normalizar_txt(s: str) -> str:
     s = str(s or "").upper()
@@ -216,14 +247,14 @@ Regla estricta: si el usuario pregunta por Liverpool en general, no respondas co
 def contexto_portafolio(pregunta: str = ""):
     base = marcas_validas()
     if not base:
-        return "No hay marcas cargadas en marcas_data.json."
+        return "No hay marcas cargadas."
     vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
     vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
     criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
     atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
-    top = top_renovacion_operativa(6)
+    top = top_renovacion_agrupada(6)
     top_txt = "\n".join([
-        f"{i+1}. {m.get('nombre')} | Clase {m.get('clase')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
+        f"{i+1}. {m.get('nombre')} | Clases {', '.join(m.get('clases', []))} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
         for i, m in enumerate(top)
     ])
     grupo_txt = contexto_marca_grupo(pregunta)
@@ -243,29 +274,28 @@ Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a v
 
 
 def respuesta_local_estrategica(detalle=""):
-    top = top_renovacion_operativa(5)
+    top = top_renovacion_agrupada(5)
     if top:
-        top_txt = "\n".join([f"{i+1}. {m.get('nombre')}: {formato_meses(m.get('tiempo'))}, prob. {m.get('prob')}%, ReviewScore {m.get('score')}." for i, m in enumerate(top)])
+        top_txt = "\n".join([f"{i+1}. {m.get('nombre')} | Clases {', '.join(m.get('clases', []))} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}" for i, m in enumerate(top)])
     else:
         top_txt = "No encontré marcas prioritarias cargadas."
-    extra = f"\n\nDetalle técnico: {detalle}" if detalle else ""
-    return f"""**La IA externa no respondió, pero el dashboard sigue funcionando con datos locales.**
+    return f"""**Resumen ejecutivo**
+Estas son las marcas que requieren atención prioritaria por cercanía de vencimiento, desempeño y probabilidad de renovación.
 
-Recomendación automática: priorizar primero marcas vigentes próximas a vencer, después vigentes de 12 a 24 meses y finalmente vencidas recientes. Las vencidas históricas deben revisarse aparte para depuración legal/comercial.
-
-**Top operativo actual:**
+**Marcas prioritarias**
 {top_txt}
 
-**Variables clave del modelo:** antigüedad de marca, tasa de conversión, clasificación, tiempo restante de renovación, tasa de devolución y ReviewScore.{extra}"""
+**Recomendación**
+Atender primero las marcas vigentes que vencen en los próximos 12 meses, después las vigentes entre 12 y 24 meses y dejar las vencidas históricas para una revisión comercial/legal separada."""
 
 
 
 def respuesta_prioridad_ejecutiva():
-    top = top_renovacion_operativa(5)
-    texto = "📊 Marcas Prioritarias para Renovación\n\n"
+    top = top_renovacion_agrupada(5)
+    texto = "**Resumen ejecutivo**\nEstas marcas necesitan atención prioritaria para renovación.\n\n**Marcas prioritarias**\n"
     for m in top:
-        texto += f"• {m.get('nombre')}\n  {formato_meses(m.get('tiempo'))}\n  Probabilidad: {m.get('prob')}%\n\n"
-    texto += "🎯 Recomendación\nPriorizar revisión legal y comercial durante los próximos 90 días."
+        texto += f"- {m.get('nombre')} | Clases {', '.join(m.get('clases', []))} | {formato_meses(m.get('tiempo'))} | Probabilidad: {m.get('prob')}% | ReviewScore: {m.get('score')}\n"
+    texto += "\n**Recomendación**\nPriorizar revisión legal y comercial durante los próximos 90 días."
     return texto
 
 def sistema_liverpool():
@@ -277,14 +307,16 @@ REGLAS:
 - Ve directo al punto.
 - No muestres listados enormes.
 - No enumeres decenas de registros.
-- No menciones Gemini, OpenAI, IA, JSON o bases de datos.
+- Usa los datos entregados en el contexto y no inventes cifras.
+- No menciones Gemini, OpenAI, IA, JSON, bases de datos, proveedores, fallbacks ni detalles técnicos.
+- No incluyas notas metodológicas salvo que el usuario las pida explícitamente.
 
 FORMATO:
-📊 Resumen Ejecutivo
-💡 Insight
-🎯 Recomendación
+**Resumen ejecutivo**
+**Insight**
+**Recomendación**
 
-Máximo 120 palabras.
+Máximo 160 palabras.
 """
 
 
@@ -365,7 +397,7 @@ def root():
 
 @app.post("/predecir")
 def predecir(marca: MarcaInput):
-    if model is None:
+    if model is None or pd is None:
         return {"error": "Modelo no disponible"}
     df = encode_features(marca.dict())
     pred = model.predict(df)[0]
@@ -380,7 +412,7 @@ def predecir(marca: MarcaInput):
 
 @app.post("/predecir-batch")
 def predecir_batch(batch: BatchInput):
-    if model is None:
+    if model is None or pd is None:
         return {"error": "Modelo no disponible"}
     resultados = []
     for marca in batch.marcas:
@@ -398,10 +430,6 @@ def predecir_batch(batch: BatchInput):
 
 @app.post("/chat")
 async def chat(input: ChatInput):
-    pregunta=input.mensaje.lower()
-    if any(x in pregunta for x in ["prioritaria para renovación","prioritarias para renovación","marcas de riesgo","qué marcas renovar","que marcas renovar","atención prioritaria"]):
-        return {"respuesta": respuesta_prioridad_ejecutiva()}
-
     contexto = contexto_portafolio(input.mensaje)
     prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
     errores = []
@@ -422,10 +450,8 @@ async def chat(input: ChatInput):
     except Exception as e:
         errores.append(str(e))
 
-    # 3) Fallback local, sin IA externa.
+    # 3) Respuesta de respaldo con datos disponibles.
     return {
         "respuesta": respuesta_local_estrategica(" | ".join(errores[-2:])),
-        "proveedor": "Fallback local",
         "fallback": True,
-        "errores": errores[-2:],
     }
