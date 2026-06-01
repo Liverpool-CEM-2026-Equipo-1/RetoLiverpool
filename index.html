@@ -1079,7 +1079,7 @@
           <span id="recValue" class="rec-value-renovar">Renovar</span>
         </div>
         <div class="prob-bar-wrapper">
-          <div class="prob-label">Probabilidad de renovar</div>
+          <div class="prob-label">Recomendación de renovar según el modelo predictivo</div>
           <div class="prob-bar"><div class="prob-fill green" id="probFill" style="width:85%"></div></div>
           <div class="prob-pct" id="probPct" style="color:var(--green)">85%</div>
         </div>
@@ -1171,7 +1171,7 @@
         </div>
         <div style="font-size:13px;color:var(--text-muted)">Clase: <span id="analisisClase">9</span> · Vigencia: <span id="analisisVig">12/07/2026</span></div>
         <div class="prob-big">
-          <div class="prob-big-label">Probabilidad de renovar según el modelo predictivo</div>
+          <div class="prob-big-label">Recomendación de renovar según el modelo predictivo</div>
           <div class="prob-big-bar"><div class="prob-big-fill green" id="analisisBar" style="width:85%"></div></div>
           <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
             <span class="prob-big-pct" id="analisisPct" style="color:var(--green)">85%</span>
@@ -1664,8 +1664,11 @@
   </div>
 
   <script>
-    // DATOS SIMULADOS DE MARCAS (representativos del dataset)
-    const API_URL = "https://liverpool-marcas.onrender.com";
+    // API: usa backend local solo cuando la página se sirve en localhost.
+    // En GitHub Pages funciona como demo estática con datos/modelo en navegador.
+    const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'http://localhost:8000'
+      : '';
 
     // ── Gradient Boosting model running in-browser ───────────────────────────
     let GB_MODEL = null;
@@ -1735,7 +1738,7 @@
         // Show error banner so user knows what's wrong
         const banner = document.createElement('div');
         banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:#E24B4A;color:white;text-align:center;padding:10px;z-index:9999;font-size:13px;';
-        banner.textContent = '⚠️ Error cargando marcas_data.json — verifica que el archivo esté en el repositorio';
+        banner.textContent = 'No pude cargar la información de marcas. Verifica que el archivo esté junto a la página.';
         document.body.appendChild(banner);
       });
 
@@ -2701,9 +2704,33 @@
       max-width: 85%; padding: 10px 14px; border-radius: 14px;
       font-size: 13px; line-height: 1.5;
     }
-    .chat-msg.bot { background: var(--purple-soft); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.bot {
+      background: white; color: var(--text); align-self: flex-start;
+      border-bottom-left-radius: 4px; border: 1px solid var(--border);
+      box-shadow: 0 4px 18px rgba(180,120,200,0.1);
+    }
     .chat-msg.user { background: var(--pink); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .chat-msg.loading { background: var(--purple-soft); color: var(--text-muted); align-self: flex-start; font-style: italic; }
+    .chat-msg.bot strong { color: var(--pink); font-family: 'Sora', sans-serif; }
+    .chat-section {
+      margin: 8px 0; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid var(--border); background: #FBFAFF;
+    }
+    .chat-section-title {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 800;
+      margin-bottom: 6px; color: var(--pink);
+    }
+    .chat-section.resumen { border-left: 4px solid var(--pink); background: var(--pink-soft); }
+    .chat-section.insight { border-left: 4px solid var(--amber); background: var(--amber-bg); }
+    .chat-section.recomendacion { border-left: 4px solid var(--green); background: var(--green-bg); }
+    .chat-section.marcas { border-left: 4px solid #8B5CF6; background: #F3F0FF; }
+    .chat-section.marcas .chat-section-title { color: #6753C9; }
+    .chat-line { margin: 4px 0; }
+    .chat-list-item {
+      display: block; margin: 6px 0; padding: 7px 9px; border-radius: 9px;
+      background: rgba(255,255,255,0.72); border: 1px solid rgba(226,223,245,0.85);
+    }
     .chat-input-row {
       display: flex; gap: 8px; padding: 12px 14px;
       border-top: 1px solid var(--border);
@@ -2945,6 +2972,21 @@
       return combinadas.slice(0, limite);
     }
 
+    function topRenovacionAgrupada(limite = 5) {
+      const grupos = new Map();
+      topRenovacionOperativa(40).forEach(m => {
+        const nombre = String(m.nombre || '').trim();
+        if (!nombre) return;
+        if (!grupos.has(nombre)) {
+          grupos.set(nombre, { ...m, clases: [] });
+        }
+        const grupo = grupos.get(nombre);
+        const clase = String(m.clase || '').trim();
+        if (clase && !grupo.clases.includes(clase)) grupo.clases.push(clase);
+      });
+      return Array.from(grupos.values()).slice(0, limite);
+    }
+
     function topVencidasHistoricas(limite = 5) {
       return marcasValidas()
         .filter(m => (m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0) && numeroSeguro(m.tiempo, 0) < -12)
@@ -2953,7 +2995,7 @@
     }
 
     function renderListaMarcas(titulo, marcas, nota = '') {
-      if (!marcas.length) return `${titulo}\nNo encontré registros que cumplan ese criterio en marcas_data.json.`;
+      if (!marcas.length) return `${titulo}\nNo encontré registros que cumplan ese criterio.`;
       const filas = marcas.map((m, i) => {
         const estado = (m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0) ? 'VENCIDA' : 'VIGENTE';
         return `${i + 1}. ${m.nombre} — Clase ${m.clase} | No. Reg. ${m.noreg || 'N/A'} | ${estado} | Vigencia: ${m.vigencia || 'N/A'} | ${formatoMeses(m.tiempo)} | Prob. renovación: ${m.prob}% | ReviewScore: ${m.score} (${m.review})`;
@@ -2962,18 +3004,22 @@
     }
 
     function respuestaPrioridadRenovacion() {
-      const top = topRenovacionOperativa(10);
-      const historicas = topVencidasHistoricas(5);
-      let texto = renderListaMarcas(
-        '**Marcas con atención prioritaria real para renovación:**',
-        top,
-        'Criterio usado: primero marcas VIGENTES próximas a vencer (0-12 meses), después vigentes 12-24 meses y solo después vencidas recientes. Se excluyen clases corruptas tipo fecha. Respuesta local desde marcas_data.json, sin Gemini.'
-      );
-      if (historicas.length) {
-        texto += '\n\n**Vencidas históricas para revisión separada, no para urgencia operativa inmediata:**\n';
-        texto += historicas.map((m, i) => `${i + 1}. ${m.nombre} — Clase ${m.clase} | Vigencia: ${m.vigencia || 'N/A'} | ${formatoMeses(m.tiempo)} | Prob. ${m.prob}%`).join('\n');
-      }
-      return texto;
+      const top = topRenovacionAgrupada(5);
+      const filas = top.length
+        ? top.map((m, i) => `${i + 1}. ${m.nombre} | Clases ${m.clases.join(', ')} | ${formatoMeses(m.tiempo)} | Prob. ${m.prob}% | ReviewScore ${m.score}`).join('\n')
+        : 'No encontré marcas que cumplan el criterio de atención prioritaria.';
+
+      return `**Resumen ejecutivo**
+Estas marcas necesitan atención prioritaria para renovación por cercanía de vencimiento, probabilidad de renovación y desempeño.
+
+**Insight**
+La prioridad operativa empieza con marcas vigentes próximas a vencer; después siguen vigentes de 12 a 24 meses y, por separado, vencidas recientes.
+
+**Marcas prioritarias**
+${filas}
+
+**Recomendación**
+Abrir revisión legal y comercial esta semana para las primeras marcas del listado y preparar plan de renovación por clase. Las vencidas históricas conviene tratarlas en una revisión separada.`;
     }
 
     function extraerTerminosMarca(pregunta) {
@@ -3104,6 +3150,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       const pideConversion = q.includes('conversion') || q.includes('conversión') || q.includes('tasa');
       const pideClases = q.includes('clase') || q.includes('clases') || q.includes('todas');
       const pideGeneral = q.includes('liverpool') || q.includes('puerto');
+      const nombreConsulta = pideGeneral ? 'Liverpool / El Puerto de Liverpool' : 'la marca consultada';
 
       if (!(pideConversion || pideClases || pideGeneral)) return null;
 
@@ -3122,11 +3169,11 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         .map((m, i) => `${i + 1}. ${m.nombre} — Clase ${m.clase} | No. Reg. ${m.noreg} | ${m.estatus} | Vigencia: ${m.vigencia} | Conversión: ${m.conversion}% | Prob. renovación: ${m.prob}%`)
         .join('\n');
 
-      return `**Sí hay más registros relacionados con Liverpool.**\n\nEncontré ${grupo.length.toLocaleString()} registros válidos cuyo nombre contiene Liverpool / El Puerto de Liverpool.\n\n**Resumen calculado desde marcas_data.json:**\nVigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}\nTasa de conversión promedio simple: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}\nProbabilidad promedio simple de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}\n\n**Primeros registros por clase / marca:**\n${detalle}\n\nNota: este cálculo es promedio simple por registro. Si quieres un promedio ponderado por ventas, se necesita una columna de ventas o revenue por clase. Esta respuesta salió directo de marcas_data.json, sin Gemini.`;
+      return `**Resumen ejecutivo**\nEncontré ${grupo.length.toLocaleString()} registros válidos relacionados con ${nombreConsulta}.\n\n**Insight**\nVigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}\nConversión promedio: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}\nProbabilidad promedio de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}\n\n**Marcas / clases destacadas**\n${detalle}\n\n**Recomendación**\nRevisar primero las clases vigentes con vencimiento cercano y probabilidad alta; las vencidas deben separarse por urgencia legal y valor comercial.`;
     }
 
     function responderConDatosLocales(mensaje) {
-      if (!marcasData || marcasData.length === 0) return 'Todavía estoy cargando marcas_data.json. Intenta de nuevo en unos segundos.';
+      if (!marcasData || marcasData.length === 0) return 'Todavía estoy cargando la información de marcas. Intenta de nuevo en unos segundos.';
 
       const q = normalizarTextoChat(mensaje);
       const pidePrioridad = q.includes('atencion prioritaria') || q.includes('prioridad') || q.includes('prioritarias') || (q.includes('que marcas') && q.includes('renovacion')) || (q.includes('cuales marcas') && q.includes('renovacion'));
@@ -3147,7 +3194,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
           .filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6)
           .sort((a, b) => numeroSeguro(a.tiempo, 999) - numeroSeguro(b.tiempo, 999))
           .slice(0, 10);
-        return renderListaMarcas('**Marcas vigentes que vencen en los próximos 6 meses:**', top, 'Criterio usado: tiempo restante entre 0 y 6 meses, solo marcas VIGENTES y clases válidas. Respuesta local, sin Gemini.');
+        return renderListaMarcas('**Marcas vigentes que vencen en los próximos 6 meses:**', top, '**Criterio:** tiempo restante entre 0 y 6 meses, solo marcas vigentes.');
       }
 
       if (pideMayorProb) {
@@ -3155,14 +3202,14 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
           .filter(m => m.estatus === 'VIGENTE')
           .sort((a, b) => numeroSeguro(b.prob) - numeroSeguro(a.prob))
           .slice(0, 10);
-        return renderListaMarcas('**Top 10 marcas vigentes con mayor probabilidad de renovar:**', top, 'Criterio usado: probabilidad de renovación del modelo, solo marcas VIGENTES y clases válidas. Respuesta local, sin Gemini.');
+        return renderListaMarcas('**Top 10 marcas vigentes con mayor probabilidad de renovar:**', top, '**Criterio:** probabilidad de renovación más alta entre marcas vigentes.');
       }
 
       if (pideReview) {
         const top = base
           .sort((a, b) => numeroSeguro(b.score) - numeroSeguro(a.score))
           .slice(0, 10);
-        return renderListaMarcas('**Top 10 marcas con mayor ReviewScore:**', top, 'Criterio usado: ReviewScore descendente y clases válidas. Respuesta local, sin Gemini.');
+        return renderListaMarcas('**Top 10 marcas con mayor ReviewScore:**', top, '**Criterio:** ReviewScore más alto.');
       }
 
       if (pideCuantas && (q.includes('riesgo') || q.includes('critico') || q.includes('renovacion'))) {
@@ -3170,24 +3217,34 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
         const vencidasRecientes = base.filter(m => (m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0) && numeroSeguro(m.tiempo, 0) >= -12).length;
         const vencidasHistoricas = base.filter(m => (m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0) && numeroSeguro(m.tiempo, 0) < -12).length;
-        return `**Resumen de riesgo de renovación:**\nVigentes críticas, 0 a 6 meses: ${criticas.toLocaleString()}\nVigentes en atención, 6 a 12 meses: ${atencion.toLocaleString()}\nVencidas recientes, hasta 12 meses: ${vencidasRecientes.toLocaleString()}\nVencidas históricas, más de 12 meses: ${vencidasHistoricas.toLocaleString()}\n\nEsta respuesta salió directo de marcas_data.json, sin Gemini.`;
+        return `**Resumen ejecutivo**\nEste es el panorama de riesgo de renovación.\n\n**Insight**\nVigentes críticas, 0 a 6 meses: ${criticas.toLocaleString()}\nVigentes en atención, 6 a 12 meses: ${atencion.toLocaleString()}\nVencidas recientes, hasta 12 meses: ${vencidasRecientes.toLocaleString()}\nVencidas históricas, más de 12 meses: ${vencidasHistoricas.toLocaleString()}\n\n**Recomendación**\nAtender primero las vigentes críticas, preparar plan para las de 6 a 12 meses y revisar vencidas históricas en una mesa separada.`;
       }
 
       return null;
     }
 
         function respuestaFallbackIA(mensaje, detalle = '') {
-      const resumen = topRenovacionOperativa(5);
+      const resumen = topRenovacionAgrupada(5);
       const bullets = resumen.length
-        ? resumen.map((m, i) => `${i + 1}. ${m.nombre}: ${formatoMeses(m.tiempo)}, prob. ${m.prob}%, ReviewScore ${m.score}.`).join('\n')
-        : 'No encontré marcas prioritarias cargadas en marcas_data.json.';
+        ? resumen.map((m, i) => `${i + 1}. ${m.nombre} | Clases ${m.clases.join(', ')} | ${formatoMeses(m.tiempo)} | Prob. ${m.prob}% | ReviewScore ${m.score}`).join('\n')
+        : 'No encontré marcas prioritarias cargadas.';
 
-      return `**La IA externa está temporalmente saturada, pero el dashboard sigue funcionando con datos locales.**\n\nGoogle/Gemini devolvió alta demanda o no respondió. Para no romper la demo, te doy una recomendación automática basada en marcas_data.json:\n\n**Acción recomendada:** priorizar primero marcas vigentes próximas a vencer, después vigentes de 12-24 meses y por último vencidas recientes. Las vencidas históricas deben revisarse aparte, no mezclarse con urgencia operativa.\n\n**Top operativo actual:**\n${bullets}\n\n**Variables clave del modelo:** antigüedad de marca, tasa de conversión, clasificación, tiempo restante de renovación, tasa de devolución y ReviewScore.${detalle ? '\n\nDetalle técnico: ' + detalle : ''}`;
+      return `**Resumen ejecutivo**\nEstas son las marcas que requieren atención prioritaria por vencimiento, probabilidad de renovación y desempeño.\n\n**Marcas prioritarias**\n${bullets}\n\n**Recomendación**\nPriorizar primero marcas vigentes próximas a vencer, después vigentes de 12 a 24 meses y finalmente vencidas recientes. Las vencidas históricas conviene revisarlas por separado con legal y comercial.`;
     }
 
     function esErrorGemini(texto) {
       const t = String(texto || '').toLowerCase();
-      return t.includes('error de gemini') || t.includes('503') || t.includes('unavailable') || t.includes('high demand') || t.includes('alta demanda') || t.includes('experiencing high demand');
+      return t.includes('error de gemini') ||
+        t.includes('503') ||
+        t.includes('unavailable') ||
+        t.includes('high demand') ||
+        t.includes('alta demanda') ||
+        t.includes('experiencing high demand') ||
+        t.includes('ia externa') ||
+        t.includes('fallback local') ||
+        t.includes('detalle técnico') ||
+        t.includes('sin gemini') ||
+        t.includes('json');
     }
 
     async function enviarChat() {
@@ -3199,25 +3256,15 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       agregarMensaje(mensaje, 'user');
       chatHistorial.push({ role: 'user', content: mensaje });
 
-      // MIX INTELIGENTE:
-      // Preguntas de datos frecuentes se responden localmente para que la demo sea rápida.
-      // Preguntas abiertas/estratégicas usan Gemini, pero con fallback si Google está saturado.
-      const respuestaLocal = responderConDatosLocales(mensaje);
-      if (respuestaLocal) {
-        agregarMensaje(respuestaLocal, 'bot');
-        chatHistorial.push({ role: 'model', content: respuestaLocal });
-        return;
-      }
-
-      const loading = agregarMensaje('Analizando con IA estratégica: Gemini Flash → OpenAI si es necesario...', 'loading');
-      const resumen = generarResumenPortafolio(mensaje);
-      const mensajeConContexto = resumen ? `Contexto del portafolio:\n${resumen}\n\nPregunta del usuario: ${mensaje}` : mensaje;
+      const loading = agregarMensaje('Analizando el portafolio y preparando una respuesta clara...', 'loading');
 
       try {
+        if (!API_URL) throw new Error('static-demo');
         const res = await fetch(API_URL + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mensaje: mensajeConContexto, historial: chatHistorial.slice(-4) })
+          body: JSON.stringify({ mensaje, historial: chatHistorial.slice(-4) }),
+          signal: AbortSignal.timeout(8000)
         });
         const data = await res.json();
         loading.remove();
@@ -3225,7 +3272,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         const proveedor = '';
 
         if (esErrorGemini(respuesta)) {
-          const fallback = respuestaFallbackIA(mensaje, 'Gemini devolvió 503/UNAVAILABLE/high demand.');
+          const fallback = responderConDatosLocales(mensaje) || respuestaFallbackIA(mensaje);
           agregarMensaje(fallback, 'bot');
           chatHistorial.push({ role: 'model', content: fallback });
           return;
@@ -3235,19 +3282,69 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         chatHistorial.push({ role: 'model', content: respuesta });
       } catch(e) {
         loading.remove();
-        const fallback = respuestaFallbackIA(mensaje, 'No se pudo conectar al endpoint /chat.');
+        const fallback = responderConDatosLocales(mensaje) || respuestaFallbackIA(mensaje);
         agregarMensaje(fallback, 'bot');
         chatHistorial.push({ role: 'model', content: fallback });
       }
     }
 
-    function renderMarkdown(texto) {
-      return texto
+    function escapeHTML(texto) {
+      return String(texto || '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[ch]));
+    }
+
+    function renderInlineMarkdown(texto) {
+      return escapeHTML(texto)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>')
         .replace(/•/g, '&bull;');
+    }
+
+    function chatSectionType(titulo) {
+      const t = normalizarTextoChat(titulo);
+      if (t.includes('resumen')) return 'resumen';
+      if (t.includes('insight')) return 'insight';
+      if (t.includes('recomendacion') || t.includes('accion')) return 'recomendacion';
+      if (t.includes('marca') || t.includes('prioritaria') || t.includes('top')) return 'marcas';
+      return 'resumen';
+    }
+
+    function renderMarkdown(texto) {
+      const lines = String(texto || '').split('\n');
+      let html = '';
+      let open = false;
+
+      const closeSection = () => {
+        if (open) {
+          html += '</div>';
+          open = false;
+        }
+      };
+
+      lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) return;
+
+        const heading = line.match(/^\*\*(.+?)\*\*:?\s*$/);
+        if (heading) {
+          closeSection();
+          const title = heading[1].replace(/:$/, '');
+          html += `<div class="chat-section ${chatSectionType(title)}"><div class="chat-section-title">${renderInlineMarkdown(title)}</div>`;
+          open = true;
+          return;
+        }
+
+        const listLike = /^(\d+\.\s+|- |&bull;|•)/.test(line);
+        html += `<div class="${listLike ? 'chat-list-item' : 'chat-line'}">${renderInlineMarkdown(line)}</div>`;
+      });
+
+      closeSection();
+      return html;
     }
 
     function agregarMensaje(texto, tipo) {
