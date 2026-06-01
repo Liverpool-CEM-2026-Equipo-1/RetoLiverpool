@@ -2976,6 +2976,89 @@
       return texto;
     }
 
+    function extraerTerminosMarca(pregunta) {
+      const raw = String(pregunta || '');
+      const upper = raw.toUpperCase();
+      const terminos = [];
+
+      // Casos especiales de marca corporativa Liverpool.
+      if (upper.includes('LIVERPOOL') || upper.includes('PUERTO DE LIVERPOOL')) {
+        terminos.push('LIVERPOOL', 'EL PUERTO DE LIVERPOOL');
+      }
+
+      // Frases entre comillas también se usan como término exacto.
+      const quoted = raw.match(/["“”']([^"“”']{3,})["“”']/g) || [];
+      quoted.forEach(q => terminos.push(q.replace(/["“”']/g, '').toUpperCase()));
+
+      // Si la pregunta trae palabras largas, se usan como búsqueda secundaria.
+      const stop = new Set(['CUAL','CUALES','CUANTA','CUANTAS','CUANTO','CUANTOS','TASA','CONVERSION','CONVERSIÓN','CLASE','CLASES','MARCA','MARCAS','TODAS','TODO','LOS','LAS','DEL','DELA','PARA','POR','CON','QUE','TIENE','TIENEN','GENERAL','PROMEDIO','RENOVACION','RENOVACIÓN']);
+      normalizarTextoChat(raw).split(' ').forEach(p => {
+        if (p.length >= 5 && !stop.has(p.toUpperCase())) terminos.push(p.toUpperCase());
+      });
+
+      return [...new Set(terminos)].filter(Boolean);
+    }
+
+    function marcasPorPregunta(pregunta) {
+      const base = marcasValidas();
+      const terminos = extraerTerminosMarca(pregunta);
+      if (!terminos.length) return [];
+
+      // Para Liverpool, no queremos solo la primera coincidencia: queremos todo el universo relacionado.
+      if (terminos.includes('LIVERPOOL') || terminos.includes('EL PUERTO DE LIVERPOOL')) {
+        return base.filter(m => {
+          const nombre = String(m.nombre || '').toUpperCase();
+          return nombre.includes('LIVERPOOL') || nombre.includes('EL PUERTO DE LIVERPOOL');
+        });
+      }
+
+      return base.filter(m => {
+        const nombre = String(m.nombre || '').toUpperCase();
+        return terminos.some(t => t.length > 3 && nombre.includes(t));
+      });
+    }
+
+    function promedio(lista, campo) {
+      const vals = lista.map(m => numeroSeguro(m[campo], NaN)).filter(v => !Number.isNaN(v));
+      if (!vals.length) return null;
+      return vals.reduce((a,b) => a + b, 0) / vals.length;
+    }
+
+    function resumenMarcaGrupo(pregunta, limite = 12) {
+      const grupo = marcasPorPregunta(pregunta);
+      if (!grupo.length) return '';
+
+      const nombreGrupo = (String(pregunta || '').toUpperCase().includes('LIVERPOOL')) ? 'Liverpool / El Puerto de Liverpool' : 'marca consultada';
+      const vigentes = grupo.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = grupo.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
+      const convProm = promedio(grupo, 'conversion');
+      const probProm = promedio(grupo, 'prob');
+      const scoreProm = promedio(grupo, 'score');
+
+      const porClase = [...grupo]
+        .sort((a,b) => {
+          const ta = numeroSeguro(a.tiempo, 999);
+          const tb = numeroSeguro(b.tiempo, 999);
+          if (a.estatus !== b.estatus) return a.estatus === 'VIGENTE' ? -1 : 1;
+          return ta - tb;
+        })
+        .slice(0, limite)
+        .map(m => `- ${m.nombre} | Clase ${m.clase} | No. Reg. ${m.noreg} | ${m.estatus} | Vigencia ${m.vigencia} | Conversión ${m.conversion}% | Prob. ${m.prob}% | ReviewScore ${m.score}`)
+        .join('\n');
+
+      return `DATOS AGRUPADOS DE ${nombreGrupo.toUpperCase()}:
+Registros encontrados: ${grupo.length}
+Vigentes: ${vigentes} | Vencidas: ${vencidas}
+Tasa de conversión promedio simple: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}
+Probabilidad promedio simple de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}
+ReviewScore promedio simple: ${scoreProm === null ? 'sin dato' : scoreProm.toFixed(2)}
+
+Detalle por clase / registro, máximo ${limite}:
+${porClase}
+
+Regla: si el usuario pregunta por Liverpool en general, NO uses una sola coincidencia. Debes agregar todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL.`;
+    }
+
     function generarResumenPortafolio(pregunta) {
       const base = marcasValidas();
       if (!base || base.length === 0) return '';
@@ -2999,14 +3082,47 @@
         .map(m => `${m.nombre} (score ${m.score}, Clase ${m.clase})`)
         .join(', ');
 
-      let dataMarca = '';
-      const palabras = String(pregunta || '').toUpperCase().split(' ');
-      const marcaEncontrada = base.find(m => palabras.some(p => p.length > 3 && String(m.nombre || '').includes(p)));
-      if (marcaEncontrada) {
-        dataMarca = `\nDATOS ESPECÍFICOS DE LA MARCA MENCIONADA:\nNombre: ${marcaEncontrada.nombre}\nClase: ${marcaEncontrada.clase} | NoReg: ${marcaEncontrada.noreg}\nEstatus: ${marcaEncontrada.estatus} | Vigencia: ${marcaEncontrada.vigencia}\nReviewScore: ${marcaEncontrada.score} (${marcaEncontrada.review})\nClasificación Comercial: ${marcaEncontrada.clasificacion}\nTasa Conversión: ${marcaEncontrada.conversion}% | Tasa Devolución: ${marcaEncontrada.devolucion}%\nAntigüedad: ${marcaEncontrada.antiguedad} años\nTiempo restante renovación: ${marcaEncontrada.tiempo} meses\nProbabilidad de renovar (modelo): ${marcaEncontrada.prob}%\nRegión: ${marcaEncontrada.region} | Canal: ${marcaEncontrada.canal} | Segmento: ${marcaEncontrada.segmento}`;
-      }
+      const dataGrupo = resumenMarcaGrupo(pregunta, 15);
 
-      return `RESUMEN DEL PORTAFOLIO LIVERPOOL (datos reales, clases corruptas excluidas):\nTotal registros válidos: ${base.length.toLocaleString()}\nVigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}\nCon actividad comercial: ${conVentas.toLocaleString()}\nVigentes críticas 0-6 meses: ${criticas} | Vigentes en atención 6-12 meses: ${atencion}\nReview Top: ${reviewTop} | Review Media: ${reviewMedia} | Review Baja: ${reviewBaja}\n\nTOP PRIORIDAD OPERATIVA DE RENOVACIÓN: ${topPrioridad}\nTOP MEJOR REVIEWSCORE: ${topReview}${dataMarca}`;
+      return `RESUMEN DEL PORTAFOLIO LIVERPOOL (datos reales, clases corruptas excluidas):
+Total registros válidos: ${base.length.toLocaleString()}
+Vigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}
+Con actividad comercial: ${conVentas.toLocaleString()}
+Vigentes críticas 0-6 meses: ${criticas} | Vigentes en atención 6-12 meses: ${atencion}
+Review Top: ${reviewTop} | Review Media: ${reviewMedia} | Review Baja: ${reviewBaja}
+
+TOP PRIORIDAD OPERATIVA DE RENOVACIÓN: ${topPrioridad}
+TOP MEJOR REVIEWSCORE: ${topReview}
+${dataGrupo ? '\n' + dataGrupo : ''}`;
+    }
+
+    function respuestaGrupoLocal(mensaje) {
+      const grupo = marcasPorPregunta(mensaje);
+      if (!grupo.length) return null;
+
+      const q = normalizarTextoChat(mensaje);
+      const pideConversion = q.includes('conversion') || q.includes('conversión') || q.includes('tasa');
+      const pideClases = q.includes('clase') || q.includes('clases') || q.includes('todas');
+      const pideGeneral = q.includes('liverpool') || q.includes('puerto');
+
+      if (!(pideConversion || pideClases || pideGeneral)) return null;
+
+      const convProm = promedio(grupo, 'conversion');
+      const probProm = promedio(grupo, 'prob');
+      const vigentes = grupo.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = grupo.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
+
+      const detalle = [...grupo]
+        .sort((a,b) => {
+          const na = String(a.nombre || '').localeCompare(String(b.nombre || ''));
+          if (na !== 0) return na;
+          return String(a.clase || '').localeCompare(String(b.clase || ''));
+        })
+        .slice(0, 15)
+        .map((m, i) => `${i + 1}. ${m.nombre} — Clase ${m.clase} | No. Reg. ${m.noreg} | ${m.estatus} | Vigencia: ${m.vigencia} | Conversión: ${m.conversion}% | Prob. renovación: ${m.prob}%`)
+        .join('\n');
+
+      return `**Sí hay más registros relacionados con Liverpool.**\n\nEncontré ${grupo.length.toLocaleString()} registros válidos cuyo nombre contiene Liverpool / El Puerto de Liverpool.\n\n**Resumen calculado desde marcas_data.json:**\nVigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}\nTasa de conversión promedio simple: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}\nProbabilidad promedio simple de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}\n\n**Primeros registros por clase / marca:**\n${detalle}\n\nNota: este cálculo es promedio simple por registro. Si quieres un promedio ponderado por ventas, se necesita una columna de ventas o revenue por clase. Esta respuesta salió directo de marcas_data.json, sin Gemini.`;
     }
 
     function responderConDatosLocales(mensaje) {
@@ -3020,6 +3136,9 @@
       const pideCuantas = q.includes('cuantas') || q.includes('cuantos') || q.includes('total');
 
       const base = marcasValidas();
+
+      const grupoLocal = respuestaGrupoLocal(mensaje);
+      if (grupoLocal) return grupoLocal;
 
       if (pidePrioridad) return respuestaPrioridadRenovacion();
 
@@ -3057,7 +3176,7 @@
       return null;
     }
 
-    function respuestaFallbackIA(mensaje, detalle = '') {
+        function respuestaFallbackIA(mensaje, detalle = '') {
       const resumen = topRenovacionOperativa(5);
       const bullets = resumen.length
         ? resumen.map((m, i) => `${i + 1}. ${m.nombre}: ${formatoMeses(m.tiempo)}, prob. ${m.prob}%, ReviewScore ${m.score}.`).join('\n')

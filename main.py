@@ -148,7 +148,72 @@ def top_renovacion_operativa(limite=8):
     return (vigentes_0_12 + vigentes_12_24 + vencidas_recientes)[:limite]
 
 
-def contexto_portafolio():
+
+def normalizar_txt(s: str) -> str:
+    s = str(s or "").upper()
+    s = s.replace("Á", "A").replace("É", "E").replace("Í", "I").replace("Ó", "O").replace("Ú", "U").replace("Ü", "U").replace("Ñ", "N")
+    return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", s)).strip()
+
+
+def marcas_por_pregunta(pregunta: str):
+    base = marcas_validas()
+    q = normalizar_txt(pregunta)
+    if "LIVERPOOL" in q or "PUERTO DE LIVERPOOL" in q:
+        return [
+            m for m in base
+            if "LIVERPOOL" in str(m.get("nombre", "")).upper()
+            or "EL PUERTO DE LIVERPOOL" in str(m.get("nombre", "")).upper()
+        ]
+
+    stop = {"CUAL", "CUALES", "CUANTA", "CUANTAS", "CUANTO", "CUANTOS", "TASA", "CONVERSION", "CLASE", "CLASES", "MARCA", "MARCAS", "TODAS", "TODO", "PARA", "PREGUNTA", "GENERAL", "PROMEDIO"}
+    terms = [p for p in q.split() if len(p) >= 5 and p not in stop]
+    if not terms:
+        return []
+    return [m for m in base if any(t in normalizar_txt(m.get("nombre", "")) for t in terms)]
+
+
+def promedio_dict(lista, campo):
+    vals = [n(m.get(campo), None) for m in lista]
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return None
+    return sum(vals) / len(vals)
+
+
+def contexto_marca_grupo(pregunta: str, limite: int = 15) -> str:
+    grupo = marcas_por_pregunta(pregunta)
+    if not grupo:
+        return ""
+
+    es_liverpool = "LIVERPOOL" in normalizar_txt(pregunta) or "PUERTO DE LIVERPOOL" in normalizar_txt(pregunta)
+    nombre_grupo = "Liverpool / El Puerto de Liverpool" if es_liverpool else "marca consultada"
+    vigentes = sum(1 for m in grupo if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in grupo if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    conv = promedio_dict(grupo, "conversion")
+    prob = promedio_dict(grupo, "prob")
+    score = promedio_dict(grupo, "score")
+
+    detalle = "\n".join([
+        f"- {m.get('nombre')} | Clase {m.get('clase')} | NoReg {m.get('noreg')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | Conversión {m.get('conversion')}% | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
+        for m in sorted(grupo, key=lambda x: (str(x.get("nombre", "")), str(x.get("clase", ""))))[:limite]
+    ])
+
+    return f"""
+Datos agrupados de {nombre_grupo}:
+- Registros encontrados: {len(grupo):,}
+- Vigentes: {vigentes:,}
+- Vencidas: {vencidas:,}
+- Tasa de conversión promedio simple: {"sin dato" if conv is None else f"{conv:.2f}%"}
+- Probabilidad promedio simple de renovación: {"sin dato" if prob is None else f"{prob:.1f}%"}
+- ReviewScore promedio simple: {"sin dato" if score is None else f"{score:.2f}"}
+
+Detalle por clase / registro:
+{detalle}
+
+Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL y aclara que el promedio es simple por registro.
+"""
+
+def contexto_portafolio(pregunta: str = ""):
     base = marcas_validas()
     if not base:
         return "No hay marcas cargadas en marcas_data.json."
@@ -161,6 +226,7 @@ def contexto_portafolio():
         f"{i+1}. {m.get('nombre')} | Clase {m.get('clase')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
         for i, m in enumerate(top)
     ])
+    grupo_txt = contexto_marca_grupo(pregunta)
     return f"""Datos reales disponibles del portafolio Liverpool:
 - Registros válidos: {len(base):,}
 - Vigentes: {vigentes:,}
@@ -170,6 +236,8 @@ def contexto_portafolio():
 
 Top operativo de renovación:
 {top_txt}
+
+{grupo_txt}
 
 Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
 
@@ -310,7 +378,7 @@ def predecir_batch(batch: BatchInput):
 
 @app.post("/chat")
 async def chat(input: ChatInput):
-    contexto = contexto_portafolio()
+    contexto = contexto_portafolio(input.mensaje)
     prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
     errores = []
 
