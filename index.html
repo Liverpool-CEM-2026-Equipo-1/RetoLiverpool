@@ -2841,12 +2841,12 @@
       <div class="chat-header-dot"></div>
       <div class="chat-header-info">
         <span>Asistente IA</span>
-        <span class="chat-header-sub">Datos locales + Gemini Flash + OpenAI backup</span>
+        <span class="chat-header-sub"></span>
       </div>
       <span class="chat-close" onclick="toggleChat()">×</span>
     </div>
     <div class="chat-messages" id="chatMessages">
-      <div class="chat-msg bot">¡Hola! Soy tu asistente híbrido de Liverpool. Para preguntas de datos respondo directo desde marcas_data.json; para estrategia uso Gemini Flash y, si falla, OpenAI como respaldo.</div>
+      <div class="chat-msg bot">¡Hola! Soy el Asistente IA de Liverpool. Puedo ayudarte a identificar riesgos, oportunidades de renovación e insights estratégicos del portafolio de marcas.</div>
     </div>
     <div class="chat-suggestions">
       <span class="chat-sug" onclick="enviarSugerencia('¿Qué marcas vencen en los próximos 6 meses?')">Marcas por vencer</span>
@@ -3222,7 +3222,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         const data = await res.json();
         loading.remove();
         const respuesta = data.respuesta || 'No pude procesar tu pregunta.';
-        const proveedor = data.proveedor ? `\n\n_Respuesta generada con: ${data.proveedor}._` : '';
+        const proveedor = '';
 
         if (esErrorGemini(respuesta)) {
           const fallback = respuestaFallbackIA(mensaje, 'Gemini devolvió 503/UNAVAILABLE/high demand.');
