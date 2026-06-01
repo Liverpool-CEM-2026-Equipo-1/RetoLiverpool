@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
-import numpy as np
 import pandas as pd
 import os
 import httpx
+import json
+import re
+from typing import Optional
 
 app = FastAPI(title="Liverpool Marcas API")
 
@@ -17,14 +19,25 @@ app.add_middleware(
 )
 
 MODEL_PATH = "gradient_boosted_liverpool.joblib"
+DATA_PATH = "marcas_data.json"
 model = None
+marcas_cache = []
 
 @app.on_event("startup")
-def load_model():
-    global model
+def load_assets():
+    global model, marcas_cache
     if os.path.exists(MODEL_PATH):
         model = joblib.load(MODEL_PATH)
         print("Modelo cargado correctamente")
+    else:
+        print("ADVERTENCIA: No se encontró gradient_boosted_liverpool.joblib")
+
+    if os.path.exists(DATA_PATH):
+        with open(DATA_PATH, "r", encoding="utf-8") as f:
+            marcas_cache = json.load(f)
+        print(f"marcas_data.json cargado: {len(marcas_cache)} registros")
+    else:
+        print("ADVERTENCIA: No se encontró marcas_data.json")
 
 class MarcaInput(BaseModel):
     ticket_promedio: float = 200.0
@@ -49,13 +62,14 @@ class ChatInput(BaseModel):
     mensaje: str
     historial: list = []
 
+
 def encode_features(data: dict) -> pd.DataFrame:
     clasificacion_map = {"Baja": 0, "Media": 1, "Top": 2}
     region_map = {"Centro": 0, "Norte/Oriente": 1, "Occidente": 2, "Sur": 3}
-    canal_map = {"Digital": 0, "Fisico": 1}
+    canal_map = {"Digital": 0, "Fisico": 1, "Físico": 1}
     segmento_map = {"Baby Boomer": 0, "Gen X": 1, "Gen Z": 2, "Millennial": 3}
     estatus_map = {"ESTRATÉGICA": 0, "NO ESTRATÉGICA": 1}
-    prioridad_map = {"NO": 0, "SI": 1}
+    prioridad_map = {"NO": 0, "SI": 1, "SÍ": 1}
     review_map = {"Baja": 0, "Media": 1, "Top": 2}
     row = {
         "Ticket Promedio": data["ticket_promedio"],
@@ -75,9 +89,191 @@ def encode_features(data: dict) -> pd.DataFrame:
     }
     return pd.DataFrame([row])
 
+
+def n(value, fallback=0.0):
+    try:
+        x = float(value)
+        return x if x == x else fallback
+    except Exception:
+        return fallback
+
+
+def clase_valida(m: dict) -> bool:
+    clase = str(m.get("clase", "")).strip()
+    if not clase:
+        return False
+    if re.search(r"\d{4}-\d{2}-\d{2}", clase) or "00:00:00" in clase:
+        return False
+    return True
+
+
+def marcas_validas():
+    return [m for m in marcas_cache if isinstance(m, dict) and m.get("nombre") and clase_valida(m)]
+
+
+def formato_meses(meses):
+    x = n(meses, None)
+    if x is None:
+        return "sin dato de tiempo"
+    if x < 0:
+        return f"vencida hace {abs(x):.1f} meses"
+    if x == 0:
+        return "vence este mes"
+    return f"vence en {x:.1f} meses"
+
+
+def score_vigente(m):
+    tiempo = n(m.get("tiempo"), 999)
+    prob = n(m.get("prob"), 0)
+    score = n(m.get("score"), 0)
+    conversion = n(m.get("conversion"), 0)
+    return (100 - min(tiempo, 100)) * 12 + prob * 2.5 + score * 12 + conversion
+
+
+def score_vencida_reciente(m):
+    meses = abs(n(m.get("tiempo"), -999))
+    prob = n(m.get("prob"), 0)
+    score = n(m.get("score"), 0)
+    return (24 - min(meses, 24)) * 20 + prob * 2 + score * 10
+
+
+def top_renovacion_operativa(limite=8):
+    base = marcas_validas()
+    vigentes_0_12 = [m for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 12]
+    vigentes_12_24 = [m for m in base if m.get("estatus") == "VIGENTE" and 12 < n(m.get("tiempo"), 999) <= 24]
+    vencidas_recientes = [m for m in base if (m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0) and n(m.get("tiempo"), 0) >= -12]
+    vigentes_0_12.sort(key=score_vigente, reverse=True)
+    vigentes_12_24.sort(key=score_vigente, reverse=True)
+    vencidas_recientes.sort(key=score_vencida_reciente, reverse=True)
+    return (vigentes_0_12 + vigentes_12_24 + vencidas_recientes)[:limite]
+
+
+def contexto_portafolio():
+    base = marcas_validas()
+    if not base:
+        return "No hay marcas cargadas en marcas_data.json."
+    vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
+    atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    top = top_renovacion_operativa(6)
+    top_txt = "\n".join([
+        f"{i+1}. {m.get('nombre')} | Clase {m.get('clase')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
+        for i, m in enumerate(top)
+    ])
+    return f"""Datos reales disponibles del portafolio Liverpool:
+- Registros válidos: {len(base):,}
+- Vigentes: {vigentes:,}
+- Vencidas: {vencidas:,}
+- Vigentes críticas 0-6 meses: {criticas:,}
+- Vigentes en atención 6-12 meses: {atencion:,}
+
+Top operativo de renovación:
+{top_txt}
+
+Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
+
+
+def respuesta_local_estrategica(detalle=""):
+    top = top_renovacion_operativa(5)
+    if top:
+        top_txt = "\n".join([f"{i+1}. {m.get('nombre')}: {formato_meses(m.get('tiempo'))}, prob. {m.get('prob')}%, ReviewScore {m.get('score')}." for i, m in enumerate(top)])
+    else:
+        top_txt = "No encontré marcas prioritarias cargadas."
+    extra = f"\n\nDetalle técnico: {detalle}" if detalle else ""
+    return f"""**La IA externa no respondió, pero el dashboard sigue funcionando con datos locales.**
+
+Recomendación automática: priorizar primero marcas vigentes próximas a vencer, después vigentes de 12 a 24 meses y finalmente vencidas recientes. Las vencidas históricas deben revisarse aparte para depuración legal/comercial.
+
+**Top operativo actual:**
+{top_txt}
+
+**Variables clave del modelo:** antigüedad de marca, tasa de conversión, clasificación, tiempo restante de renovación, tasa de devolución y ReviewScore.{extra}"""
+
+
+def sistema_liverpool():
+    return """Eres un asistente ejecutivo experto en portafolio de marcas de Liverpool México.
+Responde en español, profesional, claro y breve.
+Usa únicamente el contexto de datos que te paso y no inventes marcas, cifras ni vigencias.
+Cuando hables de renovación, separa: 1) vigentes próximas a vencer, 2) vigentes 12-24 meses, 3) vencidas recientes, 4) vencidas históricas.
+No digas que una marca vencida desde hace años es urgencia operativa inmediata; colócala como revisión histórica.
+Máximo 4 párrafos o bullets. Si falta información, dilo."""
+
+
+async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    # Gemini Flash: permite cambiar el modelo sin tocar código desde Render.
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
+
+    contents = [
+        {"role": "user", "parts": [{"text": f"Contexto del sistema:\n{sistema_liverpool()}"}]},
+        {"role": "model", "parts": [{"text": "Entendido. Responderé con base en datos y sin inventar."}]},
+    ]
+    for h in historial[-4:]:
+        role = "model" if h.get("role") in ("model", "assistant") else "user"
+        contents.append({"role": role, "parts": [{"text": str(h.get("content", ""))[:1500]}]})
+    contents.append({"role": "user", "parts": [{"text": prompt}]})
+
+    payload = {
+        "contents": contents,
+        "generationConfig": {"maxOutputTokens": 550, "temperature": 0.25}
+    }
+
+    async with httpx.AsyncClient(timeout=14) as client:
+        r = await client.post(url, json=payload)
+        data = r.json()
+
+    if r.status_code >= 400 or "error" in data:
+        raise RuntimeError(f"Gemini {r.status_code}: {data.get('error', data)}")
+    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+
+async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    # Modelo backup rápido/barato. Puedes cambiarlo en Render con OPENAI_MODEL.
+    openai_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip()
+    url = "https://api.openai.com/v1/chat/completions"
+    messages = [{"role": "system", "content": sistema_liverpool()}]
+    for h in historial[-4:]:
+        role = "assistant" if h.get("role") in ("model", "assistant") else "user"
+        messages.append({"role": role, "content": str(h.get("content", ""))[:1500]})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": openai_model,
+        "messages": messages,
+        "temperature": 0.25,
+        "max_tokens": 550,
+    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    async with httpx.AsyncClient(timeout=14) as client:
+        r = await client.post(url, headers=headers, json=payload)
+        data = r.json()
+
+    if r.status_code >= 400 or "error" in data:
+        raise RuntimeError(f"OpenAI {r.status_code}: {data.get('error', data)}")
+    return data["choices"][0]["message"]["content"]
+
+
 @app.get("/")
 def root():
-    return {"status": "ok", "mensaje": "Liverpool Marcas API funcionando"}
+    return {
+        "status": "ok",
+        "mensaje": "Liverpool Marcas API funcionando",
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "openai_model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        "gemini_configurado": bool(os.getenv("GEMINI_API_KEY")),
+        "openai_configurado": bool(os.getenv("OPENAI_API_KEY")),
+    }
+
 
 @app.post("/predecir")
 def predecir(marca: MarcaInput):
@@ -92,6 +288,7 @@ def predecir(marca: MarcaInput):
         "probabilidad_renovar": round(float(prob[1]) * 100, 1),
         "probabilidad_no_renovar": round(float(prob[0]) * 100, 1),
     }
+
 
 @app.post("/predecir-batch")
 def predecir_batch(batch: BatchInput):
@@ -110,45 +307,33 @@ def predecir_batch(batch: BatchInput):
         })
     return {"resultados": resultados, "total": len(resultados)}
 
+
 @app.post("/chat")
 async def chat(input: ChatInput):
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-    if not GEMINI_API_KEY:
-        return {"respuesta": "ERROR: No se encontró GEMINI_API_KEY en variables de entorno."}
+    contexto = contexto_portafolio()
+    prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
+    errores = []
 
-    sistema = """Eres un asistente experto en el portafolio de marcas electrónicas de Liverpool México.
-Ayudas con análisis de vigencia, renovación de marcas registradas en el IMPI, métricas comerciales
-como Revenue, Tasa de Conversión, ReviewScore, Tasa de Devolución, y recomendaciones estratégicas
-basadas en el modelo predictivo Gradient Boosting.
-Las variables más importantes del modelo son: Antigüedad de Marca (30%), Tasa de Conversión (22%),
-Clasificación de Marca (21%), Tiempo Restante de Renovación (11%), Tasa de Devolución (6%), ReviewScore (5%).
-Responde en español, de forma concisa y profesional. Máximo 3 párrafos."""
-
-    mensajes = []
-    for h in input.historial[-6:]:
-        mensajes.append({"role": h["role"], "parts": [{"text": h["content"]}]})
-    mensajes.append({"role": "user", "parts": [{"text": input.mensaje}]})
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
-    sistema_msg = {"role": "user", "parts": [{"text": f"Contexto del sistema: {sistema}"}]}
-    model_ack = {"role": "model", "parts": [{"text": "Entendido, actuaré como experto en marcas Liverpool."}]}
-    
-    payload = {
-        "contents": [sistema_msg, model_ack] + mensajes,
-        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.7}
-    }
-
+    # 1) Gemini Flash principal.
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.post(url, json=payload)
-            data = r.json()
-
-        if "candidates" in data:
-            respuesta = data["candidates"][0]["content"]["parts"][0]["text"]
-        else:
-            respuesta = f"Error de Gemini: {data}"
-
+        respuesta = await llamar_gemini(prompt, input.historial)
+        if respuesta:
+            return {"respuesta": respuesta, "proveedor": "Gemini Flash", "fallback": False}
     except Exception as e:
-        respuesta = f"Error de conexion: {str(e)}"
+        errores.append(str(e))
 
-    return {"respuesta": respuesta}
+    # 2) OpenAI backup.
+    try:
+        respuesta = await llamar_openai(prompt, input.historial)
+        if respuesta:
+            return {"respuesta": respuesta, "proveedor": "OpenAI", "fallback": True, "motivo": "Gemini no respondió; se usó OpenAI como respaldo."}
+    except Exception as e:
+        errores.append(str(e))
+
+    # 3) Fallback local, sin IA externa.
+    return {
+        "respuesta": respuesta_local_estrategica(" | ".join(errores[-2:])),
+        "proveedor": "Fallback local",
+        "fallback": True,
+        "errores": errores[-2:],
+    }
