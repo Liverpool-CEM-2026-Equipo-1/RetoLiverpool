@@ -259,13 +259,33 @@ Recomendación automática: priorizar primero marcas vigentes próximas a vencer
 **Variables clave del modelo:** antigüedad de marca, tasa de conversión, clasificación, tiempo restante de renovación, tasa de devolución y ReviewScore.{extra}"""
 
 
+
+def respuesta_prioridad_ejecutiva():
+    top = top_renovacion_operativa(5)
+    texto = "📊 Marcas Prioritarias para Renovación\n\n"
+    for m in top:
+        texto += f"• {m.get('nombre')}\n  {formato_meses(m.get('tiempo'))}\n  Probabilidad: {m.get('prob')}%\n\n"
+    texto += "🎯 Recomendación\nPriorizar revisión legal y comercial durante los próximos 90 días."
+    return texto
+
 def sistema_liverpool():
-    return """Eres un asistente ejecutivo experto en portafolio de marcas de Liverpool México.
-Responde en español, profesional, claro y breve.
-Usa únicamente el contexto de datos que te paso y no inventes marcas, cifras ni vigencias.
-Cuando hables de renovación, separa: 1) vigentes próximas a vencer, 2) vigentes 12-24 meses, 3) vencidas recientes, 4) vencidas históricas.
-No digas que una marca vencida desde hace años es urgencia operativa inmediata; colócala como revisión histórica.
-Máximo 4 párrafos o bullets. Si falta información, dilo."""
+    return """
+Eres el Asistente IA de Liverpool.
+
+REGLAS:
+- Responde como director de inteligencia de marcas.
+- Ve directo al punto.
+- No muestres listados enormes.
+- No enumeres decenas de registros.
+- No menciones Gemini, OpenAI, IA, JSON o bases de datos.
+
+FORMATO:
+📊 Resumen Ejecutivo
+💡 Insight
+🎯 Recomendación
+
+Máximo 120 palabras.
+"""
 
 
 async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
@@ -288,7 +308,7 @@ async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
 
     payload = {
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": 550, "temperature": 0.25}
+        "generationConfig": {"maxOutputTokens": 220, "temperature": 0.25}
     }
 
     async with httpx.AsyncClient(timeout=14) as client:
@@ -318,7 +338,7 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
         "model": openai_model,
         "messages": messages,
         "temperature": 0.25,
-        "max_tokens": 550,
+        "max_tokens": 220,
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
@@ -378,6 +398,10 @@ def predecir_batch(batch: BatchInput):
 
 @app.post("/chat")
 async def chat(input: ChatInput):
+    pregunta=input.mensaje.lower()
+    if any(x in pregunta for x in ["prioritaria para renovación","prioritarias para renovación","marcas de riesgo","qué marcas renovar","que marcas renovar","atención prioritaria"]):
+        return {"respuesta": respuesta_prioridad_ejecutiva()}
+
     contexto = contexto_portafolio(input.mensaje)
     prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
     errores = []
@@ -386,7 +410,7 @@ async def chat(input: ChatInput):
     try:
         respuesta = await llamar_gemini(prompt, input.historial)
         if respuesta:
-            return {"respuesta": respuesta, "proveedor": "Gemini Flash", "fallback": False}
+            return {"respuesta": respuesta}
     except Exception as e:
         errores.append(str(e))
 
@@ -394,7 +418,7 @@ async def chat(input: ChatInput):
     try:
         respuesta = await llamar_openai(prompt, input.historial)
         if respuesta:
-            return {"respuesta": respuesta, "proveedor": "OpenAI", "fallback": True, "motivo": "Gemini no respondió; se usó OpenAI como respaldo."}
+            return {"respuesta": respuesta}
     except Exception as e:
         errores.append(str(e))
 
