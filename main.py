@@ -374,6 +374,11 @@ Visuales disponibles en el dashboard:
 - Tableau Segmentos: visual de comportamiento por generación, canal y región.
 - Tableau Riesgo de Marcas: visual de riesgo legal y vencimientos.
 
+Mapa de visuales numerados:
+- Visual 1 / primer visual / visual de Segmentos: corresponde a Tableau Segmentos. Explica generación, canal, región y concentración de transacciones.
+- Visual 2 / segundo visual / visual de Riesgo de Marcas: corresponde a Tableau Riesgo de Marcas. Explica vigentes, vencidas, marcas críticas 0-6 meses, atención 6-12 meses, estables y prioridad de renovación.
+- Si el usuario pregunta por "visual 1" o "visual 2", no lo interpretes como primera o segunda sección del texto. Responde directamente sobre el visual numerado.
+
 Datos específicos de visuales y ventas/transacciones:
 - Generación: Millennial 40.1%, Gen Z 30.0%, Gen X 19.9%, Baby Boomer 10.0%.
 - Canal: Digital 62.4%, Físico 37.6%.
@@ -430,12 +435,48 @@ def respuesta_prioridad_ejecutiva():
     return texto
 
 
-def respuesta_visuales_local():
+def respuesta_visuales_local(mensaje: str = ""):
     base = marcas_validas()
     vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
     vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
     criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
     atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    q = normalizar_txt(mensaje)
+    pide_visual_1 = (
+        "VISUAL 1" in q or "VISUAL UNO" in q or "PRIMER VISUAL" in q
+        or "SEGMENTOS" in q
+    )
+    pide_visual_2 = (
+        "VISUAL 2" in q or "VISUAL DOS" in q or "SEGUNDO VISUAL" in q
+        or "RIESGO DE MARCAS" in q or ("RIESGO" in q and "MARCA" in q)
+    )
+
+    if pide_visual_1 and pide_visual_2:
+        return f"""**Visual 1: Segmentos**
+Este visual explica dónde se concentra el comportamiento comercial. Millennial concentra 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%. Por canal, Digital pesa 62.4% y Físico 37.6%. Por región, Centro lidera con 47.5%, seguido de Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%.
+
+**Visual 2: Riesgo de Marcas**
+Este visual aterriza la parte legal y operativa: el portafolio tiene {len(base):,} registros válidos, con {vigentes:,} vigentes y {vencidas:,} vencidos. La prioridad está en {criticas:,} marcas vigentes críticas de 0 a 6 meses y {atencion:,} en atención de 6 a 12 meses.
+
+**Lectura clave**
+El Visual 1 ayuda a entender dónde está el movimiento comercial; el Visual 2 ayuda a decidir qué marcas proteger y renovar primero."""
+
+    if pide_visual_1:
+        return """**Visual 1: Segmentos**
+Este visual muestra cómo se reparte el comportamiento comercial del portafolio. Por generación, Millennial concentra 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%.
+
+Por canal, Digital domina con 62.4% frente a Físico con 37.6%. Por región, Centro tiene 47.5%, Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%.
+
+La lectura clave es que el mayor movimiento está en perfiles Millennial y canal Digital; por eso las decisiones de renovación deberían cuidar las marcas con mejor desempeño en esos segmentos."""
+
+    if pide_visual_2:
+        return f"""**Visual 2: Riesgo de Marcas**
+Este visual muestra el riesgo legal y operativo del portafolio. La base tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos.
+
+La prioridad real está en las marcas vigentes próximas a vencer: {criticas:,} están en estado crítico de 0 a 6 meses y {atencion:,} están en atención de 6 a 12 meses.
+
+La lectura clave es que no basta con ver cuántas marcas existen; lo importante es identificar cuáles siguen vigentes y necesitan acción antes de que pasen a vencidas."""
+
     return f"""El dashboard se puede leer en tres capas: portafolio, desempeño comercial y riesgo legal.
 
 Primero, el portafolio tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos. Esa es la base para dimensionar el riesgo.
@@ -450,7 +491,7 @@ Para tu informe, la lectura clave es: el dashboard no solo muestra ventas o segm
 def respuesta_local_por_pregunta(mensaje: str):
     q = normalizar_txt(mensaje)
     if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "TABLEAU", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO", "REGION", "ORIENTE", "VENTAS", "TRANSACCIONES"]):
-        return respuesta_visuales_local()
+        return respuesta_visuales_local(mensaje)
     if any(x in q for x in ["PRIORIDAD", "PRIORITARIA", "PRIORITARIAS", "RENOVAR"]):
         return respuesta_prioridad_ejecutiva()
     return respuesta_local_estrategica()
@@ -469,6 +510,7 @@ REGLAS:
 - Si el dato está en el contexto, úsalo aunque venga de un visual o de Tableau.
 - Si el dato viene de la referencia legal indexada, úsalo como base para explicar el expediente.
 - Si preguntan por "Oriente", usa el dato de "Norte/Oriente".
+- Si preguntan por "visual 1", responde sobre Tableau Segmentos. Si preguntan por "visual 2", responde sobre Tableau Riesgo de Marcas. No lo interpretes como secciones del contexto.
 - No menciones Gemini, OpenAI, IA, JSON, bases de datos, proveedores, fallbacks ni detalles técnicos.
 - No incluyas notas metodológicas salvo que el usuario las pida explícitamente.
 - Si el usuario pregunta algo puntual, responde en 2 a 5 oraciones.

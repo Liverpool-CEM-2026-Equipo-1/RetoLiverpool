@@ -3047,6 +3047,44 @@ Abrir revisión legal y comercial esta semana para las primeras marcas del lista
       const criticas = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6).length;
       const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
       const q = normalizarTextoChat(mensaje);
+      const pideVisual1 = /\bvisual\s*(1|uno)\b/.test(q) ||
+        q.includes('primer visual') ||
+        q.includes('visual de segmentos') ||
+        q.includes('segmentos');
+      const pideVisual2 = /\bvisual\s*(2|dos)\b/.test(q) ||
+        q.includes('segundo visual') ||
+        q.includes('visual de riesgo') ||
+        q.includes('riesgo de marcas') ||
+        (q.includes('riesgo') && q.includes('marca'));
+
+      if (pideVisual1 && pideVisual2) {
+        return `**Visual 1: Segmentos**
+Este visual explica dónde se concentra el comportamiento comercial. Millennial concentra **40.1%**, Gen Z **30.0%**, Gen X **19.9%** y Baby Boomer **10.0%**. Por canal, Digital pesa **62.4%** y Físico **37.6%**. Por región, Centro lidera con **47.5%**, seguido de Occidente **22.5%**, Norte/Oriente **17.5%** y Sur **12.5%**.
+
+**Visual 2: Riesgo de Marcas**
+Este visual aterriza la parte legal y operativa: el portafolio tiene **${base.length.toLocaleString()}** registros válidos, con **${vigentes.toLocaleString()}** vigentes y **${vencidas.toLocaleString()}** vencidos. La prioridad está en **${criticas.toLocaleString()}** marcas vigentes críticas de 0 a 6 meses y **${atencion.toLocaleString()}** en atención de 6 a 12 meses.
+
+**Lectura clave**
+El Visual 1 ayuda a entender dónde está el movimiento comercial; el Visual 2 ayuda a decidir qué marcas proteger y renovar primero.`;
+      }
+
+      if (pideVisual1) {
+        return `**Visual 1: Segmentos**
+Este visual muestra cómo se reparte el comportamiento comercial del portafolio. Por generación, Millennial concentra **40.1%**, Gen Z **30.0%**, Gen X **19.9%** y Baby Boomer **10.0%**.
+
+Por canal, Digital domina con **62.4%** frente a Físico con **37.6%**. Por región, Centro tiene **47.5%**, Occidente **22.5%**, Norte/Oriente **17.5%** y Sur **12.5%**.
+
+La lectura clave es que el mayor movimiento está en perfiles Millennial y canal Digital; por eso las decisiones de renovación deberían cuidar las marcas con mejor desempeño en esos segmentos.`;
+      }
+
+      if (pideVisual2) {
+        return `**Visual 2: Riesgo de Marcas**
+Este visual muestra el riesgo legal y operativo del portafolio. La base tiene **${base.length.toLocaleString()}** registros válidos: **${vigentes.toLocaleString()}** vigentes y **${vencidas.toLocaleString()}** vencidos.
+
+La prioridad real está en las marcas vigentes próximas a vencer: **${criticas.toLocaleString()}** están en estado crítico de 0 a 6 meses y **${atencion.toLocaleString()}** están en atención de 6 a 12 meses.
+
+La lectura clave es que no basta con ver cuántas marcas existen; lo importante es identificar cuáles siguen vigentes y necesitan acción antes de que pasen a vencidas.`;
+      }
 
       if (q.includes('oriente') || q.includes('region') || q.includes('ventas')) {
         return `Si te refieres a Oriente, en los visuales aparece como **Norte/Oriente**. Esa región representa **17.5%** de las transacciones del visual de Segmentos.
