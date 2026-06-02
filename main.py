@@ -29,12 +29,14 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "gradient_boosted_liverpool.joblib")
 DATA_PATH = os.path.join(BASE_DIR, "marcas_data.json")
+LEGAL_PATH = os.path.join(BASE_DIR, "legal_references.json")
 model = None
 marcas_cache = []
+legal_cache = {}
 
 @app.on_event("startup")
 def load_assets():
-    global model, marcas_cache
+    global model, marcas_cache, legal_cache
     if joblib is not None and os.path.exists(MODEL_PATH):
         model = joblib.load(MODEL_PATH)
         print("Modelo cargado correctamente")
@@ -49,6 +51,13 @@ def load_assets():
         print(f"marcas_data.json cargado: {len(marcas_cache)} registros")
     else:
         print("ADVERTENCIA: No se encontró marcas_data.json")
+
+    if os.path.exists(LEGAL_PATH):
+        with open(LEGAL_PATH, "r", encoding="utf-8") as f:
+            legal_cache = json.load(f)
+        print(f"legal_references.json cargado: {legal_cache.get('total_expedientes', 0)} expedientes")
+    else:
+        print("ADVERTENCIA: No se encontró legal_references.json")
 
 class MarcaInput(BaseModel):
     ticket_promedio: float = 200.0
@@ -211,6 +220,87 @@ def promedio_dict(lista, campo):
     return sum(vals) / len(vals)
 
 
+def contexto_legal(pregunta: str, limite_casos: int = 6, limite_docs: int = 6) -> str:
+    if not legal_cache or not legal_cache.get("expedientes"):
+        return ""
+
+    q = normalizar_txt(pregunta)
+    legal_triggers = {
+        "LEGAL", "EXPEDIENTE", "EXPEDIENTES", "JUICIO", "JUICIOS", "NULIDAD",
+        "OPOSICION", "OPOSICIONES", "AMPARO", "AMPAROS", "INFRACCION",
+        "INFRACCIONES", "CESION", "CESIONES", "DEMANDA", "SENTENCIA",
+        "ALEGATOS", "IMPI", "REGISTRO", "CLICK", "COLLECT", "BEAUTY",
+        "HAUS", "KUCHE", "BURBERRY", "BMW", "BYD", "LITTLE", "KITCHEN"
+    }
+    stop = {
+        "QUE", "CUAL", "CUALES", "COMO", "PARA", "LOS", "LAS", "DEL", "CON",
+        "POR", "UNA", "UNO", "DAME", "EXPLICA", "EXPLICAME", "INFORME",
+        "RESUMEN", "TEMA", "DATOS", "MARCA", "MARCAS"
+    }
+    terms = [t for t in q.split() if len(t) >= 4 and t not in stop]
+    es_legal = any(t in q.split() for t in legal_triggers) or any(t in q for t in legal_triggers)
+
+    scored = []
+    for caso in legal_cache.get("expedientes", []):
+        docs = caso.get("documentos", [])
+        searchable = " ".join([
+            str(caso.get("carpeta", "")),
+            str(caso.get("marca_o_asunto", "")),
+            " ".join(caso.get("temas", [])),
+            str(caso.get("resumen_referencia", "")),
+            " ".join(str(d.get("nombre", "")) for d in docs),
+            " ".join(str(d.get("texto_muestra", ""))[:500] for d in docs[:8]),
+        ])
+        ns = normalizar_txt(searchable)
+        score = sum(4 for t in terms if t in ns)
+        score += sum(2 for trig in legal_triggers if trig in q and trig in ns)
+        if score:
+            scored.append((score, caso))
+
+    if not scored and not es_legal:
+        resumen_exp = ", ".join(c.get("marca_o_asunto", c.get("carpeta", "")) for c in legal_cache.get("expedientes", [])[:8])
+        return f"""
+Referencia legal disponible para consulta cuando sea relevante:
+- Expedientes indexados: {legal_cache.get('total_expedientes', 0)}
+- Archivos indexados: {legal_cache.get('total_archivos', 0)}
+- Temas disponibles: {resumen_exp}
+"""
+
+    if not scored:
+        scored = [(1, c) for c in legal_cache.get("expedientes", [])[:limite_casos]]
+
+    partes = [
+        "Referencia de expedientes legales y marcarios disponible:",
+        f"- Expedientes indexados: {legal_cache.get('total_expedientes', 0)}",
+        f"- Archivos indexados: {legal_cache.get('total_archivos', 0)}",
+    ]
+
+    for _, caso in sorted(scored, key=lambda x: x[0], reverse=True)[:limite_casos]:
+        docs = caso.get("documentos", [])
+        docs_txt = []
+        for d in docs[:limite_docs]:
+            snippet = str(d.get("texto_muestra", "") or "").strip()
+            snippet = f" | Extracto: {snippet[:260]}" if snippet else ""
+            docs_txt.append(
+                f"  - {d.get('nombre')} ({d.get('tipo_documento')}){snippet}"
+            )
+        partes.append(
+            f"""
+Expediente: {caso.get('carpeta')}
+Asunto/marca: {caso.get('marca_o_asunto')}
+Temas: {', '.join(caso.get('temas', [])[:8]) or 'sin tema detectado'}
+Resumen: {caso.get('resumen_referencia')}
+Documentos relacionados:
+{chr(10).join(docs_txt)}
+"""
+        )
+
+    partes.append(
+        "Regla: usa esta referencia para responder preguntas legales o marcarias. Si falta el detalle exacto, explica qué expediente/documento convendría revisar, sin inventar."
+    )
+    return "\n".join(partes)
+
+
 def contexto_marca_grupo(pregunta: str, limite: int = 15) -> str:
     grupo = marcas_por_pregunta(pregunta)
     if not grupo:
@@ -234,14 +324,14 @@ Datos agrupados de {nombre_grupo}:
 - Registros encontrados: {len(grupo):,}
 - Vigentes: {vigentes:,}
 - Vencidas: {vencidas:,}
-- Tasa de conversión promedio simple: {"sin dato" if conv is None else f"{conv:.2f}%"}
-- Probabilidad promedio simple de renovación: {"sin dato" if prob is None else f"{prob:.1f}%"}
-- ReviewScore promedio simple: {"sin dato" if score is None else f"{score:.2f}"}
+- Tasa de conversión promedio del portafolio: {"sin dato" if conv is None else f"{conv:.2f}%"}
+- Recomendación promedio de renovación del modelo: {"sin dato" if prob is None else f"{prob:.1f}%"}
+- ReviewScore promedio del portafolio: {"sin dato" if score is None else f"{score:.2f}"}
 
 Detalle por clase / registro:
 {detalle}
 
-Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL y aclara que el promedio es simple por registro.
+Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL.
 """
 
 def contexto_portafolio(pregunta: str = ""):
@@ -252,12 +342,17 @@ def contexto_portafolio(pregunta: str = ""):
     vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
     criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
     atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    review_top = sum(1 for m in base if m.get("review") == "Top")
+    review_media = sum(1 for m in base if m.get("review") == "Media")
+    review_baja = sum(1 for m in base if m.get("review") == "Baja")
+    total_base = max(len(base), 1)
     top = top_renovacion_agrupada(6)
     top_txt = "\n".join([
         f"{i+1}. {m.get('nombre')} | Clases {', '.join(m.get('clases', []))} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | {formato_meses(m.get('tiempo'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
         for i, m in enumerate(top)
     ])
     grupo_txt = contexto_marca_grupo(pregunta)
+    legal_txt = contexto_legal(pregunta)
     return f"""Datos reales disponibles del portafolio Liverpool:
 - Registros válidos: {len(base):,}
 - Vigentes: {vigentes:,}
@@ -276,6 +371,20 @@ Visuales disponibles en el dashboard:
 - Tendencias: distribución de Review, clasificación comercial y tasas de renovación por canal/región.
 - Riesgo Legal: semáforo de marcas vencidas, críticas 0-6 meses, atención 6-12 meses y estables.
 - Batch: carga de archivo para analizar varias marcas y ver resumen, recomendación, estatus y clases.
+- Tableau Segmentos: visual de comportamiento por generación, canal y región.
+- Tableau Riesgo de Marcas: visual de riesgo legal y vencimientos.
+
+Datos específicos de visuales y ventas/transacciones:
+- Generación: Millennial 40.1%, Gen Z 30.0%, Gen X 19.9%, Baby Boomer 10.0%.
+- Canal: Digital 62.4%, Físico 37.6%.
+- Región: Centro 47.5%, Occidente 22.5%, Norte/Oriente 17.5%, Sur 12.5%.
+- Si el usuario pregunta por "Oriente", interpreta que se refiere a "Norte/Oriente".
+- Renovación por generación: Millennial 84.9%, Gen Z 84.9%, Gen X 84.8%, Baby Boomer 85.1%.
+- Renovación por canal: Digital 84.9%, Físico 84.8%.
+- Renovación por región: Centro 85.0%, Occidente 84.7%, Norte/Oriente 84.8%, Sur 85.0%.
+- Renovación global mostrada en visuales: 84.9%.
+- Distribución Review del portafolio: Top {review_top:,} ({review_top / total_base * 100:.1f}%), Media {review_media:,} ({review_media / total_base * 100:.1f}%), Baja {review_baja:,} ({review_baja / total_base * 100:.1f}%).
+- Clasificación comercial usada en tendencias: Top 35.0%, Media 45.0%, Baja 20.0%.
 
 Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el dashboard", responde como consultor:
 1. explica qué muestra cada visual,
@@ -285,7 +394,14 @@ Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el 
 
 {grupo_txt}
 
-Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
+{legal_txt}
+
+Reglas de respuesta:
+- Puedes responder preguntas sobre marcas, visuales, predicción, riesgo legal, segmentos, tendencias, ventas/transacciones y Tableau.
+- También puedes responder sobre expedientes legales y marcarios usando la referencia legal indexada.
+- No digas que no tienes datos de visuales si el dato aparece en el contexto anterior.
+- Si el usuario pide porcentaje de ventas por región, usa los porcentajes regionales del visual de Segmentos.
+- Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
 
 
 def respuesta_local_estrategica(detalle=""):
@@ -320,22 +436,20 @@ def respuesta_visuales_local():
     vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
     criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
     atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
-    return f"""**Resumen ejecutivo**
-El dashboard resume el estado del portafolio de marcas y ayuda a decidir qué renovar, qué vigilar y qué revisar legalmente. El portafolio tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos.
+    return f"""El dashboard se puede leer en tres capas: portafolio, desempeño comercial y riesgo legal.
 
-**Lectura de visuales**
-Inicio muestra los KPIs generales. Predicción evalúa una marca específica y explica las variables que influyen en la recomendación. Portafolio permite filtrar marcas. Segmentos y Tendencias explican comportamiento por generación, canal, región, Review y clasificación. Riesgo Legal ordena las marcas por urgencia de vencimiento.
+Primero, el portafolio tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos. Esa es la base para dimensionar el riesgo.
 
-**Hallazgos**
-Hay {criticas:,} marcas vigentes críticas de 0 a 6 meses y {atencion:,} en atención de 6 a 12 meses. Esa es la parte más importante para priorizar renovación.
+En los visuales de Segmentos/Tableau, el comportamiento comercial se reparte así: Millennial 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%. Por canal, Digital concentra 62.4% y Físico 37.6%. Por región: Centro 47.5%, Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%. Si preguntas por Oriente, se toma como Norte/Oriente.
 
-**Recomendación**
-Usar Riesgo Legal para priorizar acciones, Predicción para justificar cada decisión por marca y Tendencias/Segmentos para explicar el comportamiento comercial en el informe."""
+En renovación por región, Norte/Oriente está en 84.8%, muy cerca del promedio global de 84.9%. En Riesgo Legal, hay {criticas:,} marcas vigentes críticas de 0 a 6 meses y {atencion:,} en atención de 6 a 12 meses.
+
+Para tu informe, la lectura clave es: el dashboard no solo muestra ventas o segmentos, también conecta desempeño comercial con protección legal y prioridad de renovación."""
 
 
 def respuesta_local_por_pregunta(mensaje: str):
     q = normalizar_txt(mensaje)
-    if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO"]):
+    if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "TABLEAU", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO", "REGION", "ORIENTE", "VENTAS", "TRANSACCIONES"]):
         return respuesta_visuales_local()
     if any(x in q for x in ["PRIORIDAD", "PRIORITARIA", "PRIORITARIAS", "RENOVAR"]):
         return respuesta_prioridad_ejecutiva()
@@ -348,10 +462,13 @@ Eres el Asistente IA de Liverpool.
 REGLAS:
 - Responde como un asistente conversacional experto, parecido a ChatGPT, pero especializado en inteligencia de marcas Liverpool.
 - Conversa de forma natural, clara y puntual. No suenes como reporte automático.
-- Puedes explicar visuales, crear mini informes, responder dudas ejecutivas y hacer recomendaciones.
+- Puedes explicar visuales, Tableau, ventas/transacciones, regiones, segmentos, tendencias, predicción, portafolio, riesgo legal, expedientes marcarios y crear mini informes.
 - No muestres listados enormes.
 - No enumeres decenas de registros.
 - Usa los datos entregados en el contexto y no inventes cifras.
+- Si el dato está en el contexto, úsalo aunque venga de un visual o de Tableau.
+- Si el dato viene de la referencia legal indexada, úsalo como base para explicar el expediente.
+- Si preguntan por "Oriente", usa el dato de "Norte/Oriente".
 - No menciones Gemini, OpenAI, IA, JSON, bases de datos, proveedores, fallbacks ni detalles técnicos.
 - No incluyas notas metodológicas salvo que el usuario las pida explícitamente.
 - Si el usuario pregunta algo puntual, responde en 2 a 5 oraciones.
@@ -437,6 +554,8 @@ def root():
         "openai_model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
         "gemini_configurado": bool(os.getenv("GEMINI_API_KEY")),
         "openai_configurado": bool(os.getenv("OPENAI_API_KEY")),
+        "expedientes_legales": legal_cache.get("total_expedientes", 0) if legal_cache else 0,
+        "archivos_legales": legal_cache.get("total_archivos", 0) if legal_cache else 0,
     }
 
 

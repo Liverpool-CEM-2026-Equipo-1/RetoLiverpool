@@ -1128,7 +1128,7 @@
         </div>
         <!-- Fila 2: Gráfica de línea probabilidades -->
         <div class="bc-card" style="grid-column:1/-1;">
-          <h4>Probabilidad de renovar por marca</h4>
+          <h4>Recomendación de renovar por marca</h4>
           <div style="position:relative;width:100%;overflow-x:auto;">
             <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
           </div>
@@ -1724,6 +1724,7 @@
       return Math.round(prob * 1000) / 10; // 0-100 with 1 decimal
     }
     let marcasData = [];
+    let legalData = null;
 
     // Cargar datos reales desde JSON
     fetch('marcas_data.json')
@@ -1741,6 +1742,17 @@
         banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:#E24B4A;color:white;text-align:center;padding:10px;z-index:9999;font-size:13px;';
         banner.textContent = 'No pude cargar la información de marcas. Verifica que el archivo esté junto a la página.';
         document.body.appendChild(banner);
+      });
+
+    // Cargar referencia legal/marcaria indexada
+    fetch('legal_references.json')
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(data => {
+        legalData = data;
+        console.log('legal_references.json cargado:', data.total_expedientes || 0, 'expedientes');
+      })
+      .catch(e => {
+        console.warn('legal_references.json no disponible:', e);
       });
 
     function onMarcasLoaded() {
@@ -3028,24 +3040,63 @@ ${filas}
 Abrir revisión legal y comercial esta semana para las primeras marcas del listado y preparar plan de renovación por clase. Las vencidas históricas conviene tratarlas en una revisión separada.`;
     }
 
-    function respuestaVisualesLocal() {
+    function respuestaVisualesLocal(mensaje = '') {
       const base = marcasValidas();
       const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
       const vencidas = base.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
       const criticas = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6).length;
       const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
+      const q = normalizarTextoChat(mensaje);
 
-      return `**Resumen ejecutivo**
-El dashboard resume el estado del portafolio de marcas y ayuda a decidir qué renovar, qué vigilar y qué revisar legalmente. El portafolio tiene ${base.length.toLocaleString()} registros válidos: ${vigentes.toLocaleString()} vigentes y ${vencidas.toLocaleString()} vencidos.
+      if (q.includes('oriente') || q.includes('region') || q.includes('ventas')) {
+        return `Si te refieres a Oriente, en los visuales aparece como **Norte/Oriente**. Esa región representa **17.5%** de las transacciones del visual de Segmentos.
 
-**Lectura de visuales**
-Inicio muestra los KPIs generales. Predicción evalúa una marca específica y explica las variables que influyen en la recomendación. Portafolio permite filtrar marcas. Segmentos y Tendencias explican comportamiento por generación, canal, región, Review y clasificación. Riesgo Legal ordena las marcas por urgencia de vencimiento.
+También se muestran estas regiones:
+- Centro: 47.5%
+- Occidente: 22.5%
+- Norte/Oriente: 17.5%
+- Sur: 12.5%
 
-**Hallazgos**
-Hay ${criticas.toLocaleString()} marcas vigentes críticas de 0 a 6 meses y ${atencion.toLocaleString()} en atención de 6 a 12 meses. Esa es la parte más importante para priorizar renovación.
+En renovación por región, Norte/Oriente está en **84.8%**, muy cerca del promedio global de **84.9%**. Esto significa que no es la región con mayor volumen, pero su comportamiento de renovación se mantiene estable.`;
+      }
 
-**Recomendación**
-Usar Riesgo Legal para priorizar acciones, Predicción para justificar cada decisión por marca y Tendencias/Segmentos para explicar el comportamiento comercial en el informe.`;
+      return `El dashboard se puede leer en tres capas: portafolio, desempeño comercial y riesgo legal.
+
+Primero, el portafolio tiene ${base.length.toLocaleString()} registros válidos: ${vigentes.toLocaleString()} vigentes y ${vencidas.toLocaleString()} vencidos. Esa es la base para entender el tamaño del riesgo.
+
+En los visuales de Segmentos/Tableau, el comportamiento comercial se reparte así: Millennial 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%. Por canal, Digital concentra 62.4% y Físico 37.6%. Por región: Centro 47.5%, Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%.
+
+En Riesgo Legal, hay ${criticas.toLocaleString()} marcas vigentes críticas de 0 a 6 meses y ${atencion.toLocaleString()} en atención de 6 a 12 meses. Lo más importante para tu informe es decir que la prioridad no es solo vender más, sino proteger marcas vigentes antes de que entren en vencimiento.`;
+    }
+
+    function respuestaLegalLocal(mensaje) {
+      if (!legalData || !Array.isArray(legalData.expedientes)) return null;
+      const q = normalizarTextoChat(mensaje);
+      const legalKeys = ['legal','expediente','juicio','nulidad','oposicion','amparo','infraccion','cesion','demanda','sentencia','alegatos','impi','registro','click','collect','beauty','haus','kuche','burberry','bmw','byd','little','kitchen'];
+      const pareceLegal = legalKeys.some(k => q.includes(k));
+      if (!pareceLegal) return null;
+
+      const terms = q.split(' ').filter(t => t.length >= 4 && !['dame','sobre','para','explica','explicame','informe','marca','marcas'].includes(t));
+      const scored = legalData.expedientes.map(caso => {
+        const docs = caso.documentos || [];
+        const text = normalizarTextoChat([
+          caso.carpeta,
+          caso.marca_o_asunto,
+          (caso.temas || []).join(' '),
+          caso.resumen_referencia,
+          docs.map(d => `${d.nombre} ${d.tipo_documento} ${(d.temas || []).join(' ')}`).join(' ')
+        ].join(' '));
+        const score = terms.reduce((s, t) => s + (text.includes(t) ? 1 : 0), 0);
+        return { score, caso };
+      }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
+
+      const matches = (scored.length ? scored : legalData.expedientes.slice(0, 4).map(caso => ({ score: 1, caso }))).slice(0, 4);
+      const bloques = matches.map(({ caso }, i) => {
+        const docs = (caso.documentos || []).slice(0, 4).map(d => `- ${d.nombre} (${d.tipo_documento})`).join('\n');
+        return `${i + 1}. ${caso.marca_o_asunto || caso.carpeta}\nTemas: ${(caso.temas || []).slice(0, 5).join(', ') || 'sin tema detectado'}\n${caso.resumen_referencia || ''}\nDocumentos clave:\n${docs}`;
+      }).join('\n\n');
+
+      return `Encontré referencia legal/marcaria relacionada en los expedientes indexados.\n\n${bloques}\n\nCon esto puedo ayudarte a explicar el caso, hacer un resumen ejecutivo, preparar argumentos o conectar el expediente con riesgo legal y renovación de marca.`;
     }
 
     function extraerTerminosMarca(pregunta) {
@@ -3121,9 +3172,9 @@ Usar Riesgo Legal para priorizar acciones, Predicción para justificar cada deci
       return `DATOS AGRUPADOS DE ${nombreGrupo.toUpperCase()}:
 Registros encontrados: ${grupo.length}
 Vigentes: ${vigentes} | Vencidas: ${vencidas}
-Tasa de conversión promedio simple: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}
-Probabilidad promedio simple de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}
-ReviewScore promedio simple: ${scoreProm === null ? 'sin dato' : scoreProm.toFixed(2)}
+Tasa de conversión promedio del portafolio: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}
+Recomendación promedio de renovación del modelo: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}
+ReviewScore promedio del portafolio: ${scoreProm === null ? 'sin dato' : scoreProm.toFixed(2)}
 
 Detalle por clase / registro, máximo ${limite}:
 ${porClase}
@@ -3207,14 +3258,28 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       const pideMayorProb = q.includes('mayor probabilidad') || q.includes('top renovacion') || q.includes('probabilidad de renovar');
       const pideReview = q.includes('reviewscore') || q.includes('mejor review') || q.includes('mayor review');
       const pideCuantas = q.includes('cuantas') || q.includes('cuantos') || q.includes('total');
-      const pideVisuales = q.includes('visual') || q.includes('visuales') || q.includes('dashboard') || q.includes('informe') || q.includes('explicame') || q.includes('explica') || q.includes('no entiendo');
+      const pideVisuales = q.includes('visual') ||
+        q.includes('visuales') ||
+        q.includes('dashboard') ||
+        q.includes('tableau') ||
+        q.includes('informe') ||
+        q.includes('explicame') ||
+        q.includes('explica') ||
+        q.includes('no entiendo') ||
+        q.includes('region') ||
+        q.includes('oriente') ||
+        q.includes('ventas') ||
+        q.includes('transacciones');
 
       const base = marcasValidas();
+
+      const legalLocal = respuestaLegalLocal(mensaje);
+      if (legalLocal) return legalLocal;
 
       const grupoLocal = respuestaGrupoLocal(mensaje);
       if (grupoLocal) return grupoLocal;
 
-      if (pideVisuales) return respuestaVisualesLocal();
+      if (pideVisuales) return respuestaVisualesLocal(mensaje);
 
       if (pidePrioridad) return respuestaPrioridadRenovacion();
 
