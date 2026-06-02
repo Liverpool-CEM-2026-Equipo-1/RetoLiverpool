@@ -2713,6 +2713,14 @@
     .chat-msg.user { background: var(--pink); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .chat-msg.loading { background: var(--purple-soft); color: var(--text-muted); align-self: flex-start; font-style: italic; }
     .chat-msg.bot strong { color: var(--pink); font-family: 'Sora', sans-serif; }
+    .chat-heading {
+      margin: 8px 0 4px; color: var(--pink);
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 800;
+    }
+    .chat-bullet,
+    .chat-numbered {
+      margin: 5px 0; padding-left: 10px; border-left: 3px solid var(--pink-soft);
+    }
     .chat-section {
       margin: 8px 0; padding: 10px 12px; border-radius: 12px;
       border: 1px solid var(--border); background: #FBFAFF;
@@ -2728,10 +2736,7 @@
     .chat-section.marcas { border-left: 4px solid #8B5CF6; background: #F3F0FF; }
     .chat-section.marcas .chat-section-title { color: #6753C9; }
     .chat-line { margin: 4px 0; }
-    .chat-list-item {
-      display: block; margin: 6px 0; padding: 7px 9px; border-radius: 9px;
-      background: rgba(255,255,255,0.72); border: 1px solid rgba(226,223,245,0.85);
-    }
+    .chat-list-item { display: block; margin: 5px 0; }
     .chat-input-row {
       display: flex; gap: 8px; padding: 12px 14px;
       border-top: 1px solid var(--border);
@@ -3341,14 +3346,6 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
     function renderMarkdown(texto) {
       const lines = String(texto || '').split('\n');
       let html = '';
-      let open = false;
-
-      const closeSection = () => {
-        if (open) {
-          html += '</div>';
-          open = false;
-        }
-      };
 
       lines.forEach(rawLine => {
         const line = rawLine.trim();
@@ -3356,18 +3353,24 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
 
         const heading = line.match(/^\*\*(.+?)\*\*:?\s*$/);
         if (heading) {
-          closeSection();
           const title = heading[1].replace(/:$/, '');
-          html += `<div class="chat-section ${chatSectionType(title)}"><div class="chat-section-title">${renderInlineMarkdown(title)}</div>`;
-          open = true;
+          html += `<div class="chat-heading">${renderInlineMarkdown(title)}</div>`;
           return;
         }
 
-        const listLike = /^(\d+\.\s+|- |&bull;|•)/.test(line);
-        html += `<div class="${listLike ? 'chat-list-item' : 'chat-line'}">${renderInlineMarkdown(line)}</div>`;
+        if (/^\d+\.\s+/.test(line)) {
+          html += `<div class="chat-numbered">${renderInlineMarkdown(line)}</div>`;
+          return;
+        }
+
+        if (/^(- |&bull;|•)/.test(line)) {
+          html += `<div class="chat-bullet">${renderInlineMarkdown(line)}</div>`;
+          return;
+        }
+
+        html += `<div class="chat-line">${renderInlineMarkdown(line)}</div>`;
       });
 
-      closeSection();
       return html;
     }
 
