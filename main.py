@@ -268,6 +268,21 @@ def contexto_portafolio(pregunta: str = ""):
 Top operativo de renovación:
 {top_txt}
 
+Visuales disponibles en el dashboard:
+- Inicio: KPIs generales de marcas totales, vigentes, vencidas, distribución de Review y estado del modelo.
+- Predicción: búsqueda de marca, recomendación de renovar/no renovar, porcentaje del modelo y análisis completo por variables.
+- Portafolio: tabla filtrable por estatus, ReviewScore y actividad comercial.
+- Segmentos: lectura por generación, canal y región; útil para explicar dónde se concentra el comportamiento comercial.
+- Tendencias: distribución de Review, clasificación comercial y tasas de renovación por canal/región.
+- Riesgo Legal: semáforo de marcas vencidas, críticas 0-6 meses, atención 6-12 meses y estables.
+- Batch: carga de archivo para analizar varias marcas y ver resumen, recomendación, estatus y clases.
+
+Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el dashboard", responde como consultor:
+1. explica qué muestra cada visual,
+2. interpreta qué significa para renovación y riesgo,
+3. da hallazgos clave con números del contexto,
+4. cierra con acciones recomendadas.
+
 {grupo_txt}
 
 Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
@@ -298,25 +313,56 @@ def respuesta_prioridad_ejecutiva():
     texto += "\n**Recomendación**\nPriorizar revisión legal y comercial durante los próximos 90 días."
     return texto
 
+
+def respuesta_visuales_local():
+    base = marcas_validas()
+    vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
+    atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    return f"""**Resumen ejecutivo**
+El dashboard resume el estado del portafolio de marcas y ayuda a decidir qué renovar, qué vigilar y qué revisar legalmente. El portafolio tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos.
+
+**Lectura de visuales**
+Inicio muestra los KPIs generales. Predicción evalúa una marca específica y explica las variables que influyen en la recomendación. Portafolio permite filtrar marcas. Segmentos y Tendencias explican comportamiento por generación, canal, región, Review y clasificación. Riesgo Legal ordena las marcas por urgencia de vencimiento.
+
+**Hallazgos**
+Hay {criticas:,} marcas vigentes críticas de 0 a 6 meses y {atencion:,} en atención de 6 a 12 meses. Esa es la parte más importante para priorizar renovación.
+
+**Recomendación**
+Usar Riesgo Legal para priorizar acciones, Predicción para justificar cada decisión por marca y Tendencias/Segmentos para explicar el comportamiento comercial en el informe."""
+
+
+def respuesta_local_por_pregunta(mensaje: str):
+    q = normalizar_txt(mensaje)
+    if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO"]):
+        return respuesta_visuales_local()
+    if any(x in q for x in ["PRIORIDAD", "PRIORITARIA", "PRIORITARIAS", "RENOVAR"]):
+        return respuesta_prioridad_ejecutiva()
+    return respuesta_local_estrategica()
+
 def sistema_liverpool():
     return """
 Eres el Asistente IA de Liverpool.
 
 REGLAS:
-- Responde como director de inteligencia de marcas.
-- Ve directo al punto.
+- Responde como analista senior de inteligencia de marcas.
+- Conversa de forma natural, clara y puntual.
+- Puedes explicar visuales, crear mini informes, responder dudas ejecutivas y hacer recomendaciones.
 - No muestres listados enormes.
 - No enumeres decenas de registros.
 - Usa los datos entregados en el contexto y no inventes cifras.
 - No menciones Gemini, OpenAI, IA, JSON, bases de datos, proveedores, fallbacks ni detalles técnicos.
 - No incluyas notas metodológicas salvo que el usuario las pida explícitamente.
+- Si el usuario pide un informe, usa secciones breves: Resumen, Lectura de visuales, Hallazgos, Recomendación.
+- Si el usuario pregunta algo puntual, responde puntual.
 
 FORMATO:
 **Resumen ejecutivo**
 **Insight**
 **Recomendación**
 
-Máximo 160 palabras.
+Máximo 220 palabras, salvo que el usuario pida informe; en ese caso máximo 350 palabras.
 """
 
 
@@ -340,7 +386,7 @@ async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
 
     payload = {
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": 220, "temperature": 0.25}
+        "generationConfig": {"maxOutputTokens": 520, "temperature": 0.25}
     }
 
     async with httpx.AsyncClient(timeout=14) as client:
@@ -370,7 +416,7 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
         "model": openai_model,
         "messages": messages,
         "temperature": 0.25,
-        "max_tokens": 220,
+        "max_tokens": 520,
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
@@ -452,6 +498,6 @@ async def chat(input: ChatInput):
 
     # 3) Respuesta de respaldo con datos disponibles.
     return {
-        "respuesta": respuesta_local_estrategica(" | ".join(errores[-2:])),
+        "respuesta": respuesta_local_por_pregunta(input.mensaje),
         "fallback": True,
     }

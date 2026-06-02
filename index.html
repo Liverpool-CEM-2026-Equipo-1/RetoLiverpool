@@ -1664,11 +1664,12 @@
   </div>
 
   <script>
-    // API: usa backend local solo cuando la página se sirve en localhost.
-    // En GitHub Pages funciona como demo estática con datos/modelo en navegador.
+    // API: intenta IA primero. En localhost usa backend local; publicado usa backend remoto.
+    // Si el backend no responde, el chat cae al respaldo local con datos del portafolio.
+    const REMOTE_API_URL = 'https://liverpool-marcas.onrender.com';
     const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
       ? 'http://localhost:8000'
-      : '';
+      : REMOTE_API_URL;
 
     // ── Gradient Boosting model running in-browser ───────────────────────────
     let GB_MODEL = null;
@@ -3022,6 +3023,26 @@ ${filas}
 Abrir revisión legal y comercial esta semana para las primeras marcas del listado y preparar plan de renovación por clase. Las vencidas históricas conviene tratarlas en una revisión separada.`;
     }
 
+    function respuestaVisualesLocal() {
+      const base = marcasValidas();
+      const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = base.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
+      const criticas = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6).length;
+      const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
+
+      return `**Resumen ejecutivo**
+El dashboard resume el estado del portafolio de marcas y ayuda a decidir qué renovar, qué vigilar y qué revisar legalmente. El portafolio tiene ${base.length.toLocaleString()} registros válidos: ${vigentes.toLocaleString()} vigentes y ${vencidas.toLocaleString()} vencidos.
+
+**Lectura de visuales**
+Inicio muestra los KPIs generales. Predicción evalúa una marca específica y explica las variables que influyen en la recomendación. Portafolio permite filtrar marcas. Segmentos y Tendencias explican comportamiento por generación, canal, región, Review y clasificación. Riesgo Legal ordena las marcas por urgencia de vencimiento.
+
+**Hallazgos**
+Hay ${criticas.toLocaleString()} marcas vigentes críticas de 0 a 6 meses y ${atencion.toLocaleString()} en atención de 6 a 12 meses. Esa es la parte más importante para priorizar renovación.
+
+**Recomendación**
+Usar Riesgo Legal para priorizar acciones, Predicción para justificar cada decisión por marca y Tendencias/Segmentos para explicar el comportamiento comercial en el informe.`;
+    }
+
     function extraerTerminosMarca(pregunta) {
       const raw = String(pregunta || '');
       const upper = raw.toUpperCase();
@@ -3181,11 +3202,14 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       const pideMayorProb = q.includes('mayor probabilidad') || q.includes('top renovacion') || q.includes('probabilidad de renovar');
       const pideReview = q.includes('reviewscore') || q.includes('mejor review') || q.includes('mayor review');
       const pideCuantas = q.includes('cuantas') || q.includes('cuantos') || q.includes('total');
+      const pideVisuales = q.includes('visual') || q.includes('visuales') || q.includes('dashboard') || q.includes('informe') || q.includes('explicame') || q.includes('explica') || q.includes('no entiendo');
 
       const base = marcasValidas();
 
       const grupoLocal = respuestaGrupoLocal(mensaje);
       if (grupoLocal) return grupoLocal;
+
+      if (pideVisuales) return respuestaVisualesLocal();
 
       if (pidePrioridad) return respuestaPrioridadRenovacion();
 
