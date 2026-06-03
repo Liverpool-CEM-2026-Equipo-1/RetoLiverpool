@@ -725,6 +725,60 @@
     }
 
 
+    /* === VISUAL 1 TABLEAU: carga estable === */
+    #page-descriptivo .visual1-page-head{
+      max-width:1280px !important;
+      margin:0 auto !important;
+      padding:24px 24px 0 !important;
+    }
+    #page-descriptivo .visual1-page-wrap{
+      width:100% !important;
+      max-width:none !important;
+      margin:0 !important;
+      padding:24px 24px 32px !important;
+      overflow:visible !important;
+    }
+    #page-descriptivo .visual1-page-wrap h2{
+      max-width:1280px !important;
+      margin:0 auto 20px !important;
+    }
+    #visual1-tableau-card{
+      width:100% !important;
+      max-width:1280px !important;
+      margin:0 auto !important;
+      height:calc(100vh - 170px) !important;
+      min-height:640px !important;
+      border-radius:18px !important;
+      border:1.5px solid var(--border) !important;
+      overflow:hidden !important;
+      background:#fff !important;
+      box-shadow:0 4px 24px rgba(180,120,200,0.10) !important;
+    }
+    #viz_visual1,
+    #viz_visual1 object,
+    #viz_visual1 iframe,
+    #viz_visual1 .tableauViz{
+      width:100% !important;
+      height:100% !important;
+      min-width:100% !important;
+      min-height:100% !important;
+      max-width:none !important;
+      display:block !important;
+      border:0 !important;
+    }
+
+    @media (max-width:900px){
+      #page-descriptivo .visual1-page-head,
+      #page-descriptivo .visual1-page-wrap{
+        padding-left:16px !important;
+        padding-right:16px !important;
+      }
+      #visual1-tableau-card{
+        height:calc(100vh - 150px) !important;
+        min-height:560px !important;
+      }
+    }
+
     /* === VISUAL 2 TABLEAU ONLY: no afecta Visual 1 === */
     #page-predictivo .inner-page{
       width:100% !important;
@@ -1194,6 +1248,12 @@
           <div class="var-impact pos" id="v-conversion-impact">Por encima del promedio (3.5%)</div>
         </div>
         <div class="var-card">
+          <div class="var-name">Crecimiento Total Sales</div>
+          <div class="var-tooltip"><strong>Crecimiento Total Sales</strong>Crecimiento de ventas totales agregado desde el archivo de procesamiento final. Se usa como señal comercial adicional para leer la evolución de ventas de la marca.</div>
+          <div class="var-value" id="v-crecimiento-sales">Sin dato</div>
+          <div class="var-impact neu" id="v-crecimiento-sales-impact">Variable nueva para análisis comercial</div>
+        </div>
+        <div class="var-card">
           <div class="var-name">Clasificación de Marca</div>
           <div class="var-tooltip"><strong>Clasificación de Marca</strong>Variable con mayor peso en el modelo predictivo. Segmenta las marcas en Top (35%), Media (45%) y Baja (20%) según su percentil de desempeño comercial general.</div>
           <div class="var-value" id="v-clasificacion">Top</div>
@@ -1568,23 +1628,23 @@
 
   <!-- DESCRIPTIVO -->
   <div class="page" id="page-descriptivo">
-    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+    <div class="visual1-page-head">
       <div class="back-btn" onclick="showPage('inicio')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Volver al inicio
       </div>
     </div>
-    <div style="padding:24px 64px 48px;">
+    <div class="visual1-page-wrap">
       <h2 style="font-family:'Sora',sans-serif;font-size:28px;font-weight:800;color:var(--text);margin-bottom:20px;">Visual 1</h2>
-      <!-- Tableau embed — altura fija grande para ver todo el dashboard -->
-      <div style="width:100%;border-radius:16px;border:1.5px solid var(--border);overflow:hidden;background:white;">
-        <div class='tableauPlaceholder' id='viz_visual1' style='position:relative;width:100%;'>
+      <!-- Tableau embed: contenedor estable para evitar carga cortada al abrir -->
+      <div id="visual1-tableau-card">
+        <div class='tableauPlaceholder' id='viz_visual1' style='position:relative;width:100%;height:100%;'>
           <noscript>
             <a href='https://public.tableau.com/views/Segmentov1/Dashboard1'>
               <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Se/Segmentov1/Dashboard1/1_rss.png' style='border:none;width:100%;' />
             </a>
           </noscript>
-          <object class='tableauViz' style='display:none;'>
+          <object class='tableauViz' style='display:none;width:100%;height:100%;'>
             <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
             <param name='embed_code_version' value='3' />
             <param name='site_root' value='' />
@@ -1592,6 +1652,11 @@
             <param name='tabs' value='no' />
             <param name='toolbar' value='yes' />
             <param name='language' value='es-ES' />
+            <param name='device' value='desktop' />
+            <param name='showVizHome' value='no' />
+            <param name='showAppBanner' value='false' />
+            <param name='display_count' value='n' />
+            <param name='origin' value='viz_share_link' />
           </object>
         </div>
       </div>
@@ -2014,6 +2079,13 @@
       card.style.animation = 'fadeUp 0.4s ease both';
     }
 
+    function formatoCrecimientoTotalSales(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 'Sin dato';
+      const pct = Math.abs(n) >= 99.9 ? n : n * 100;
+      return pct.toFixed(2) + '%';
+    }
+
     // VER ANALISIS COMPLETO
     function showAnalisis() {
       if (!currentMarca) return;
@@ -2060,6 +2132,24 @@
       if (m.conversion >= 5) { convImpact.textContent = 'Por encima del promedio (3.5%) — señal positiva'; convImpact.className = 'var-impact pos'; }
       else if (m.conversion >= 3.5) { convImpact.textContent = 'Cerca del promedio del mercado (3.5%)'; convImpact.className = 'var-impact neu'; }
       else { convImpact.textContent = 'Por debajo del promedio (3.5%) — oportunidad de mejora'; convImpact.className = 'var-impact neg'; }
+
+      // Crecimiento Total Sales
+      const crecimiento = Number(m.crecimientoTotalSales);
+      document.getElementById('v-crecimiento-sales').textContent = formatoCrecimientoTotalSales(m.crecimientoTotalSales);
+      const crecImpact = document.getElementById('v-crecimiento-sales-impact');
+      if (!Number.isFinite(crecimiento)) {
+        crecImpact.textContent = 'Sin dato disponible en el archivo nuevo';
+        crecImpact.className = 'var-impact neu';
+      } else if (crecimiento > 0.25 || crecimiento >= 99.9) {
+        crecImpact.textContent = 'Crecimiento alto — señal comercial positiva';
+        crecImpact.className = 'var-impact pos';
+      } else if (crecimiento >= 0) {
+        crecImpact.textContent = 'Crecimiento estable — señal comercial favorable';
+        crecImpact.className = 'var-impact neu';
+      } else {
+        crecImpact.textContent = 'Crecimiento negativo — revisar desempeño comercial';
+        crecImpact.className = 'var-impact neg';
+      }
 
       // Clasificación
       document.getElementById('v-clasificacion').textContent = m.clasificacion;
@@ -3553,19 +3643,46 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
     }
   </script>
   <script type='text/javascript'>
+    function sizeTableau1() {
+      var card = document.getElementById('visual1-tableau-card');
+      var divEl = document.getElementById('viz_visual1');
+      if (!card || !divEl) return;
+      var vizEl = divEl.getElementsByTagName('object')[0];
+      var frameEl = divEl.getElementsByTagName('iframe')[0];
+      var h = Math.max(640, window.innerHeight - 170);
+      if (window.innerWidth <= 900) h = Math.max(560, window.innerHeight - 150);
+      card.style.height = h + 'px';
+      divEl.style.width = '100%';
+      divEl.style.height = h + 'px';
+      [vizEl, frameEl].forEach(function(el) {
+        if (!el) return;
+        el.style.width = '100%';
+        el.style.height = h + 'px';
+        el.style.minWidth = '100%';
+        el.style.minHeight = h + 'px';
+        el.style.maxWidth = 'none';
+      });
+    }
+
     function initTableau() {
       var divEl = document.getElementById('viz_visual1');
-      if (!divEl || divEl.dataset.loaded) return;
+      if (!divEl) return;
+      sizeTableau1();
+      if (divEl.dataset.loaded) {
+        [120, 450, 900].forEach(function(delay) {
+          setTimeout(sizeTableau1, delay);
+        });
+        return;
+      }
       divEl.dataset.loaded = 'true';
       var vizEl = divEl.getElementsByTagName('object')[0];
-      // Size to full viewport height minus nav bar (~60px), so dashboard fits without scroll
-      var h = Math.max(700, window.innerHeight - 180);
-      vizEl.style.width  = '100%';
-      vizEl.style.height = h + 'px';
-      divEl.style.height = h + 'px';
+      if (!vizEl) return;
       var scriptEl = document.createElement('script');
       scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
       vizEl.parentNode.insertBefore(scriptEl, vizEl);
+      [120, 450, 900, 1600].forEach(function(delay) {
+        setTimeout(sizeTableau1, delay);
+      });
     }
 
 
@@ -3601,6 +3718,10 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       }
     });
     window.addEventListener('resize', function(){
+      var p1 = document.getElementById('page-descriptivo');
+      if (p1 && p1.classList.contains('active')) {
+        sizeTableau1();
+      }
       var p2 = document.getElementById('page-predictivo');
       if (p2 && p2.classList.contains('active')) {
         var card = document.getElementById('visual2-tableau-card');
