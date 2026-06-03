@@ -1128,7 +1128,7 @@
         </div>
         <!-- Fila 2: Gráfica de línea probabilidades -->
         <div class="bc-card" style="grid-column:1/-1;">
-          <h4>Recomendación de renovar por marca</h4>
+          <h4>Probabilidad de renovar por marca</h4>
           <div style="position:relative;width:100%;overflow-x:auto;">
             <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
           </div>
@@ -3056,6 +3056,10 @@ Abrir revisión legal y comercial esta semana para las primeras marcas del lista
         q.includes('visual de riesgo') ||
         q.includes('riesgo de marcas') ||
         (q.includes('riesgo') && q.includes('marca'));
+      const pideROI = q.includes('roi') ||
+        q.includes('retorno') ||
+        q.includes('inversion') ||
+        q.includes('rentabilidad');
 
       if (pideVisual1 && pideVisual2) {
         return `**Visual 1: Segmentos**
@@ -3066,6 +3070,24 @@ Este visual aterriza la parte legal y operativa: el portafolio tiene **${base.le
 
 **Lectura clave**
 El Visual 1 ayuda a entender dónde está el movimiento comercial; el Visual 2 ayuda a decidir qué marcas proteger y renovar primero.`;
+      }
+
+      if (pideVisual2 && pideROI) {
+        return `**Visual 2 + ROI: Riesgo de Marcas**
+El Visual 2 sirve para explicar el ROI de la renovación desde una lógica estratégica: el retorno está en proteger marcas antes de que pierdan vigencia, evitando costos legales, reprocesos, relanzamientos y pérdida de valor comercial.
+
+**Qué muestra el visual**
+- Portafolio analizado: **${base.length.toLocaleString()}** registros válidos.
+- Marcas vigentes: **${vigentes.toLocaleString()}**.
+- Marcas vencidas: **${vencidas.toLocaleString()}**.
+- Riesgo crítico: **${criticas.toLocaleString()}** marcas vigentes que vencen entre 0 y 6 meses.
+- Atención prioritaria: **${atencion.toLocaleString()}** marcas vigentes que vencen entre 6 y 12 meses.
+
+**Cómo se interpreta el ROI**
+El mayor retorno está en renovar primero las marcas vigentes críticas, porque todavía se pueden proteger antes de que entren en vencimiento. Después conviene atender las de 6 a 12 meses, porque permiten planear con menos presión legal y operativa. Las vencidas deben revisarse aparte, ya que suelen requerir más esfuerzo de recuperación o análisis legal.
+
+**Conclusión para presentación**
+El ROI del Visual 2 no solo es financiero: es evitar pérdida de derechos, reducir riesgo legal y conservar marcas con potencial comercial. La decisión recomendada es invertir primero en renovaciones críticas y de atención, porque ahí el costo de actuar a tiempo suele ser menor que el costo de recuperar una marca vencida.`;
       }
 
       if (pideVisual1) {
@@ -3210,9 +3232,9 @@ En Riesgo Legal, hay ${criticas.toLocaleString()} marcas vigentes críticas de 0
       return `DATOS AGRUPADOS DE ${nombreGrupo.toUpperCase()}:
 Registros encontrados: ${grupo.length}
 Vigentes: ${vigentes} | Vencidas: ${vencidas}
-Tasa de conversión promedio del portafolio: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}
-Recomendación promedio de renovación del modelo: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}
-ReviewScore promedio del portafolio: ${scoreProm === null ? 'sin dato' : scoreProm.toFixed(2)}
+Tasa de conversión promedio simple: ${convProm === null ? 'sin dato' : convProm.toFixed(2) + '%'}
+Probabilidad promedio simple de renovación: ${probProm === null ? 'sin dato' : probProm.toFixed(1) + '%'}
+ReviewScore promedio simple: ${scoreProm === null ? 'sin dato' : scoreProm.toFixed(2)}
 
 Detalle por clase / registro, máximo ${limite}:
 ${porClase}
@@ -3396,7 +3418,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mensaje, historial: chatHistorial.slice(-4) }),
-          signal: AbortSignal.timeout(8000)
+          signal: AbortSignal.timeout(16000)
         });
         const data = await res.json();
         loading.remove();

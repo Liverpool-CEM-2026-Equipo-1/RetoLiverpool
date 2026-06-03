@@ -144,6 +144,13 @@ def formato_meses(meses):
     return f"vence en {x:.1f} meses"
 
 
+def pregunta_visual_2_roi(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    pide_roi = any(x in q for x in ["ROI", "RETORNO", "INVERSION", "RENTABILIDAD"])
+    pide_visual_2 = any(x in q for x in ["VISUAL 2", "VISUAL DOS", "SEGUNDO VISUAL", "RIESGO DE MARCAS"]) or ("RIESGO" in q and "MARCA" in q)
+    return pide_roi and pide_visual_2
+
+
 def score_vigente(m):
     tiempo = n(m.get("tiempo"), 999)
     prob = n(m.get("prob"), 0)
@@ -324,14 +331,14 @@ Datos agrupados de {nombre_grupo}:
 - Registros encontrados: {len(grupo):,}
 - Vigentes: {vigentes:,}
 - Vencidas: {vencidas:,}
-- Tasa de conversión promedio del portafolio: {"sin dato" if conv is None else f"{conv:.2f}%"}
-- Recomendación promedio de renovación del modelo: {"sin dato" if prob is None else f"{prob:.1f}%"}
-- ReviewScore promedio del portafolio: {"sin dato" if score is None else f"{score:.2f}"}
+- Tasa de conversión promedio simple: {"sin dato" if conv is None else f"{conv:.2f}%"}
+- Probabilidad promedio simple de renovación: {"sin dato" if prob is None else f"{prob:.1f}%"}
+- ReviewScore promedio simple: {"sin dato" if score is None else f"{score:.2f}"}
 
 Detalle por clase / registro:
 {detalle}
 
-Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL.
+Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL y aclara que el promedio es simple por registro.
 """
 
 def contexto_portafolio(pregunta: str = ""):
@@ -378,6 +385,7 @@ Mapa de visuales numerados:
 - Visual 1 / primer visual / visual de Segmentos: corresponde a Tableau Segmentos. Explica generación, canal, región y concentración de transacciones.
 - Visual 2 / segundo visual / visual de Riesgo de Marcas: corresponde a Tableau Riesgo de Marcas. Explica vigentes, vencidas, marcas críticas 0-6 meses, atención 6-12 meses, estables y prioridad de renovación.
 - Si el usuario pregunta por "visual 1" o "visual 2", no lo interpretes como primera o segunda sección del texto. Responde directamente sobre el visual numerado.
+- Si el usuario pregunta por ROI del Visual 2, explica el ROI como retorno estratégico de renovar a tiempo: evitar pérdida de derechos, reprocesos legales, relanzamientos, disputas y pérdida de valor comercial. No lo trates como un ROI financiero cerrado.
 
 Datos específicos de visuales y ventas/transacciones:
 - Generación: Millennial 40.1%, Gen Z 30.0%, Gen X 19.9%, Baby Boomer 10.0%.
@@ -461,6 +469,23 @@ Este visual aterriza la parte legal y operativa: el portafolio tiene {len(base):
 **Lectura clave**
 El Visual 1 ayuda a entender dónde está el movimiento comercial; el Visual 2 ayuda a decidir qué marcas proteger y renovar primero."""
 
+    if pregunta_visual_2_roi(mensaje):
+        return f"""**Visual 2 + ROI: Riesgo de Marcas**
+El Visual 2 sirve para explicar el ROI de la renovación desde una lógica estratégica: el retorno está en proteger marcas antes de que pierdan vigencia, evitando costos legales, reprocesos, relanzamientos y pérdida de valor comercial.
+
+**Qué muestra el visual**
+- Portafolio analizado: {len(base):,} registros válidos.
+- Marcas vigentes: {vigentes:,}.
+- Marcas vencidas: {vencidas:,}.
+- Riesgo crítico: {criticas:,} marcas vigentes que vencen entre 0 y 6 meses.
+- Atención prioritaria: {atencion:,} marcas vigentes que vencen entre 6 y 12 meses.
+
+**Cómo se interpreta el ROI**
+El mayor retorno está en renovar primero las marcas vigentes críticas, porque todavía se pueden proteger antes de que entren en vencimiento. Después conviene atender las de 6 a 12 meses, porque permiten planear con menos presión legal y operativa. Las vencidas deben revisarse aparte, ya que suelen requerir más esfuerzo de recuperación o análisis legal.
+
+**Conclusión para presentación**
+El ROI del Visual 2 no solo es financiero: es evitar pérdida de derechos, reducir riesgo legal y conservar marcas con potencial comercial. La decisión recomendada es invertir primero en renovaciones críticas y de atención, porque ahí el costo de actuar a tiempo suele ser menor que el costo de recuperar una marca vencida."""
+
     if pide_visual_1:
         return """**Visual 1: Segmentos**
 Este visual muestra cómo se reparte el comportamiento comercial del portafolio. Por generación, Millennial concentra 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%.
@@ -511,6 +536,7 @@ REGLAS:
 - Si el dato viene de la referencia legal indexada, úsalo como base para explicar el expediente.
 - Si preguntan por "Oriente", usa el dato de "Norte/Oriente".
 - Si preguntan por "visual 1", responde sobre Tableau Segmentos. Si preguntan por "visual 2", responde sobre Tableau Riesgo de Marcas. No lo interpretes como secciones del contexto.
+- Si preguntan por "visual 2 y ROI", entrega una explicación completa: qué muestra el visual, cómo se interpreta el retorno, qué marcas generan mayor retorno por renovar a tiempo y una conclusión para presentación.
 - No menciones Gemini, OpenAI, IA, JSON, bases de datos, proveedores, fallbacks ni detalles técnicos.
 - No incluyas notas metodológicas salvo que el usuario las pida explícitamente.
 - Si el usuario pregunta algo puntual, responde en 2 a 5 oraciones.
@@ -544,10 +570,10 @@ async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
 
     payload = {
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": 900, "temperature": 0.35}
+        "generationConfig": {"maxOutputTokens": 1200, "temperature": 0.35}
     }
 
-    async with httpx.AsyncClient(timeout=14) as client:
+    async with httpx.AsyncClient(timeout=18) as client:
         r = await client.post(url, json=payload)
         data = r.json()
 
@@ -574,11 +600,11 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
         "model": openai_model,
         "messages": messages,
         "temperature": 0.25,
-        "max_tokens": 900,
+        "max_tokens": 1200,
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    async with httpx.AsyncClient(timeout=14) as client:
+    async with httpx.AsyncClient(timeout=18) as client:
         r = await client.post(url, headers=headers, json=payload)
         data = r.json()
 
@@ -639,6 +665,9 @@ async def chat(input: ChatInput):
     contexto = contexto_portafolio(input.mensaje)
     prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
     errores = []
+
+    if pregunta_visual_2_roi(input.mensaje):
+        return {"respuesta": respuesta_visuales_local(input.mensaje)}
 
     # 1) Gemini Flash principal.
     try:
