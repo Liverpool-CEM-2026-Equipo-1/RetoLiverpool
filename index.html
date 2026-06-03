@@ -1737,12 +1737,15 @@
       : REMOTE_API_URL;
 
     // ── Gradient Boosting model running in-browser ───────────────────────────
+    const USE_BROWSER_GB = false; // El modelo nuevo con Crecimiento Total Sales vive en el backend .joblib.
     let GB_MODEL = null;
 
-    fetch('model_gb.json')
-      .then(r => r.json())
-      .then(m => { GB_MODEL = m; console.log('Modelo GB cargado en browser'); })
-      .catch(() => console.warn('model_gb.json no encontrado — usando backend'));
+    if (USE_BROWSER_GB) {
+      fetch('model_gb.json')
+        .then(r => r.json())
+        .then(m => { GB_MODEL = m; console.log('Modelo GB cargado en browser'); })
+        .catch(() => console.warn('model_gb.json no encontrado — usando backend'));
+    }
 
     const ENCODE = {
       clasificacion: {"Baja": 0, "Media": 1, "Top": 2},
@@ -1755,7 +1758,7 @@
     };
 
     function gbPredict(inp) {
-      if (!GB_MODEL) return null;
+      if (!USE_BROWSER_GB || !GB_MODEL) return null;
       // Build feature vector in exact model order
       const X = [
         inp.ticket_promedio,
@@ -2008,6 +2011,7 @@
         revenue_por_lead:    marca.revenueLead    || 500,
         tasa_conversion:     marca.conversion     || 3.5,
         antiguedad_marca:    marca.antiguedad     || 10,
+        crecimiento_total_sales: Number.isFinite(Number(marca.crecimientoTotalSales)) ? Number(marca.crecimientoTotalSales) : 0,
         tiempo_restante:     tiempoReal,
         review_score:        marca.score          || 3.5,
         clasificacion_marca: marca.clasificacion  || 'Media',
@@ -2019,7 +2023,7 @@
         review:              marca.review         || 'Media',
       };
 
-      // Intentar modelo en browser primero (instantáneo)
+      // El modelo nuevo se consulta primero en backend para usar Crecimiento Total Sales.
       const probBrowser = gbPredict(modelInput);
 
       function mostrarResultado(prob) {
@@ -2060,9 +2064,10 @@
           const clsScore  = modelInput.clasificacion_marca === 'Top' ? 40 : modelInput.clasificacion_marca === 'Media' ? 20 : 0;
           const antScore  = Math.min(modelInput.antiguedad_marca * 1.0, 28);
           const convScore = Math.min(modelInput.tasa_conversion * 1.5, 13);
+          const crecScore = Math.max(-8, Math.min(10, modelInput.crecimiento_total_sales * 8));
           const tScore    = tiempoReal >= 0 ? 8 : 0;
           const devPen    = modelInput.tasa_devolucion * 30;
-          const est = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + tScore - devPen)));
+          const est = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + crecScore + tScore - devPen)));
           mostrarResultado(est);
         }
       }
@@ -3541,7 +3546,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mensaje, historial: chatHistorial.slice(-4) }),
-          signal: AbortSignal.timeout(16000)
+          signal: AbortSignal.timeout(35000)
         });
         const data = await res.json();
         loading.remove();

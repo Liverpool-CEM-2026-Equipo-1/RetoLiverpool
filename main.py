@@ -65,6 +65,7 @@ class MarcaInput(BaseModel):
     revenue_por_lead: float = 500.0
     tasa_conversion: float = 3.5
     antiguedad_marca: float = 10.0
+    crecimiento_total_sales: float = 0.0
     tiempo_restante: float = 24.0
     review_score: float = 3.5
     clasificacion_marca: str = "Media"
@@ -83,6 +84,28 @@ class ChatInput(BaseModel):
     historial: list = []
 
 
+def env_limpia(nombre: str, default: str = "") -> str:
+    return str(os.getenv(nombre, default) or "").strip().strip('"').strip("'")
+
+
+def lista_modelos(modelo_principal: str, respaldos: list[str]) -> list[str]:
+    modelos = []
+    for modelo in [modelo_principal] + respaldos:
+        modelo = str(modelo or "").strip()
+        if modelo and modelo not in modelos:
+            modelos.append(modelo)
+    return modelos
+
+
+def resumen_error_api(data):
+    if isinstance(data, dict) and isinstance(data.get("error"), dict):
+        err = data["error"]
+        return f"{err.get('status') or err.get('type') or 'error'}: {err.get('message') or err}"
+    if isinstance(data, dict) and data.get("error"):
+        return str(data.get("error"))[:500]
+    return str(data)[:500]
+
+
 def encode_features(data: dict):
     if pd is None:
         raise RuntimeError("pandas no está instalado")
@@ -93,22 +116,56 @@ def encode_features(data: dict):
     estatus_map = {"ESTRATÉGICA": 0, "NO ESTRATÉGICA": 1}
     prioridad_map = {"NO": 0, "SI": 1, "SÍ": 1}
     review_map = {"Baja": 0, "Media": 1, "Top": 2}
-    row = {
+
+    clasificacion = str(data.get("clasificacion_marca", "Media"))
+    valores_base = {
         "Ticket Promedio": data["ticket_promedio"],
+        "Tasa de devolución": data["tasa_devolucion"],
         "Tasa de devolución ": data["tasa_devolucion"],
         "Revenue Por Lead": data["revenue_por_lead"],
         "Tasa de conversión": data["tasa_conversion"],
         "Antiguedadde Marca": data["antiguedad_marca"],
+        "Antigüedad de la Marca": data["antiguedad_marca"],
+        "Antiguedad de la Marca": data["antiguedad_marca"],
+        "Crecimiento Total Sales": data.get("crecimiento_total_sales", 0.0),
+        "Tiempo restante de renovación": data["tiempo_restante"],
         "Tiempo restante de renovación ": data["tiempo_restante"],
         "ReviewScore": data["review_score"],
-        "Clasificación de Marca": clasificacion_map.get(data["clasificacion_marca"], 1),
+        "Clasificación de Marca": clasificacion_map.get(clasificacion, 1),
+        "Clasificación de Marca_Media": 1 if clasificacion == "Media" else 0,
+        "Clasificación de Marca_Top": 1 if clasificacion == "Top" else 0,
+        "Clasificacion de Marca_Media": 1 if clasificacion == "Media" else 0,
+        "Clasificacion de Marca_Top": 1 if clasificacion == "Top" else 0,
         "Region": region_map.get(data["region"], 0),
         "Canal": canal_map.get(data["canal"], 0),
         "Segmento": segmento_map.get(data["segmento"], 3),
         "Estatus estrégico de Marca": estatus_map.get(data["estatus_estrategico"], 1),
+        "Estatus estratégico de Marca": estatus_map.get(data["estatus_estrategico"], 1),
         "Prioridad de Negocio": prioridad_map.get(data["prioridad_negocio"], 0),
         "Review": review_map.get(data["review"], 1),
     }
+
+    feature_names = list(getattr(model, "feature_names_in_", []) or [])
+    if feature_names:
+        row = {feature: valores_base.get(feature, 0.0) for feature in feature_names}
+    else:
+        row = {
+            "Ticket Promedio": data["ticket_promedio"],
+            "Tasa de devolución ": data["tasa_devolucion"],
+            "Revenue Por Lead": data["revenue_por_lead"],
+            "Tasa de conversión": data["tasa_conversion"],
+            "Antiguedadde Marca": data["antiguedad_marca"],
+            "Crecimiento Total Sales": data.get("crecimiento_total_sales", 0.0),
+            "Tiempo restante de renovación ": data["tiempo_restante"],
+            "ReviewScore": data["review_score"],
+            "Clasificación de Marca": clasificacion_map.get(clasificacion, 1),
+            "Region": region_map.get(data["region"], 0),
+            "Canal": canal_map.get(data["canal"], 0),
+            "Segmento": segmento_map.get(data["segmento"], 3),
+            "Estatus estrégico de Marca": estatus_map.get(data["estatus_estrategico"], 1),
+            "Prioridad de Negocio": prioridad_map.get(data["prioridad_negocio"], 0),
+            "Review": review_map.get(data["review"], 1),
+        }
     return pd.DataFrame([row])
 
 
@@ -669,13 +726,9 @@ Extensión:
 
 
 async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = env_limpia("GEMINI_API_KEY")
     if not api_key:
         return None
-
-    # Gemini Flash: permite cambiar el modelo sin tocar código desde Render.
-    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
 
     contents = [
         {"role": "user", "parts": [{"text": f"Contexto del sistema:\n{sistema_liverpool()}"}]},
@@ -691,26 +744,45 @@ async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
         "generationConfig": {"maxOutputTokens": 1200, "temperature": 0.35}
     }
 
-    async with httpx.AsyncClient(timeout=18) as client:
-        r = await client.post(url, json=payload)
-        data = r.json()
+    modelos = lista_modelos(
+        env_limpia("GEMINI_MODEL", "gemini-2.5-flash"),
+        ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+    )
+    errores = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        for gemini_model in modelos:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key}"
+                r = await client.post(url, json=payload)
+                try:
+                    data = r.json()
+                except Exception:
+                    data = {"error": r.text[:500]}
+                if r.status_code >= 400 or "error" in data:
+                    raise RuntimeError(f"{r.status_code} {resumen_error_api(data)}")
+                candidates = data.get("candidates") or []
+                if not candidates:
+                    raise RuntimeError("sin candidates en respuesta")
+                candidate = candidates[0]
+                finish_reason = candidate.get("finishReason", "STOP")
+                if finish_reason not in ("STOP", "FINISH_REASON_UNSPECIFIED"):
+                    raise RuntimeError(f"respuesta incompleta: {finish_reason}")
+                parts = candidate.get("content", {}).get("parts", [])
+                text = "".join(str(p.get("text", "")) for p in parts if isinstance(p, dict)).strip()
+                if not text:
+                    raise RuntimeError("respuesta vacía")
+                return text
+            except Exception as e:
+                errores.append(f"{gemini_model}: {e}")
 
-    if r.status_code >= 400 or "error" in data:
-        raise RuntimeError(f"Gemini {r.status_code}: {data.get('error', data)}")
-    candidate = data["candidates"][0]
-    finish_reason = candidate.get("finishReason", "STOP")
-    if finish_reason not in ("STOP", "FINISH_REASON_UNSPECIFIED"):
-        raise RuntimeError(f"Gemini respuesta incompleta: {finish_reason}")
-    return candidate["content"]["parts"][0]["text"]
+    raise RuntimeError("Gemini falló: " + " | ".join(errores[-3:]))
 
 
 async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    api_key = env_limpia("OPENAI_API_KEY")
     if not api_key:
         return None
 
-    # Modelo backup rápido/barato. Puedes cambiarlo en Render con OPENAI_MODEL.
-    openai_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip()
     url = "https://api.openai.com/v1/chat/completions"
     messages = [{"role": "system", "content": sistema_liverpool()}]
     for h in historial[-4:]:
@@ -718,24 +790,43 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
         messages.append({"role": role, "content": str(h.get("content", ""))[:1500]})
     messages.append({"role": "user", "content": prompt})
 
-    payload = {
-        "model": openai_model,
-        "messages": messages,
-        "temperature": 0.25,
-        "max_tokens": 1200,
-    }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    async with httpx.AsyncClient(timeout=18) as client:
-        r = await client.post(url, headers=headers, json=payload)
-        data = r.json()
+    modelos = lista_modelos(
+        env_limpia("OPENAI_MODEL", "gpt-4.1-mini"),
+        ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"]
+    )
+    errores = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        for openai_model in modelos:
+            try:
+                payload = {
+                    "model": openai_model,
+                    "messages": messages,
+                    "temperature": 0.25,
+                    "max_tokens": 1200,
+                }
+                r = await client.post(url, headers=headers, json=payload)
+                try:
+                    data = r.json()
+                except Exception:
+                    data = {"error": r.text[:500]}
+                if r.status_code >= 400 or "error" in data:
+                    raise RuntimeError(f"{r.status_code} {resumen_error_api(data)}")
+                choices = data.get("choices") or []
+                if not choices:
+                    raise RuntimeError("sin choices en respuesta")
+                choice = choices[0]
+                if choice.get("finish_reason") not in ("stop", None):
+                    raise RuntimeError(f"respuesta incompleta: {choice.get('finish_reason')}")
+                text = str(choice.get("message", {}).get("content", "")).strip()
+                if not text:
+                    raise RuntimeError("respuesta vacía")
+                return text
+            except Exception as e:
+                errores.append(f"{openai_model}: {e}")
 
-    if r.status_code >= 400 or "error" in data:
-        raise RuntimeError(f"OpenAI {r.status_code}: {data.get('error', data)}")
-    choice = data["choices"][0]
-    if choice.get("finish_reason") not in ("stop", None):
-        raise RuntimeError(f"OpenAI respuesta incompleta: {choice.get('finish_reason')}")
-    return choice["message"]["content"]
+    raise RuntimeError("OpenAI falló: " + " | ".join(errores[-3:]))
 
 
 @app.get("/")
@@ -743,10 +834,10 @@ def root():
     return {
         "status": "ok",
         "mensaje": "Liverpool Marcas API funcionando",
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-        "openai_model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-        "gemini_configurado": bool(os.getenv("GEMINI_API_KEY")),
-        "openai_configurado": bool(os.getenv("OPENAI_API_KEY")),
+        "gemini_model": env_limpia("GEMINI_MODEL", "gemini-2.5-flash"),
+        "openai_model": env_limpia("OPENAI_MODEL", "gpt-4.1-mini"),
+        "gemini_configurado": bool(env_limpia("GEMINI_API_KEY")),
+        "openai_configurado": bool(env_limpia("OPENAI_API_KEY")),
         "expedientes_legales": legal_cache.get("total_expedientes", 0) if legal_cache else 0,
         "archivos_legales": legal_cache.get("total_archivos", 0) if legal_cache else 0,
     }
