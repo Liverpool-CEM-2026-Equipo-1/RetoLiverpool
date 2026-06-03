@@ -3092,20 +3092,39 @@ El ROI del Visual 2 no solo es financiero: es evitar pérdida de derechos, reduc
 
       if (pideVisual1) {
         return `**Visual 1: Segmentos**
-Este visual muestra cómo se reparte el comportamiento comercial del portafolio. Por generación, Millennial concentra **40.1%**, Gen Z **30.0%**, Gen X **19.9%** y Baby Boomer **10.0%**.
+Este visual explica dónde se concentra el comportamiento comercial del portafolio. No es un visual legal; sirve para entender qué tipo de cliente, canal y región tienen más peso dentro del análisis.
 
-Por canal, Digital domina con **62.4%** frente a Físico con **37.6%**. Por región, Centro tiene **47.5%**, Occidente **22.5%**, Norte/Oriente **17.5%** y Sur **12.5%**.
+**Qué muestra**
+- Por generación: Millennial concentra **40.1%**, Gen Z **30.0%**, Gen X **19.9%** y Baby Boomer **10.0%**.
+- Por canal: Digital domina con **62.4%**, mientras Físico representa **37.6%**.
+- Por región: Centro lidera con **47.5%**, después Occidente con **22.5%**, Norte/Oriente con **17.5%** y Sur con **12.5%**.
 
-La lectura clave es que el mayor movimiento está en perfiles Millennial y canal Digital; por eso las decisiones de renovación deberían cuidar las marcas con mejor desempeño en esos segmentos.`;
+**Cómo interpretarlo**
+El mayor movimiento está en perfiles Millennial y en canal Digital. Eso significa que las marcas con buen desempeño en esos segmentos pueden tener más valor estratégico, porque están conectadas con el comportamiento comercial más fuerte.
+
+**Recomendación**
+Usa este visual para priorizar marcas que no solo estén vigentes, sino que además tengan presencia o potencial en los segmentos con mayor actividad. En una presentación, puedes decir que el Visual 1 ayuda a conectar renovación de marca con valor comercial.`;
       }
 
       if (pideVisual2) {
         return `**Visual 2: Riesgo de Marcas**
-Este visual muestra el riesgo legal y operativo del portafolio. La base tiene **${base.length.toLocaleString()}** registros válidos: **${vigentes.toLocaleString()}** vigentes y **${vencidas.toLocaleString()}** vencidos.
+Este visual funciona como un semáforo legal y operativo del portafolio. Su objetivo es mostrar qué marcas están sanas, cuáles están por vencer y cuáles ya requieren una revisión más cuidadosa.
 
-La prioridad real está en las marcas vigentes próximas a vencer: **${criticas.toLocaleString()}** están en estado crítico de 0 a 6 meses y **${atencion.toLocaleString()}** están en atención de 6 a 12 meses.
+**Qué muestra**
+- Portafolio analizado: **${base.length.toLocaleString()}** registros válidos.
+- Marcas vigentes: **${vigentes.toLocaleString()}**.
+- Marcas vencidas: **${vencidas.toLocaleString()}**.
+- Riesgo crítico: **${criticas.toLocaleString()}** marcas vigentes que vencen entre 0 y 6 meses.
+- Atención prioritaria: **${atencion.toLocaleString()}** marcas vigentes que vencen entre 6 y 12 meses.
 
-La lectura clave es que no basta con ver cuántas marcas existen; lo importante es identificar cuáles siguen vigentes y necesitan acción antes de que pasen a vencidas.`;
+**Cómo interpretarlo**
+La prioridad no debe empezar por las marcas vencidas históricas, sino por las marcas vigentes que todavía se pueden proteger a tiempo. Las de 0 a 6 meses son urgentes porque están cerca de vencer; las de 6 a 12 meses permiten planear con más margen y menos presión.
+
+**Qué decisión tomar**
+Primero conviene renovar o revisar las **${criticas.toLocaleString()}** marcas críticas. Después se debe preparar un calendario para las **${atencion.toLocaleString()}** marcas en atención. Las vencidas se analizan aparte, porque pueden requerir estrategia legal, recuperación o incluso decidir si todavía conviene conservarlas.
+
+**Conclusión para presentación**
+El Visual 2 demuestra que la renovación no es solo una tarea administrativa: es una herramienta para reducir riesgo legal, proteger valor comercial y evitar que marcas importantes pierdan vigencia.`;
       }
 
       if (q.includes('oriente') || q.includes('region') || q.includes('ventas')) {
@@ -3401,6 +3420,26 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         t.includes('json');
     }
 
+    function respuestaIncompleta(mensaje, respuesta) {
+      const texto = String(respuesta || '').trim();
+      if (!texto) return true;
+
+      const normal = normalizarTextoChat(texto);
+      const finalesCortados = [
+        ' a', ' de', ' del', ' la', ' el', ' los', ' las', ' con',
+        ' por', ' para', ' que', ' y', ' o', ' en', ' segun',
+        ' asociado a', ' relacionado a', ' debido a', ' con base en'
+      ];
+      if (finalesCortados.some(final => normal.endsWith(final))) return true;
+
+      const pregunta = normalizarTextoChat(mensaje);
+      const pideExplicacion = ['explica', 'explicacion', 'informe', 'visual', 'visuales', 'dashboard', 'tableau', 'no entiendo']
+        .some(palabra => pregunta.includes(palabra));
+      if (pideExplicacion && texto.split(/\s+/).length < 70) return true;
+
+      return !/[.!?)]$|[%}]$/.test(texto);
+    }
+
     async function enviarChat() {
       const input = document.getElementById('chatInput');
       const mensaje = input.value.trim();
@@ -3425,7 +3464,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         const respuesta = data.respuesta || 'No pude procesar tu pregunta.';
         const proveedor = '';
 
-        if (esErrorGemini(respuesta)) {
+        if (esErrorGemini(respuesta) || respuestaIncompleta(mensaje, respuesta)) {
           const fallback = responderConDatosLocales(mensaje) || respuestaFallbackIA(mensaje);
           agregarMensaje(fallback, 'bot');
           chatHistorial.push({ role: 'model', content: fallback });

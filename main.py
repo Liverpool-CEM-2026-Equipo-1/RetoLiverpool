@@ -151,6 +151,47 @@ def pregunta_visual_2_roi(mensaje: str) -> bool:
     return pide_roi and pide_visual_2
 
 
+def pregunta_visual_1(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    return any(x in q for x in ["VISUAL 1", "VISUAL UNO", "PRIMER VISUAL", "TABLEAU SEGMENTOS"]) or "SEGMENTOS" in q
+
+
+def pregunta_visual_2(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    return any(x in q for x in ["VISUAL 2", "VISUAL DOS", "SEGUNDO VISUAL", "RIESGO DE MARCAS"]) or ("RIESGO" in q and "MARCA" in q)
+
+
+def pregunta_visual_numerado(mensaje: str) -> bool:
+    return pregunta_visual_1(mensaje) or pregunta_visual_2(mensaje)
+
+
+def respuesta_parece_incompleta(pregunta: str, respuesta: str) -> bool:
+    texto = str(respuesta or "").strip()
+    if not texto:
+        return True
+
+    normalizada = normalizar_txt(texto)
+    finales_cortados = (
+        " A", " DE", " DEL", " LA", " EL", " LOS", " LAS", " CON", " POR",
+        " PARA", " QUE", " Y", " O", " EN", " SEGUN", " ASOCIADO A",
+        " RELACIONADO A", " DEBIDO A", " CON BASE EN"
+    )
+    if any(normalizada.endswith(final) for final in finales_cortados):
+        return True
+
+    pide_explicacion = any(x in normalizar_txt(pregunta) for x in [
+        "EXPLICA", "EXPLICACION", "INFORME", "VISUAL", "VISUALES",
+        "DASHBOARD", "TABLEAU", "NO ENTIENDO"
+    ])
+    if pide_explicacion and len(texto.split()) < 70:
+        return True
+
+    if texto[-1] not in ".!?)]}%":
+        return True
+
+    return False
+
+
 def score_vigente(m):
     tiempo = n(m.get("tiempo"), 999)
     prob = n(m.get("prob"), 0)
@@ -450,14 +491,8 @@ def respuesta_visuales_local(mensaje: str = ""):
     criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
     atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
     q = normalizar_txt(mensaje)
-    pide_visual_1 = (
-        "VISUAL 1" in q or "VISUAL UNO" in q or "PRIMER VISUAL" in q
-        or "SEGMENTOS" in q
-    )
-    pide_visual_2 = (
-        "VISUAL 2" in q or "VISUAL DOS" in q or "SEGUNDO VISUAL" in q
-        or "RIESGO DE MARCAS" in q or ("RIESGO" in q and "MARCA" in q)
-    )
+    pide_visual_1 = pregunta_visual_1(mensaje)
+    pide_visual_2 = pregunta_visual_2(mensaje)
 
     if pide_visual_1 and pide_visual_2:
         return f"""**Visual 1: Segmentos**
@@ -488,19 +523,38 @@ El ROI del Visual 2 no solo es financiero: es evitar pérdida de derechos, reduc
 
     if pide_visual_1:
         return """**Visual 1: Segmentos**
-Este visual muestra cómo se reparte el comportamiento comercial del portafolio. Por generación, Millennial concentra 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%.
+Este visual explica dónde se concentra el comportamiento comercial del portafolio. No es un visual legal; sirve para entender qué tipo de cliente, canal y región tienen más peso dentro del análisis.
 
-Por canal, Digital domina con 62.4% frente a Físico con 37.6%. Por región, Centro tiene 47.5%, Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%.
+**Qué muestra**
+- Por generación: Millennial concentra 40.1%, Gen Z 30.0%, Gen X 19.9% y Baby Boomer 10.0%.
+- Por canal: Digital domina con 62.4%, mientras Físico representa 37.6%.
+- Por región: Centro lidera con 47.5%, después Occidente con 22.5%, Norte/Oriente con 17.5% y Sur con 12.5%.
 
-La lectura clave es que el mayor movimiento está en perfiles Millennial y canal Digital; por eso las decisiones de renovación deberían cuidar las marcas con mejor desempeño en esos segmentos."""
+**Cómo interpretarlo**
+El mayor movimiento está en perfiles Millennial y en canal Digital. Eso significa que las marcas con buen desempeño en esos segmentos pueden tener más valor estratégico, porque están conectadas con el comportamiento comercial más fuerte.
+
+**Recomendación**
+Usa este visual para priorizar marcas que no solo estén vigentes, sino que además tengan presencia o potencial en los segmentos con mayor actividad. En una presentación, puedes decir que el Visual 1 ayuda a conectar renovación de marca con valor comercial."""
 
     if pide_visual_2:
         return f"""**Visual 2: Riesgo de Marcas**
-Este visual muestra el riesgo legal y operativo del portafolio. La base tiene {len(base):,} registros válidos: {vigentes:,} vigentes y {vencidas:,} vencidos.
+Este visual funciona como un semáforo legal y operativo del portafolio. Su objetivo es mostrar qué marcas están sanas, cuáles están por vencer y cuáles ya requieren una revisión más cuidadosa.
 
-La prioridad real está en las marcas vigentes próximas a vencer: {criticas:,} están en estado crítico de 0 a 6 meses y {atencion:,} están en atención de 6 a 12 meses.
+**Qué muestra**
+- Portafolio analizado: {len(base):,} registros válidos.
+- Marcas vigentes: {vigentes:,}.
+- Marcas vencidas: {vencidas:,}.
+- Riesgo crítico: {criticas:,} marcas vigentes que vencen entre 0 y 6 meses.
+- Atención prioritaria: {atencion:,} marcas vigentes que vencen entre 6 y 12 meses.
 
-La lectura clave es que no basta con ver cuántas marcas existen; lo importante es identificar cuáles siguen vigentes y necesitan acción antes de que pasen a vencidas."""
+**Cómo interpretarlo**
+La prioridad no debe empezar por las marcas vencidas históricas, sino por las marcas vigentes que todavía se pueden proteger a tiempo. Las de 0 a 6 meses son urgentes porque están cerca de vencer; las de 6 a 12 meses permiten planear con más margen y menos presión.
+
+**Qué decisión tomar**
+Primero conviene renovar o revisar las {criticas:,} marcas críticas. Después se debe preparar un calendario para las {atencion:,} marcas en atención. Las vencidas se analizan aparte, porque pueden requerir estrategia legal, recuperación o incluso decidir si todavía conviene conservarlas.
+
+**Conclusión para presentación**
+El Visual 2 demuestra que la renovación no es solo una tarea administrativa: es una herramienta para reducir riesgo legal, proteger valor comercial y evitar que marcas importantes pierdan vigencia."""
 
     return f"""El dashboard se puede leer en tres capas: portafolio, desempeño comercial y riesgo legal.
 
@@ -528,6 +582,8 @@ Eres el Asistente IA de Liverpool.
 REGLAS:
 - Responde como un asistente conversacional experto, parecido a ChatGPT, pero especializado en inteligencia de marcas Liverpool.
 - Conversa de forma natural, clara y puntual. No suenes como reporte automático.
+- Cada respuesta debe quedar completa: no termines a media frase, no cierres con conectores como "a", "de", "con", "por" o "que".
+- Si el usuario pide una explicación, responde como ChatGPT: primero aclara la idea, luego interpreta los datos y cierra con una conclusión útil.
 - Puedes explicar visuales, Tableau, ventas/transacciones, regiones, segmentos, tendencias, predicción, portafolio, riesgo legal, expedientes marcarios y crear mini informes.
 - No muestres listados enormes.
 - No enumeres decenas de registros.
@@ -579,7 +635,11 @@ async def llamar_gemini(prompt: str, historial: list) -> Optional[str]:
 
     if r.status_code >= 400 or "error" in data:
         raise RuntimeError(f"Gemini {r.status_code}: {data.get('error', data)}")
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    candidate = data["candidates"][0]
+    finish_reason = candidate.get("finishReason", "STOP")
+    if finish_reason not in ("STOP", "FINISH_REASON_UNSPECIFIED"):
+        raise RuntimeError(f"Gemini respuesta incompleta: {finish_reason}")
+    return candidate["content"]["parts"][0]["text"]
 
 
 async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
@@ -610,7 +670,10 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
 
     if r.status_code >= 400 or "error" in data:
         raise RuntimeError(f"OpenAI {r.status_code}: {data.get('error', data)}")
-    return data["choices"][0]["message"]["content"]
+    choice = data["choices"][0]
+    if choice.get("finish_reason") not in ("stop", None):
+        raise RuntimeError(f"OpenAI respuesta incompleta: {choice.get('finish_reason')}")
+    return choice["message"]["content"]
 
 
 @app.get("/")
@@ -666,13 +729,13 @@ async def chat(input: ChatInput):
     prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
     errores = []
 
-    if pregunta_visual_2_roi(input.mensaje):
+    if pregunta_visual_numerado(input.mensaje):
         return {"respuesta": respuesta_visuales_local(input.mensaje)}
 
     # 1) Gemini Flash principal.
     try:
         respuesta = await llamar_gemini(prompt, input.historial)
-        if respuesta:
+        if respuesta and not respuesta_parece_incompleta(input.mensaje, respuesta):
             return {"respuesta": respuesta}
     except Exception as e:
         errores.append(str(e))
@@ -680,7 +743,7 @@ async def chat(input: ChatInput):
     # 2) OpenAI backup.
     try:
         respuesta = await llamar_openai(prompt, input.historial)
-        if respuesta:
+        if respuesta and not respuesta_parece_incompleta(input.mensaje, respuesta):
             return {"respuesta": respuesta}
     except Exception as e:
         errores.append(str(e))
