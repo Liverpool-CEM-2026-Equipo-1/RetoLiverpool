@@ -804,20 +804,26 @@ Pregunta del usuario:
     try:
         respuesta = await llamar_gemini(prompt, input.historial)
         if respuesta and not respuesta_parece_incompleta(input.mensaje, respuesta):
-            return {"respuesta": respuesta}
+            return {"respuesta": respuesta, "proveedor": "gemini"}
     except Exception as e:
         errores.append(str(e))
+        print(f"Gemini no respondió correctamente: {e}")
 
     # 2) OpenAI backup.
     try:
         respuesta = await llamar_openai(prompt, input.historial)
         if respuesta and not respuesta_parece_incompleta(input.mensaje, respuesta):
-            return {"respuesta": respuesta}
+            return {"respuesta": respuesta, "proveedor": "openai"}
     except Exception as e:
         errores.append(str(e))
+        print(f"OpenAI no respondió correctamente: {e}")
 
     # 3) Respuesta de respaldo con datos disponibles.
-    return {
+    respuesta_final = {
         "respuesta": respuesta_local_por_pregunta(input.mensaje),
+        "proveedor": "fallback",
         "fallback": True,
     }
+    if os.getenv("DEBUG_AI_ERRORS", "").strip().lower() in ("1", "true", "si", "sí", "yes"):
+        respuesta_final["errores_ai"] = errores[-4:]
+    return respuesta_final
