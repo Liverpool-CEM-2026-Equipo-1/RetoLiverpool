@@ -3522,11 +3522,6 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       ];
       if (finalesCortados.some(final => normal.endsWith(final))) return true;
 
-      const pregunta = normalizarTextoChat(mensaje);
-      const pideExplicacion = ['explica', 'explicacion', 'informe', 'visual', 'visuales', 'dashboard', 'tableau', 'no entiendo']
-        .some(palabra => pregunta.includes(palabra));
-      if (pideExplicacion && texto.split(/\s+/).length < 70) return true;
-
       return !/[.!?)]$|[%}]$/.test(texto);
     }
 

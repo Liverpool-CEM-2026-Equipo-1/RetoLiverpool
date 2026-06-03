@@ -161,6 +161,17 @@ def pregunta_visual_2(mensaje: str) -> bool:
     return any(x in q for x in ["VISUAL 2", "VISUAL DOS", "SEGUNDO VISUAL", "RIESGO DE MARCAS"]) or ("RIESGO" in q and "MARCA" in q)
 
 
+def pregunta_visual_2_tablas(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    pide_tablas = any(x in q for x in [
+        "TABLA", "TABLAS", "COLUMNA", "COLUMNAS", "CAMPO", "CAMPOS",
+        "ESPECIFICACION", "ESPECIFICACIONES", "ESTRUCTURA", "METRICA",
+        "METRICAS", "KPI", "KPIS", "QUE CONTIENE", "COMO ESTA ARMADO",
+        "COMO SE ARMA", "DASHBOARD DEL VISUAL 2"
+    ])
+    return pregunta_visual_2(mensaje) and pide_tablas
+
+
 def pregunta_visual_numerado(mensaje: str) -> bool:
     return pregunta_visual_1(mensaje) or pregunta_visual_2(mensaje)
 
@@ -177,13 +188,6 @@ def respuesta_parece_incompleta(pregunta: str, respuesta: str) -> bool:
         " RELACIONADO A", " DEBIDO A", " CON BASE EN"
     )
     if any(normalizada.endswith(final) for final in finales_cortados):
-        return True
-
-    pide_explicacion = any(x in normalizar_txt(pregunta) for x in [
-        "EXPLICA", "EXPLICACION", "INFORME", "VISUAL", "VISUALES",
-        "DASHBOARD", "TABLEAU", "NO ENTIENDO"
-    ])
-    if pide_explicacion and len(texto.split()) < 70:
         return True
 
     if texto[-1] not in ".!?)]}%":
@@ -266,6 +270,14 @@ def promedio_dict(lista, campo):
     if not vals:
         return None
     return sum(vals) / len(vals)
+
+
+def formato_crecimiento_total_sales(value):
+    x = n(value, None)
+    if x is None:
+        return "sin dato"
+    pct = x if abs(x) >= 99.9 else x * 100
+    return f"{pct:.2f}%"
 
 
 def contexto_legal(pregunta: str, limite_casos: int = 6, limite_docs: int = 6) -> str:
@@ -361,9 +373,10 @@ def contexto_marca_grupo(pregunta: str, limite: int = 15) -> str:
     conv = promedio_dict(grupo, "conversion")
     prob = promedio_dict(grupo, "prob")
     score = promedio_dict(grupo, "score")
+    crecimiento = promedio_dict(grupo, "crecimientoTotalSales")
 
     detalle = "\n".join([
-        f"- {m.get('nombre')} | Clase {m.get('clase')} | NoReg {m.get('noreg')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | Conversión {m.get('conversion')}% | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
+        f"- {m.get('nombre')} | Clase {m.get('clase')} | NoReg {m.get('noreg')} | {m.get('estatus')} | Vigencia {m.get('vigencia')} | Conversión {m.get('conversion')}% | Crecimiento Total Sales {formato_crecimiento_total_sales(m.get('crecimientoTotalSales'))} | Prob. {m.get('prob')}% | ReviewScore {m.get('score')}"
         for m in sorted(grupo, key=lambda x: (str(x.get("nombre", "")), str(x.get("clase", ""))))[:limite]
     ])
 
@@ -372,15 +385,56 @@ Datos agrupados de {nombre_grupo}:
 - Registros encontrados: {len(grupo):,}
 - Vigentes: {vigentes:,}
 - Vencidas: {vencidas:,}
-- Tasa de conversión promedio simple: {"sin dato" if conv is None else f"{conv:.2f}%"}
-- Probabilidad promedio simple de renovación: {"sin dato" if prob is None else f"{prob:.1f}%"}
-- ReviewScore promedio simple: {"sin dato" if score is None else f"{score:.2f}"}
+- Tasa de conversión promedio del portafolio: {"sin dato" if conv is None else f"{conv:.2f}%"}
+- Crecimiento Total Sales promedio: {formato_crecimiento_total_sales(crecimiento)}
+- Recomendación promedio de renovación del modelo: {"sin dato" if prob is None else f"{prob:.1f}%"}
+- ReviewScore promedio del portafolio: {"sin dato" if score is None else f"{score:.2f}"}
 
 Detalle por clase / registro:
 {detalle}
 
-Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL y aclara que el promedio es simple por registro.
+Regla estricta: si el usuario pregunta por Liverpool en general, no respondas con una sola coincidencia. Usa todos los registros cuyo nombre contenga LIVERPOOL o EL PUERTO DE LIVERPOOL.
 """
+
+
+def contexto_visual_2_tablas(pregunta: str) -> str:
+    if not pregunta_visual_2_tablas(pregunta):
+        return ""
+
+    base = marcas_validas()
+    if not base:
+        return ""
+
+    vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
+    atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    planeacion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 12 < n(m.get("tiempo"), 999) <= 24)
+    estables = sum(1 for m in base if m.get("estatus") == "VIGENTE" and n(m.get("tiempo"), 999) > 24)
+    vencidas_recientes = sum(1 for m in base if (m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0) and n(m.get("tiempo"), 0) >= -12)
+    vencidas_historicas = sum(1 for m in base if (m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0) and n(m.get("tiempo"), 0) < -12)
+    con_crecimiento = sum(1 for m in base if n(m.get("crecimientoTotalSales"), None) is not None)
+
+    return f"""
+Contexto para que la IA responda especificaciones de tablas/campos del Visual 2:
+- Visual 2 corresponde a Tableau Riesgo de Marcas.
+- Nivel de detalle de la tabla: una fila por marca/clase/registro.
+- Registros válidos disponibles: {len(base):,}.
+- Campos principales de identificación: nombre, clase, noreg, estatus, vigencia.
+- Campos de riesgo legal/renovación: tiempo, prob, review, score.
+- Campos comerciales disponibles para cruzar el riesgo: tuvoVentas, conversion, clasificacion, region, canal, segmento, ticketPromedio, revenueLead, devolucion, antiguedad, crecimientoTotalSales.
+- Registros con Crecimiento Total Sales: {con_crecimiento:,}.
+- KPIs principales del Visual 2: vigentes {vigentes:,}, vencidas {vencidas:,}, críticas 0-6 meses {criticas:,}, atención 6-12 meses {atencion:,}, planeación 12-24 meses {planeacion:,}, estables más de 24 meses {estables:,}.
+- Subtablas/lecturas esperadas del dashboard:
+  1. Resumen de estatus: compara marcas vigentes contra vencidas.
+  2. Semáforo de renovación: clasifica por tiempo restante.
+  3. Tabla de prioridad: usa nombre, clase, noreg, vigencia, tiempo, prob, review y score para ordenar qué revisar primero.
+  4. Cruces comerciales: permite interpretar riesgo junto con región, canal, segmento, conversión y crecimiento total sales.
+- Reglas del semáforo: 0-6 meses = crítico; 6-12 meses = atención prioritaria; 12-24 meses = planeación; más de 24 meses = estable; vencida reciente = vencida hasta 12 meses; vencida histórica = vencida hace más de 12 meses.
+- Vencidas recientes: {vencidas_recientes:,}. Vencidas históricas: {vencidas_historicas:,}.
+- Si el usuario pide especificaciones, campos, columnas o tablas del Visual 2, responde analizando esta estructura; no des una explicación genérica del visual.
+"""
+
 
 def contexto_portafolio(pregunta: str = ""):
     base = marcas_validas()
@@ -393,6 +447,9 @@ def contexto_portafolio(pregunta: str = ""):
     review_top = sum(1 for m in base if m.get("review") == "Top")
     review_media = sum(1 for m in base if m.get("review") == "Media")
     review_baja = sum(1 for m in base if m.get("review") == "Baja")
+    crecimiento_vals = [n(m.get("crecimientoTotalSales"), None) for m in base]
+    crecimiento_vals = [v for v in crecimiento_vals if v is not None]
+    crecimiento_prom = sum(crecimiento_vals) / len(crecimiento_vals) if crecimiento_vals else None
     total_base = max(len(base), 1)
     top = top_renovacion_agrupada(6)
     top_txt = "\n".join([
@@ -401,12 +458,15 @@ def contexto_portafolio(pregunta: str = ""):
     ])
     grupo_txt = contexto_marca_grupo(pregunta)
     legal_txt = contexto_legal(pregunta)
+    visual_2_tablas_txt = contexto_visual_2_tablas(pregunta)
     return f"""Datos reales disponibles del portafolio Liverpool:
 - Registros válidos: {len(base):,}
 - Vigentes: {vigentes:,}
 - Vencidas: {vencidas:,}
 - Vigentes críticas 0-6 meses: {criticas:,}
 - Vigentes en atención 6-12 meses: {atencion:,}
+- Registros con Crecimiento Total Sales: {len(crecimiento_vals):,}
+- Crecimiento Total Sales promedio disponible: {formato_crecimiento_total_sales(crecimiento_prom)}
 
 Top operativo de renovación:
 {top_txt}
@@ -447,6 +507,8 @@ Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el 
 4. cierra con acciones recomendadas.
 
 {grupo_txt}
+
+{visual_2_tablas_txt}
 
 {legal_txt}
 
@@ -726,11 +788,17 @@ def predecir_batch(batch: BatchInput):
 @app.post("/chat")
 async def chat(input: ChatInput):
     contexto = contexto_portafolio(input.mensaje)
-    prompt = f"{contexto}\n\nPregunta del usuario:\n{input.mensaje}"
-    errores = []
+    prompt = f"""{contexto}
 
-    if pregunta_visual_numerado(input.mensaje):
-        return {"respuesta": respuesta_visuales_local(input.mensaje)}
+Instrucción para esta respuesta:
+- Responde analizando la pregunta con los datos reales del contexto.
+- No uses una plantilla fija.
+- Si la pregunta es sobre tablas, columnas, KPIs o especificaciones del Visual 2, explica la estructura y cómo se interpreta cada parte.
+- Mantén la respuesta clara, natural y completa.
+
+Pregunta del usuario:
+{input.mensaje}"""
+    errores = []
 
     # 1) Gemini Flash principal.
     try:
