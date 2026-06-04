@@ -337,6 +337,118 @@ def formato_crecimiento_total_sales(value):
     return f"{pct:.2f}%"
 
 
+def nombre_limpio(value):
+    return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def crecimiento_pct(value):
+    x = n(value, 0.0)
+    return x if abs(x) >= 99.9 else x * 100
+
+
+def pregunta_roi_revenue_visual_2(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    pide_visual = pregunta_visual_2(mensaje) or "DASHBOARD" in q
+    pide_roi = any(x in q for x in ["ROI", "RETORNO", "RENTABILIDAD", "INVERSION"])
+    pide_revenue = any(x in q for x in ["REVENUE", "VENTA", "VENTAS", "SALES", "INGRESO", "INGRESOS"])
+    pide_mejor = any(x in q for x in ["MEJOR", "TOP", "CUAL", "CUALES", "MARCA", "MARCAS"])
+    pide_aprender = any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO", "EXPLICA", "EXPLICAME"])
+    return pide_visual and (pide_roi or pide_revenue or (pide_mejor and "ROI" in q) or pide_aprender)
+
+
+def riesgo_visual_2(m: dict):
+    estatus = str(m.get("estatus", "")).upper()
+    tiempo = n(m.get("tiempo"), 999)
+    if estatus == "VIGENTE" and 0 <= tiempo <= 6:
+        return "crítica 0-6 meses", 1.45
+    if estatus == "VIGENTE" and 6 < tiempo <= 12:
+        return "atención 6-12 meses", 1.25
+    if estatus == "VIGENTE" and 12 < tiempo <= 24:
+        return "planeación 12-24 meses", 1.05
+    if estatus == "VIGENTE":
+        return "estable +24 meses", 0.85
+    if tiempo >= -12:
+        return "vencida reciente", 0.70
+    return "vencida histórica", 0.45
+
+
+def score_roi_revenue(m: dict):
+    revenue = max(0.0, n(m.get("revenueLead"), 0.0))
+    conversion = max(0.0, n(m.get("conversion"), 0.0))
+    prob = max(0.0, n(m.get("prob"), 0.0))
+    review_score = max(0.0, n(m.get("score"), 0.0))
+    crecimiento = max(-40.0, min(100.0, crecimiento_pct(m.get("crecimientoTotalSales"))))
+    _, riesgo_factor = riesgo_visual_2(m)
+    crecimiento_factor = 1 + (crecimiento / 100.0)
+    comercial = revenue * max(0.45, crecimiento_factor)
+    calidad = conversion * 45 + review_score * 80 + prob * 8
+    return comercial * riesgo_factor + calidad
+
+
+def top_roi_revenue_visual_2(limite: int = 6):
+    base = [m for m in marcas_validas() if n(m.get("revenueLead"), 0) > 0]
+    base.sort(key=score_roi_revenue, reverse=True)
+    return base[:limite]
+
+
+def contexto_visual_2_roi_revenue(pregunta: str) -> str:
+    if not pregunta_roi_revenue_visual_2(pregunta):
+        return ""
+    top = top_roi_revenue_visual_2(8)
+    filas = []
+    for i, m in enumerate(top, 1):
+        riesgo, _ = riesgo_visual_2(m)
+        filas.append(
+            f"{i}. {nombre_limpio(m.get('nombre'))} | Clase {m.get('clase')} | {m.get('estatus')} | {riesgo} | "
+            f"Revenue Por Lead {n(m.get('revenueLead'), 0):,.2f} | Crecimiento Total Sales {formato_crecimiento_total_sales(m.get('crecimientoTotalSales'))} | "
+            f"Conversión {n(m.get('conversion'), 0):.2f}% | Prob. renovación {n(m.get('prob'), 0):.1f}% | ReviewScore {n(m.get('score'), 0):.2f}"
+        )
+    return f"""
+Contexto específico para preguntas complejas sobre Visual 2, ROI y revenue:
+- El ROI del Visual 2 se interpreta como retorno estratégico: proteger primero marcas con valor comercial alto y riesgo legal/renovación relevante.
+- Para comparar marcas se usan: Revenue Por Lead, Crecimiento Total Sales, conversión, probabilidad de renovación, ReviewScore, estatus y tiempo restante.
+- Semáforo Visual 2: crítica 0-6 meses, atención 6-12 meses, planeación 12-24 meses, estable +24 meses, vencida reciente, vencida histórica.
+- Ranking calculado para responder "cuál marca es mejor basada en ROI y revenue":
+{chr(10).join(filas)}
+- Regla: si el usuario es nuevo o pide explicación, primero explica el Visual 2 en palabras simples y después interpreta el ranking. No repitas una plantilla; contesta la pregunta concreta.
+"""
+
+
+def respuesta_visual_2_roi_dinamica(mensaje: str):
+    top = top_roi_revenue_visual_2(5)
+    if not top:
+        return respuesta_visuales_local(mensaje)
+
+    mejor = top[0]
+    filas = []
+    for i, m in enumerate(top[:4], 1):
+        riesgo, _ = riesgo_visual_2(m)
+        filas.append(
+            f"{i}. **{nombre_limpio(m.get('nombre'))}** | Clase {m.get('clase')} | {riesgo} | "
+            f"Revenue Por Lead: {n(m.get('revenueLead'), 0):,.2f} | "
+            f"Crecimiento: {formato_crecimiento_total_sales(m.get('crecimientoTotalSales'))} | "
+            f"Conversión: {n(m.get('conversion'), 0):.2f}%"
+        )
+
+    riesgo_mejor, _ = riesgo_visual_2(mejor)
+    q = normalizar_txt(mensaje)
+    intro = "Si eres nuevo, léelo así: el Visual 2 no solo muestra vencimientos; te ayuda a decidir qué marcas conviene proteger primero."
+    if not any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO"]) and ("MEJOR" in q or "CUAL" in q or "ROI" in q or "REVENUE" in q):
+        intro = "Para comparar ROI y revenue en el Visual 2, conviene buscar marcas con buen valor comercial y riesgo de renovación manejable."
+
+    return f"""**Visual 2 explicado fácil**
+{intro} Las marcas críticas o en atención tienen más urgencia; las marcas con alto revenue, buen crecimiento y buena conversión tienen más retorno comercial si se conservan bien.
+
+**Mejor marca por ROI + revenue**
+La mejor candidata del ranking es **{nombre_limpio(mejor.get('nombre'))}**, clase {mejor.get('clase')}. Combina **Revenue Por Lead de {n(mejor.get('revenueLead'), 0):,.2f}**, **Crecimiento Total Sales de {formato_crecimiento_total_sales(mejor.get('crecimientoTotalSales'))}**, conversión de **{n(mejor.get('conversion'), 0):.2f}%** y estado de riesgo **{riesgo_mejor}**.
+
+**Top recomendado**
+{chr(10).join(filas)}
+
+**Qué tiene que ver con ROI**
+El ROI aquí no es solo “ganancia financiera inmediata”; es el retorno de renovar/proteger una marca antes de perder valor legal o comercial. Una marca con buen revenue y crecimiento justifica más atención porque perderla o dejarla vencer puede costar más que renovarla a tiempo."""
+
+
 def contexto_legal(pregunta: str, limite_casos: int = 6, limite_docs: int = 6) -> str:
     if not legal_cache or not legal_cache.get("expedientes"):
         return ""
@@ -516,6 +628,7 @@ def contexto_portafolio(pregunta: str = ""):
     grupo_txt = contexto_marca_grupo(pregunta)
     legal_txt = contexto_legal(pregunta)
     visual_2_tablas_txt = contexto_visual_2_tablas(pregunta)
+    visual_2_roi_revenue_txt = contexto_visual_2_roi_revenue(pregunta)
     return f"""Datos reales disponibles del portafolio Liverpool:
 - Registros válidos: {len(base):,}
 - Vigentes: {vigentes:,}
@@ -566,6 +679,8 @@ Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el 
 {grupo_txt}
 
 {visual_2_tablas_txt}
+
+{visual_2_roi_revenue_txt}
 
 {legal_txt}
 
@@ -688,6 +803,8 @@ Para tu informe, la lectura clave es: el dashboard no solo muestra ventas o segm
 
 def respuesta_local_por_pregunta(mensaje: str):
     q = normalizar_txt(mensaje)
+    if pregunta_roi_revenue_visual_2(mensaje):
+        return respuesta_visual_2_roi_dinamica(mensaje)
     if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "TABLEAU", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO", "REGION", "ORIENTE", "VENTAS", "TRANSACCIONES"]):
         return respuesta_visuales_local(mensaje)
     if any(x in q for x in ["PRIORIDAD", "PRIORITARIA", "PRIORITARIAS", "RENOVAR"]):
@@ -885,6 +1002,8 @@ Instrucción para esta respuesta:
 - Responde analizando la pregunta con los datos reales del contexto.
 - No uses una plantilla fija.
 - Si la pregunta es sobre tablas, columnas, KPIs o especificaciones del Visual 2, explica la estructura y cómo se interpreta cada parte.
+- Si la pregunta combina Visual 2, ROI y revenue, usa el ranking calculado del contexto y explica por qué una marca destaca. No respondas solo con definición de ROI.
+- Si el usuario dice que es nuevo o no sabe leer el dashboard, explica en pasos simples antes de dar el ranking.
 - Mantén la respuesta clara, natural y completa.
 
 Pregunta del usuario:
