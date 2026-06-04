@@ -348,12 +348,37 @@ def crecimiento_pct(value):
 
 def pregunta_roi_revenue_visual_2(mensaje: str) -> bool:
     q = normalizar_txt(mensaje)
-    pide_visual = pregunta_visual_2(mensaje) or "DASHBOARD" in q
     pide_roi = any(x in q for x in ["ROI", "RETORNO", "RENTABILIDAD", "INVERSION"])
-    pide_revenue = any(x in q for x in ["REVENUE", "VENTA", "VENTAS", "SALES", "INGRESO", "INGRESOS"])
+    pide_revenue = any(x in q for x in ["REVENUE", "SALES", "INGRESO", "INGRESOS"])
     pide_mejor = any(x in q for x in ["MEJOR", "TOP", "CUAL", "CUALES", "MARCA", "MARCAS"])
+    pide_ventas_ranking = any(x in q for x in ["VENTA", "VENTAS"]) and (pide_roi or pide_mejor)
     pide_aprender = any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO", "EXPLICA", "EXPLICAME"])
-    return pide_visual and (pide_roi or pide_revenue or (pide_mejor and "ROI" in q) or pide_aprender)
+    return pide_roi or pide_revenue or pide_ventas_ranking or (pide_mejor and "ROI" in q) or (pregunta_dashboard_visual_2(mensaje) and pide_aprender)
+
+
+def pregunta_dashboard_visual_2(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    return any(x in q for x in [
+        "DASH", "DASHBOARD", "TABLEAU", "TABLEU", "VISUAL 2",
+        "VISUAL DOS", "SEGUNDO VISUAL", "RIESGO DE MARCAS"
+    ])
+
+
+VISUAL2_TABLEAU_MARCAS = {
+    "GALERIAS FASHION CARD",
+    "GALERIAS STYLE CARD",
+    "LA MODA AL MEJOR PRECIO",
+    "ME ENCANTA",
+    "NONSTOP",
+    "NOS ENCANTA",
+    "SB ACCESSORIES",
+    "SB ACCESSORIES BY SUBURBIA",
+    "THINGS CONTEMPO",
+}
+
+
+def en_visual_2_tableau(m: dict) -> bool:
+    return normalizar_txt(m.get("nombre", "")) in {normalizar_txt(x) for x in VISUAL2_TABLEAU_MARCAS}
 
 
 def riesgo_visual_2(m: dict):
@@ -385,16 +410,25 @@ def score_roi_revenue(m: dict):
     return comercial * riesgo_factor + calidad
 
 
-def top_roi_revenue_visual_2(limite: int = 6):
-    base = [m for m in marcas_validas() if n(m.get("revenueLead"), 0) > 0]
-    base.sort(key=score_roi_revenue, reverse=True)
-    return base[:limite]
+def top_roi_revenue_visual_2(limite: int = 6, solo_tableau: bool = True):
+    base = [
+        m for m in marcas_validas()
+        if n(m.get("revenueLead"), 0) > 0 and (not solo_tableau or en_visual_2_tableau(m))
+    ]
+    mejores_por_marca = {}
+    for m in base:
+        key = normalizar_txt(m.get("nombre", ""))
+        if key not in mejores_por_marca or score_roi_revenue(m) > score_roi_revenue(mejores_por_marca[key]):
+            mejores_por_marca[key] = m
+    ordenadas = sorted(mejores_por_marca.values(), key=score_roi_revenue, reverse=True)
+    return ordenadas[:limite]
 
 
 def contexto_visual_2_roi_revenue(pregunta: str) -> str:
     if not pregunta_roi_revenue_visual_2(pregunta):
         return ""
-    top = top_roi_revenue_visual_2(8)
+    solo_tableau = pregunta_dashboard_visual_2(pregunta)
+    top = top_roi_revenue_visual_2(8, solo_tableau=solo_tableau)
     filas = []
     for i, m in enumerate(top, 1):
         riesgo, _ = riesgo_visual_2(m)
@@ -403,19 +437,27 @@ def contexto_visual_2_roi_revenue(pregunta: str) -> str:
             f"Revenue Por Lead {n(m.get('revenueLead'), 0):,.2f} | Crecimiento Total Sales {formato_crecimiento_total_sales(m.get('crecimientoTotalSales'))} | "
             f"Conversión {n(m.get('conversion'), 0):.2f}% | Prob. renovación {n(m.get('prob'), 0):.1f}% | ReviewScore {n(m.get('score'), 0):.2f}"
         )
+    alcance = (
+        f'Este ranking está limitado a marcas que aparecen en la tabla "Marcas en Riesgo" del Visual 2 de Tableau. '
+        f'Marcas consideradas: {", ".join(sorted(VISUAL2_TABLEAU_MARCAS))}.'
+        if solo_tableau
+        else "Este ranking usa todo el portafolio disponible en marcas_data.json, porque el usuario no pidió específicamente dashboard/Tableau/Visual 2."
+    )
     return f"""
-Contexto específico para preguntas complejas sobre Visual 2, ROI y revenue:
-- El ROI del Visual 2 se interpreta como retorno estratégico: proteger primero marcas con valor comercial alto y riesgo legal/renovación relevante.
+Contexto específico para preguntas complejas sobre ROI y revenue:
+- El ROI se interpreta como retorno estratégico: proteger primero marcas con valor comercial alto y riesgo legal/renovación relevante.
+- {alcance}
 - Para comparar marcas se usan: Revenue Por Lead, Crecimiento Total Sales, conversión, probabilidad de renovación, ReviewScore, estatus y tiempo restante.
 - Semáforo Visual 2: crítica 0-6 meses, atención 6-12 meses, planeación 12-24 meses, estable +24 meses, vencida reciente, vencida histórica.
 - Ranking calculado para responder "cuál marca es mejor basada en ROI y revenue":
 {chr(10).join(filas)}
-- Regla: si el usuario es nuevo o pide explicación, primero explica el Visual 2 en palabras simples y después interpreta el ranking. No repitas una plantilla; contesta la pregunta concreta.
+- Regla: si el usuario es nuevo o pide explicación, primero explica el dashboard/Visual 2 solo si lo mencionó. Si no lo mencionó, responde como ranking general del portafolio.
 """
 
 
 def respuesta_visual_2_roi_dinamica(mensaje: str):
-    top = top_roi_revenue_visual_2(5)
+    solo_tableau = pregunta_dashboard_visual_2(mensaje)
+    top = top_roi_revenue_visual_2(5, solo_tableau=solo_tableau)
     if not top:
         return respuesta_visuales_local(mensaje)
 
@@ -432,12 +474,19 @@ def respuesta_visual_2_roi_dinamica(mensaje: str):
 
     riesgo_mejor, _ = riesgo_visual_2(mejor)
     q = normalizar_txt(mensaje)
-    intro = "Si eres nuevo, léelo así: el Visual 2 no solo muestra vencimientos; te ayuda a decidir qué marcas conviene proteger primero."
-    if not any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO"]) and ("MEJOR" in q or "CUAL" in q or "ROI" in q or "REVENUE" in q):
-        intro = "Para comparar ROI y revenue en el Visual 2, conviene buscar marcas con buen valor comercial y riesgo de renovación manejable."
+    if solo_tableau:
+        titulo = "Visual 2 explicado fácil"
+        alcance = "En esta respuesta uso solo las marcas de la tabla **Marcas en Riesgo** del Visual 2 de Tableau."
+        intro = "Si eres nuevo, léelo así: el Visual 2 no solo muestra vencimientos; te ayuda a decidir qué marcas conviene proteger primero."
+        if not any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO"]) and ("MEJOR" in q or "CUAL" in q or "ROI" in q or "REVENUE" in q):
+            intro = "Para comparar ROI y revenue en el Visual 2, conviene buscar marcas con buen valor comercial y riesgo de renovación manejable."
+    else:
+        titulo = "Ranking del portafolio"
+        alcance = "Como no mencionaste dashboard, Tableau ni Visual 2, uso todo el portafolio disponible."
+        intro = "Para comparar ROI y revenue en general, conviene buscar marcas con buen valor comercial, crecimiento, conversión y riesgo controlado."
 
-    return f"""**Visual 2 explicado fácil**
-{intro} Las marcas críticas o en atención tienen más urgencia; las marcas con alto revenue, buen crecimiento y buena conversión tienen más retorno comercial si se conservan bien.
+    return f"""**{titulo}**
+{intro} {alcance} Las marcas críticas o en atención tienen más urgencia; las marcas con alto revenue, buen crecimiento y buena conversión tienen más retorno comercial si se conservan bien.
 
 **Mejor marca por ROI + revenue**
 La mejor candidata del ranking es **{nombre_limpio(mejor.get('nombre'))}**, clase {mejor.get('clase')}. Combina **Revenue Por Lead de {n(mejor.get('revenueLead'), 0):,.2f}**, **Crecimiento Total Sales de {formato_crecimiento_total_sales(mejor.get('crecimientoTotalSales'))}**, conversión de **{n(mejor.get('conversion'), 0):.2f}%** y estado de riesgo **{riesgo_mejor}**.

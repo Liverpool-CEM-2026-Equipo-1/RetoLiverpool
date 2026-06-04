@@ -3135,6 +3135,117 @@ ${filas}
 Abrir revisión legal y comercial esta semana para las primeras marcas del listado y preparar plan de renovación por clase. Las vencidas históricas conviene tratarlas en una revisión separada.`;
     }
 
+    function crecimientoPct(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      return Math.abs(n) >= 99.9 ? n : n * 100;
+    }
+
+    function nombreLimpio(value) {
+      return String(value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function riesgoVisual2(m) {
+      const estatus = String(m.estatus || '').toUpperCase();
+      const tiempo = numeroSeguro(m.tiempo, 999);
+      if (estatus === 'VIGENTE' && tiempo >= 0 && tiempo <= 6) return { label: 'crítica 0-6 meses', factor: 1.45 };
+      if (estatus === 'VIGENTE' && tiempo > 6 && tiempo <= 12) return { label: 'atención 6-12 meses', factor: 1.25 };
+      if (estatus === 'VIGENTE' && tiempo > 12 && tiempo <= 24) return { label: 'planeación 12-24 meses', factor: 1.05 };
+      if (estatus === 'VIGENTE') return { label: 'estable +24 meses', factor: 0.85 };
+      if (tiempo >= -12) return { label: 'vencida reciente', factor: 0.70 };
+      return { label: 'vencida histórica', factor: 0.45 };
+    }
+
+    const VISUAL2_TABLEAU_MARCAS = new Set([
+      'galerias fashion card',
+      'galerias style card',
+      'la moda al mejor precio',
+      'me encanta',
+      'nonstop',
+      'nos encanta',
+      'sb accessories',
+      'sb accessories by suburbia',
+      'things contempo'
+    ]);
+
+    function enVisual2Tableau(m) {
+      return VISUAL2_TABLEAU_MARCAS.has(normalizarTextoChat(m?.nombre || ''));
+    }
+
+    function preguntaDashboardVisual2(mensaje) {
+      const q = normalizarTextoChat(mensaje);
+      return q.includes('dash') ||
+        q.includes('dashboard') ||
+        q.includes('tableau') ||
+        q.includes('tableu') ||
+        /\bvisual\s*(2|dos)\b/.test(q) ||
+        q.includes('segundo visual') ||
+        q.includes('riesgo de marcas');
+    }
+
+    function scoreRoiRevenue(m) {
+      const revenue = Math.max(0, numeroSeguro(m.revenueLead, 0));
+      const conversion = Math.max(0, numeroSeguro(m.conversion, 0));
+      const prob = Math.max(0, numeroSeguro(m.prob, 0));
+      const reviewScore = Math.max(0, numeroSeguro(m.score, 0));
+      const crecimiento = Math.max(-40, Math.min(100, crecimientoPct(m.crecimientoTotalSales)));
+      const riesgo = riesgoVisual2(m);
+      const comercial = revenue * Math.max(0.45, 1 + crecimiento / 100);
+      const calidad = conversion * 45 + reviewScore * 80 + prob * 8;
+      return comercial * riesgo.factor + calidad;
+    }
+
+    function topRoiRevenueVisual2(limite = 5, soloTableau = true) {
+      const mejores = new Map();
+      marcasValidas()
+        .filter(m => numeroSeguro(m.revenueLead, 0) > 0 && (!soloTableau || enVisual2Tableau(m)))
+        .forEach(m => {
+          const key = normalizarTextoChat(m.nombre || '');
+          if (!mejores.has(key) || scoreRoiRevenue(m) > scoreRoiRevenue(mejores.get(key))) {
+            mejores.set(key, m);
+          }
+        });
+      return Array.from(mejores.values())
+        .sort((a, b) => scoreRoiRevenue(b) - scoreRoiRevenue(a))
+        .slice(0, limite);
+    }
+
+    function respuestaVisual2RoiDinamica(mensaje = '') {
+      const soloTableau = preguntaDashboardVisual2(mensaje);
+      const top = topRoiRevenueVisual2(5, soloTableau);
+      if (!top.length) return null;
+      const mejor = top[0];
+      const riesgoMejor = riesgoVisual2(mejor).label;
+      const filas = top.slice(0, 4).map((m, i) => {
+        const riesgo = riesgoVisual2(m).label;
+        return `${i + 1}. **${nombreLimpio(m.nombre)}** | Clase ${m.clase} | ${riesgo} | Revenue Por Lead: ${numeroSeguro(m.revenueLead, 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })} | Crecimiento: ${formatoCrecimientoTotalSales(m.crecimientoTotalSales)} | Conversión: ${numeroSeguro(m.conversion, 0).toFixed(2)}%`;
+      }).join('\n');
+
+      const q = normalizarTextoChat(mensaje);
+      let titulo = 'Ranking del portafolio';
+      let alcance = 'Como no mencionaste dashboard, Tableau ni Visual 2, uso todo el portafolio disponible.';
+      let intro = 'Para comparar ROI y revenue en general, conviene buscar marcas con buen valor comercial, crecimiento, conversión y riesgo controlado.';
+      if (soloTableau) {
+        titulo = 'Visual 2 explicado fácil';
+        alcance = 'En esta respuesta uso solo las marcas de la tabla **Marcas en Riesgo** del Visual 2 de Tableau.';
+        intro = (q.includes('soy nuevo') || q.includes('no se') || q.includes('no entiendo'))
+          ? 'Si eres nuevo, léelo así: el Visual 2 no solo muestra vencimientos; te ayuda a decidir qué marcas conviene proteger primero.'
+          : 'Para comparar ROI y revenue en el Visual 2, conviene buscar marcas con buen valor comercial y riesgo de renovación manejable.';
+      }
+
+      return `**${titulo}**
+${intro} ${alcance} Las marcas críticas o en atención tienen más urgencia; las marcas con alto revenue, buen crecimiento y buena conversión tienen más retorno comercial si se conservan bien.
+
+**Mejor marca por ROI + revenue**
+La mejor candidata del ranking es **${nombreLimpio(mejor.nombre)}**, clase ${mejor.clase}. Combina **Revenue Por Lead de ${numeroSeguro(mejor.revenueLead, 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })}**, **Crecimiento Total Sales de ${formatoCrecimientoTotalSales(mejor.crecimientoTotalSales)}**, conversión de **${numeroSeguro(mejor.conversion, 0).toFixed(2)}%** y estado de riesgo **${riesgoMejor}**.
+
+**Top recomendado**
+${filas}
+
+**Qué tiene que ver con ROI**
+El ROI aquí no es solo ganancia financiera inmediata; es el retorno de renovar/proteger una marca antes de perder valor legal o comercial. Una marca con buen revenue y crecimiento justifica más atención porque perderla o dejarla vencer puede costar más que renovarla a tiempo.`;
+    }
+
     function respuestaVisualesLocal(mensaje = '') {
       const base = marcasValidas();
       const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
@@ -3155,6 +3266,24 @@ Abrir revisión legal y comercial esta semana para las primeras marcas del lista
         q.includes('retorno') ||
         q.includes('inversion') ||
         q.includes('rentabilidad');
+      const pideRevenue = q.includes('revenue') ||
+        q.includes('sales') ||
+        q.includes('ingreso');
+      const pideMejor = q.includes('mejor') ||
+        q.includes('top') ||
+        q.includes('cual') ||
+        q.includes('marca');
+      const pideVentasRanking = (q.includes('venta') || q.includes('ventas')) && (pideROI || pideMejor);
+      const pideAprender = q.includes('soy nuevo') ||
+        q.includes('no se') ||
+        q.includes('no entiendo') ||
+        q.includes('explica') ||
+        q.includes('explicame');
+
+      if (pideROI || pideRevenue || pideVentasRanking || (pideMejor && (pideROI || pideRevenue)) || (pideVisual2 && pideAprender)) {
+        const dinamica = respuestaVisual2RoiDinamica(mensaje);
+        if (dinamica) return dinamica;
+      }
 
       if (pideVisual1 && pideVisual2) {
         return `**Visual 1: Segmentos**
@@ -3432,6 +3561,14 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       const pideMayorProb = q.includes('mayor probabilidad') || q.includes('top renovacion') || q.includes('probabilidad de renovar');
       const pideReview = q.includes('reviewscore') || q.includes('mejor review') || q.includes('mayor review');
       const pideCuantas = q.includes('cuantas') || q.includes('cuantos') || q.includes('total');
+      const pideRoiRevenue = q.includes('roi') ||
+        q.includes('retorno') ||
+        q.includes('rentabilidad') ||
+        q.includes('inversion') ||
+        q.includes('revenue') ||
+        q.includes('sales') ||
+        q.includes('ingreso') ||
+        ((q.includes('venta') || q.includes('ventas')) && (q.includes('mejor') || q.includes('top') || q.includes('marca') || q.includes('roi')));
       const pideVisuales = q.includes('visual') ||
         q.includes('visuales') ||
         q.includes('dashboard') ||
@@ -3452,6 +3589,11 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
 
       const grupoLocal = respuestaGrupoLocal(mensaje);
       if (grupoLocal) return grupoLocal;
+
+      if (pideRoiRevenue) {
+        const dinamica = respuestaVisual2RoiDinamica(mensaje);
+        if (dinamica) return dinamica;
+      }
 
       if (pideVisuales) return respuestaVisualesLocal(mensaje);
 
