@@ -108,12 +108,201 @@
     .page.active { display: block; }
 
     /* HOME PAGE */
+    #page-inicio {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: calc(100vh - 64px);
+    }
+    #page-inicio > section,
+    #page-inicio > .bottom-nav {
+      position: relative;
+      z-index: 1;
+    }
+    .home-radar-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .home-radar-bg::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(115deg, transparent 0 32%, rgba(212, 0, 106, 0.055) 32% 33%, transparent 33% 58%, rgba(18, 166, 112, 0.045) 58% 59%, transparent 59%),
+        repeating-linear-gradient(90deg, transparent 0 84px, rgba(107, 107, 138, 0.035) 84px 85px);
+      opacity: 0.85;
+    }
+    .home-radar-stage {
+      position: absolute;
+      top: 22px;
+      right: max(18px, calc((100vw - 1200px) / 2 - 24px));
+      width: min(760px, 56vw);
+      aspect-ratio: 1;
+      opacity: 0.72;
+      transform: translateY(-4%);
+    }
+    .home-radar-orbit,
+    .home-radar-cross,
+    .home-radar-pulse,
+    .home-radar-shield,
+    .home-radar-mark {
+      position: absolute;
+    }
+    .home-radar-orbit {
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(from 24deg, transparent 0 54deg, rgba(212, 0, 106, 0.22) 72deg, rgba(18, 166, 112, 0.10) 88deg, transparent 116deg 360deg),
+        repeating-radial-gradient(circle, transparent 0 78px, rgba(212, 0, 106, 0.16) 79px 81px, transparent 82px 154px);
+      -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 0.96) 0 62%, transparent 74%);
+      mask-image: radial-gradient(circle, rgba(0, 0, 0, 0.96) 0 62%, transparent 74%);
+      animation: homeRadarSweep 16s linear infinite;
+    }
+    .home-radar-cross {
+      inset: 13%;
+      border-radius: 50%;
+      border: 1px solid rgba(212, 0, 106, 0.13);
+    }
+    .home-radar-cross::before,
+    .home-radar-cross::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 8%;
+      width: 1px;
+      height: 84%;
+      background: linear-gradient(transparent, rgba(107, 107, 138, 0.25), transparent);
+      transform: translateX(-50%);
+    }
+    .home-radar-cross::after {
+      left: 8%;
+      top: 50%;
+      width: 84%;
+      height: 1px;
+      transform: translateY(-50%);
+    }
+    .home-radar-pulse {
+      inset: 34%;
+      border-radius: 50%;
+      border: 2px solid rgba(18, 166, 112, 0.18);
+      animation: homeRadarPulse 4.8s ease-out infinite;
+    }
+    .home-radar-pulse.pulse-two {
+      border-color: rgba(212, 0, 106, 0.18);
+      animation-delay: 2.1s;
+    }
+    .home-radar-shield {
+      left: 37%;
+      top: 34%;
+      width: 26%;
+      height: 30%;
+      color: rgba(212, 0, 106, 0.20);
+      filter: drop-shadow(0 12px 24px rgba(212, 0, 106, 0.08));
+      animation: homeShieldFloat 6s ease-in-out infinite;
+    }
+    .home-radar-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 2px solid rgba(212, 0, 106, 0.34);
+      box-shadow: 0 0 0 8px rgba(212, 0, 106, 0.055);
+      animation: homeRadarMark 4.2s ease-in-out infinite;
+    }
+    .home-radar-mark.mark-green {
+      border-color: rgba(18, 166, 112, 0.35);
+      box-shadow: 0 0 0 8px rgba(18, 166, 112, 0.06);
+      animation-delay: 1.2s;
+    }
+    .home-radar-mark.mark-purple {
+      border-color: rgba(139, 92, 246, 0.28);
+      box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.055);
+      animation-delay: 2.1s;
+    }
+    .home-radar-mark.mark-1 { left: 25%; top: 26%; }
+    .home-radar-mark.mark-2 { left: 72%; top: 39%; }
+    .home-radar-mark.mark-3 { left: 50%; top: 72%; }
+    .home-radar-mark.mark-4 { left: 33%; top: 61%; }
+    .home-data-streams {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.72;
+    }
+    .home-data-line {
+      fill: none;
+      stroke-linecap: round;
+      stroke-width: 2.2;
+      stroke-dasharray: 160 760;
+      stroke-dashoffset: 0;
+      animation: homeDataTravel 12s linear infinite;
+    }
+    .home-data-line.pink { stroke: rgba(212, 0, 106, 0.18); }
+    .home-data-line.green { stroke: rgba(18, 166, 112, 0.14); animation-duration: 15s; animation-delay: -3s; }
+    .home-data-line.purple { stroke: rgba(139, 92, 246, 0.12); animation-duration: 17s; animation-delay: -6s; }
+    .home-data-dot {
+      fill: rgba(255, 255, 255, 0.78);
+      stroke: rgba(212, 0, 106, 0.18);
+      stroke-width: 2;
+      animation: homeDotBlink 5s ease-in-out infinite;
+    }
+    @keyframes homeRadarSweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes homeRadarPulse {
+      0% { opacity: 0.55; transform: scale(0.72); }
+      70% { opacity: 0.02; transform: scale(2.05); }
+      100% { opacity: 0; transform: scale(2.25); }
+    }
+    @keyframes homeShieldFloat {
+      0%, 100% { transform: translateY(0); opacity: 0.86; }
+      50% { transform: translateY(-10px); opacity: 1; }
+    }
+    @keyframes homeRadarMark {
+      0%, 100% { transform: scale(0.92); opacity: 0.52; }
+      50% { transform: scale(1.22); opacity: 1; }
+    }
+    @keyframes homeDataTravel {
+      from { stroke-dashoffset: 920; }
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes homeDotBlink {
+      0%, 100% { opacity: 0.22; }
+      50% { opacity: 0.72; }
+    }
     .hero { text-align: center; padding: 56px 24px 32px; }
     .hero h1 {
       font-family: 'Sora', sans-serif; font-size: 52px; font-weight: 800;
       color: var(--text); letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.1;
     }
     .hero p { font-size: 18px; color: var(--text-muted); margin-bottom: 28px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .home-radar-bg::before,
+      .home-radar-orbit,
+      .home-radar-pulse,
+      .home-radar-shield,
+      .home-radar-mark,
+      .home-data-line,
+      .home-data-dot {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .home-radar-stage {
+        width: 92vw;
+        right: -44vw;
+        top: 20px;
+        opacity: 0.42;
+      }
+      .home-data-streams { opacity: 0.45; }
+    }
 
     /* TABS one-to-one / batch */
     .mode-tabs {
@@ -768,29 +957,35 @@
 
 
     /* === VISUAL 1 TABLEAU: carga estable === */
+    #page-descriptivo{
+      min-height:calc(100vh - 64px) !important;
+    }
     #page-descriptivo .visual1-page-head{
-      max-width:1280px !important;
-      margin:0 auto !important;
-      padding:24px 24px 0 !important;
+      max-width:none !important;
+      margin:0 !important;
+      padding:10px 18px 0 !important;
     }
     #page-descriptivo .visual1-page-wrap{
       width:100% !important;
       max-width:none !important;
       margin:0 !important;
-      padding:24px 24px 32px !important;
+      padding:8px 12px 12px !important;
       overflow:visible !important;
     }
     #page-descriptivo .visual1-page-wrap h2{
-      max-width:1280px !important;
-      margin:0 auto 20px !important;
+      max-width:none !important;
+      margin:0 0 8px !important;
+      padding:0 4px !important;
+      font-size:24px !important;
+      line-height:1 !important;
     }
     #visual1-tableau-card{
-      width:100% !important;
-      max-width:1280px !important;
+      width:calc(100vw - 24px) !important;
+      max-width:none !important;
       margin:0 auto !important;
-      height:calc(100vh - 170px) !important;
-      min-height:640px !important;
-      border-radius:18px !important;
+      height:auto !important;
+      min-height:680px !important;
+      border-radius:14px !important;
       border:1.5px solid var(--border) !important;
       overflow:hidden !important;
       background:#fff !important;
@@ -808,38 +1003,80 @@
       display:block !important;
       border:0 !important;
     }
+    #viz_visual1,
+    #viz_visual2{
+      --tableau-scale:1;
+      --tableau-base-width:1366px;
+      --tableau-base-height:860px;
+      display:flex !important;
+      justify-content:center !important;
+      align-items:flex-start !important;
+      overflow:hidden !important;
+    }
+    #viz_visual1 object,
+    #viz_visual1 iframe,
+    #viz_visual1 .tableauViz,
+    #viz_visual2 object,
+    #viz_visual2 iframe,
+    #viz_visual2 .tableauViz{
+      width:var(--tableau-base-width) !important;
+      min-width:var(--tableau-base-width) !important;
+      max-width:none !important;
+      height:var(--tableau-base-height) !important;
+      min-height:var(--tableau-base-height) !important;
+      flex:0 0 auto !important;
+      margin-left:auto !important;
+      margin-right:auto !important;
+      transform:scale(var(--tableau-scale)) !important;
+      transform-origin:top center !important;
+    }
 
     @media (max-width:900px){
       #page-descriptivo .visual1-page-head,
       #page-descriptivo .visual1-page-wrap{
-        padding-left:16px !important;
-        padding-right:16px !important;
+        padding-left:8px !important;
+        padding-right:8px !important;
       }
       #visual1-tableau-card{
-        height:calc(100vh - 150px) !important;
-        min-height:560px !important;
+        width:calc(100vw - 16px) !important;
+        height:auto !important;
+        min-height:620px !important;
       }
     }
 
     /* === VISUAL 2 TABLEAU ONLY: no afecta Visual 1 === */
+    #page-predictivo{
+      min-height:calc(100vh - 64px) !important;
+    }
+    #page-predictivo > div:first-child{
+      max-width:none !important;
+      margin:0 !important;
+      padding:10px 18px 0 !important;
+    }
     #page-predictivo .inner-page{
       width:100% !important;
       max-width:none !important;
       margin:0 !important;
-      padding:24px 24px 32px !important;
+      padding:8px 12px 12px !important;
       overflow:visible !important;
     }
     #page-predictivo .page-header{
-      max-width:1280px !important;
-      margin:0 auto 18px !important;
+      max-width:none !important;
+      margin:0 0 8px !important;
+      padding:0 4px !important;
+    }
+    #page-predictivo .page-header h2{
+      font-size:24px !important;
+      line-height:1 !important;
+      margin:0 !important;
     }
     #visual2-tableau-card{
-      width:100% !important;
-      max-width:1280px !important;
+      width:calc(100vw - 24px) !important;
+      max-width:none !important;
       margin:0 auto !important;
-      height:calc(100vh - 150px) !important;
-      min-height:620px !important;
-      border-radius:18px !important;
+      height:auto !important;
+      min-height:680px !important;
+      border-radius:14px !important;
       border:1.5px solid var(--border) !important;
       overflow:hidden !important;
       background:#fff !important;
@@ -858,6 +1095,48 @@
       border:0 !important;
     }
     #page-predictivo .bottom-nav{display:none !important;}
+
+    @media (max-width:900px){
+      #page-predictivo > div:first-child{
+        padding:8px 12px 0 !important;
+      }
+      #page-predictivo .inner-page{
+        padding:8px 8px 10px !important;
+      }
+      #visual2-tableau-card{
+        width:calc(100vw - 16px) !important;
+        height:auto !important;
+        min-height:620px !important;
+      }
+    }
+
+    #viz_visual1,
+    #viz_visual2{
+      --tableau-scale:1;
+      --tableau-base-width:1366px;
+      --tableau-base-height:860px;
+      display:flex !important;
+      justify-content:center !important;
+      align-items:flex-start !important;
+      overflow:hidden !important;
+    }
+    #viz_visual1 object,
+    #viz_visual1 iframe,
+    #viz_visual1 .tableauViz,
+    #viz_visual2 object,
+    #viz_visual2 iframe,
+    #viz_visual2 .tableauViz{
+      width:var(--tableau-base-width) !important;
+      min-width:var(--tableau-base-width) !important;
+      max-width:none !important;
+      height:var(--tableau-base-height) !important;
+      min-height:var(--tableau-base-height) !important;
+      flex:0 0 auto !important;
+      margin-left:auto !important;
+      margin-right:auto !important;
+      transform:scale(var(--tableau-scale)) !important;
+      transform-origin:top center !important;
+    }
 
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -907,6 +1186,31 @@
 
   <!-- INICIO -->
   <div class="page active" id="page-inicio">
+    <div class="home-radar-bg" aria-hidden="true">
+      <svg class="home-data-streams" viewBox="0 0 1440 900" preserveAspectRatio="none">
+        <path class="home-data-line pink" d="M-80 170 C165 110 270 250 470 208 S760 96 970 184 S1220 332 1510 244" />
+        <path class="home-data-line green" d="M-40 515 C185 438 360 568 540 496 S815 298 1040 360 S1235 510 1490 430" />
+        <path class="home-data-line purple" d="M110 818 C280 675 486 748 668 610 S900 420 1092 515 S1262 728 1500 620" />
+        <circle class="home-data-dot" cx="315" cy="226" r="5" />
+        <circle class="home-data-dot" cx="732" cy="412" r="5" />
+        <circle class="home-data-dot" cx="1088" cy="188" r="5" />
+        <circle class="home-data-dot" cx="1188" cy="512" r="5" />
+      </svg>
+      <div class="home-radar-stage">
+        <div class="home-radar-orbit"></div>
+        <div class="home-radar-cross"></div>
+        <div class="home-radar-pulse"></div>
+        <div class="home-radar-pulse pulse-two"></div>
+        <span class="home-radar-mark mark-1"></span>
+        <span class="home-radar-mark mark-2 mark-green"></span>
+        <span class="home-radar-mark mark-3 mark-purple"></span>
+        <span class="home-radar-mark mark-4 mark-green"></span>
+        <svg class="home-radar-shield" viewBox="0 0 120 140" fill="none">
+          <path d="M60 8L104 25V61C104 96 85 121 60 132C35 121 16 96 16 61V25L60 8Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/>
+          <path d="M42 69L55 82L82 49" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
     <!-- HERO -->
     <section style="display:flex;align-items:center;justify-content:space-between;padding:64px 64px 48px;max-width:1200px;margin:0 auto;gap:48px;">
       <div style="flex:1;max-width:520px;">
@@ -1702,7 +2006,7 @@
             <param name='site_root' value='' />
             <param name='name' value='Segmentov1/Dashboard1' />
             <param name='tabs' value='no' />
-            <param name='toolbar' value='yes' />
+            <param name='toolbar' value='no' />
             <param name='language' value='es-ES' />
             <param name='device' value='desktop' />
             <param name='showVizHome' value='no' />
@@ -1741,7 +2045,7 @@
             <param name='site_root' value='' />
             <param name='name' value='RiesgodeMarcas-Liverpool/Dashboard1' />
             <param name='tabs' value='no' />
-            <param name='toolbar' value='yes' />
+            <param name='toolbar' value='no' />
             <param name='language' value='es-ES' />
             <param name='device' value='desktop' />
             <param name='showVizHome' value='no' />
@@ -3862,18 +4166,32 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       if (!card || !divEl) return;
       var vizEl = divEl.getElementsByTagName('object')[0];
       var frameEl = divEl.getElementsByTagName('iframe')[0];
-      var h = Math.max(640, window.innerHeight - 170);
-      if (window.innerWidth <= 900) h = Math.max(560, window.innerHeight - 150);
-      card.style.height = h + 'px';
-      divEl.style.width = '100%';
-      divEl.style.height = h + 'px';
+      var compact = window.innerWidth <= 900;
+      var baseW = 1366;
+      var baseH = 860;
+      var cardW = compact ? window.innerWidth - 16 : window.innerWidth - 24;
+      var availableH = Math.max(compact ? 620 : 680, window.innerHeight - (compact ? 112 : 118));
+      var scale = Math.max(0.64, Math.min(cardW / baseW, availableH / baseH));
+      var scaledH = Math.round(baseH * scale);
+      var h = Math.max(compact ? 620 : 680, scaledH);
+      card.style.setProperty('height', h + 'px', 'important');
+      card.style.setProperty('width', (compact ? 'calc(100vw - 16px)' : 'calc(100vw - 24px)'), 'important');
+      divEl.style.setProperty('--tableau-scale', scale);
+      divEl.style.setProperty('--tableau-base-width', baseW + 'px');
+      divEl.style.setProperty('--tableau-base-height', baseH + 'px');
+      divEl.style.setProperty('width', '100%', 'important');
+      divEl.style.setProperty('height', h + 'px', 'important');
       [vizEl, frameEl].forEach(function(el) {
         if (!el) return;
-        el.style.width = '100%';
-        el.style.height = h + 'px';
-        el.style.minWidth = '100%';
-        el.style.minHeight = h + 'px';
-        el.style.maxWidth = 'none';
+        el.style.setProperty('width', baseW + 'px', 'important');
+        el.style.setProperty('height', baseH + 'px', 'important');
+        el.style.setProperty('min-width', baseW + 'px', 'important');
+        el.style.setProperty('min-height', baseH + 'px', 'important');
+        el.style.setProperty('max-width', 'none', 'important');
+        el.style.setProperty('transform', 'scale(' + scale + ')', 'important');
+        el.style.setProperty('transform-origin', 'top center', 'important');
+        el.style.setProperty('margin-left', 'auto', 'important');
+        el.style.setProperty('margin-right', 'auto', 'important');
       });
     }
 
@@ -3901,21 +4219,58 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
 
     function initTableau2() {
       var divEl = document.getElementById('viz_visual2');
-      if (!divEl || divEl.dataset.loaded) return;
+      if (!divEl) return;
+      sizeTableau2();
+      if (divEl.dataset.loaded) {
+        [120, 450, 900].forEach(function(delay) {
+          setTimeout(sizeTableau2, delay);
+        });
+        return;
+      }
       divEl.dataset.loaded = 'true';
       var vizEl = divEl.getElementsByTagName('object')[0];
-      var card = document.getElementById('visual2-tableau-card');
-      var h = Math.max(620, window.innerHeight - 150);
-      if (card) card.style.height = h + 'px';
-      divEl.style.width = '100%';
-      divEl.style.height = h + 'px';
-      vizEl.style.width = '100%';
-      vizEl.style.height = h + 'px';
-      vizEl.style.minWidth = '100%';
-      vizEl.style.minHeight = h + 'px';
+      if (!vizEl) return;
       var scriptEl = document.createElement('script');
       scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
       vizEl.parentNode.insertBefore(scriptEl, vizEl);
+      [120, 450, 900, 1600].forEach(function(delay) {
+        setTimeout(sizeTableau2, delay);
+      });
+    }
+
+    function sizeTableau2() {
+      var card = document.getElementById('visual2-tableau-card');
+      var divEl = document.getElementById('viz_visual2');
+      if (!card || !divEl) return;
+      var vizEl = divEl.getElementsByTagName('object')[0];
+      var frameEl = divEl.getElementsByTagName('iframe')[0];
+      var compact = window.innerWidth <= 900;
+      var baseW = 1366;
+      var baseH = 860;
+      var cardW = compact ? window.innerWidth - 16 : window.innerWidth - 24;
+      var availableH = Math.max(compact ? 620 : 680, window.innerHeight - (compact ? 112 : 118));
+      var scale = Math.max(0.64, Math.min(cardW / baseW, availableH / baseH));
+      var scaledH = Math.round(baseH * scale);
+      var h = Math.max(compact ? 620 : 680, scaledH);
+      card.style.setProperty('height', h + 'px', 'important');
+      card.style.setProperty('width', (compact ? 'calc(100vw - 16px)' : 'calc(100vw - 24px)'), 'important');
+      divEl.style.setProperty('--tableau-scale', scale);
+      divEl.style.setProperty('--tableau-base-width', baseW + 'px');
+      divEl.style.setProperty('--tableau-base-height', baseH + 'px');
+      divEl.style.setProperty('width', '100%', 'important');
+      divEl.style.setProperty('height', h + 'px', 'important');
+      [vizEl, frameEl].forEach(function(el) {
+        if (!el) return;
+        el.style.setProperty('width', baseW + 'px', 'important');
+        el.style.setProperty('height', baseH + 'px', 'important');
+        el.style.setProperty('min-width', baseW + 'px', 'important');
+        el.style.setProperty('min-height', baseH + 'px', 'important');
+        el.style.setProperty('max-width', 'none', 'important');
+        el.style.setProperty('transform', 'scale(' + scale + ')', 'important');
+        el.style.setProperty('transform-origin', 'top center', 'important');
+        el.style.setProperty('margin-left', 'auto', 'important');
+        el.style.setProperty('margin-right', 'auto', 'important');
+      });
     }
 
     // Init when Visual 1 is shown
@@ -3937,13 +4292,7 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
       }
       var p2 = document.getElementById('page-predictivo');
       if (p2 && p2.classList.contains('active')) {
-        var card = document.getElementById('visual2-tableau-card');
-        var divEl = document.getElementById('viz_visual2');
-        var vizEl = divEl ? divEl.getElementsByTagName('object')[0] : null;
-        var h = Math.max(620, window.innerHeight - 150);
-        if (card) card.style.height = h + 'px';
-        if (divEl) divEl.style.height = h + 'px';
-        if (vizEl) vizEl.style.height = h + 'px';
+        sizeTableau2();
       }
     });
   </script>
