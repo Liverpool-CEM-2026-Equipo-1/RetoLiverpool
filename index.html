@@ -346,14 +346,44 @@
     .riesgo-badge.verde { background: var(--green-bg); color: var(--green); }
 
     /* ANALISIS COMPLETO */
-    .analisis-page { padding: 40px 48px; max-width: 800px; margin: 0 auto; }
+    .analisis-page { padding: 40px 48px; max-width: 980px; margin: 0 auto; }
     .back-btn {
       display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
       color: var(--text-muted); cursor: pointer; margin-bottom: 24px; transition: color 0.2s;
     }
     .back-btn:hover { color: var(--pink); }
     .analisis-header { background: white; border-radius: 20px; padding: 28px 32px; margin-bottom: 20px; border: 1.5px solid var(--border); box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
-    .analisis-brand { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .analisis-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:8px; }
+    .analisis-brand { font-family: 'Sora', sans-serif; font-size: 30px; font-weight: 800; color: var(--text); margin-bottom: 8px; line-height:1.15; }
+    .renewal-clock-card {
+      display:grid; grid-template-columns:72px 1fr; align-items:center; gap:18px;
+      margin:22px 0 10px; padding:18px 20px; border-radius:18px;
+      border:1.5px solid var(--border); background:linear-gradient(135deg,#fff 0%,#fbf8ff 100%);
+      box-shadow:0 10px 28px rgba(180,120,200,0.12); position:relative; overflow:hidden;
+    }
+    .renewal-clock-card::before {
+      content:''; position:absolute; inset:-40% auto auto -10%; width:180px; height:180px;
+      background:radial-gradient(circle, rgba(212,0,106,0.12), transparent 68%);
+      animation:clockGlow 3.6s ease-in-out infinite;
+    }
+    .renewal-clock-card.pos { border-color:rgba(16,166,112,0.35); }
+    .renewal-clock-card.neg { border-color:rgba(229,62,62,0.32); background:linear-gradient(135deg,#fff 0%,#fff7f8 100%); }
+    .renewal-clock-card.neu { border-color:rgba(139,92,246,0.25); }
+    .clock-visual { width:64px; height:64px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; background:white; box-shadow:0 8px 22px rgba(26,26,46,0.10); z-index:1; }
+    .clock-visual::before { content:''; position:absolute; inset:-6px; border-radius:50%; border:2px solid rgba(212,0,106,0.16); animation:clockPulse 2.4s ease-in-out infinite; }
+    .clock-svg { width:44px; height:44px; overflow:visible; }
+    .clock-minute-hand { transform-origin:12px 12px; animation:clockSpin 6s linear infinite; }
+    .clock-hour-hand { transform-origin:12px 12px; animation:clockSpin 18s linear infinite; }
+    .renewal-clock-kicker { font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+    .renewal-clock-value { font-family:'Sora',sans-serif; font-size:28px; font-weight:800; color:var(--text); line-height:1.1; }
+    .renewal-clock-impact { font-size:13px; font-weight:700; margin-top:6px; }
+    .renewal-clock-impact.pos { color:var(--green); }
+    .renewal-clock-impact.neg { color:var(--red); }
+    .renewal-clock-impact.neu { color:var(--text-muted); }
+    .renewal-clock-caption { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    @keyframes clockSpin { to { transform:rotate(360deg); } }
+    @keyframes clockPulse { 0%,100% { transform:scale(0.92); opacity:0.3; } 50% { transform:scale(1.08); opacity:0.85; } }
+    @keyframes clockGlow { 0%,100% { transform:translate(0,0); opacity:0.5; } 50% { transform:translate(18px,18px); opacity:1; } }
     .prob-big { margin: 20px 0 0; }
     .prob-big-label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
     .prob-big-bar { height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
@@ -393,6 +423,18 @@
     }
     .razon-card h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
     .razon-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .analisis-page { padding: 28px 16px; }
+      .analisis-header { padding: 22px 20px; }
+      .analisis-title-row { flex-direction: column; gap: 12px; }
+      .analisis-brand { font-size: 24px; }
+      .renewal-clock-card { grid-template-columns:56px 1fr; gap:14px; padding:16px; }
+      .clock-visual { width:52px; height:52px; }
+      .clock-svg { width:38px; height:38px; }
+      .renewal-clock-value { font-size:22px; }
+      .variables-grid { grid-template-columns:1fr; }
+    }
 
     /* TABLEAU PLACEHOLDER */
     .tableau-placeholder {
@@ -1219,11 +1261,27 @@
         Volver al inicio
       </div>
       <div class="analisis-header">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="analisis-title-row">
           <div class="analisis-brand" id="analisisBrand">JUST WALK OUT</div>
           <div class="badge badge-vigente" id="analisisStatus"><div class="badge-dot"></div><span>VIGENTE</span></div>
         </div>
         <div style="font-size:13px;color:var(--text-muted)">Clase: <span id="analisisClase">9</span> · Vigencia: <span id="analisisVig">12/07/2026</span></div>
+        <div class="renewal-clock-card neu" id="renewalClockCard">
+          <div class="clock-visual">
+            <svg class="clock-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="#D4006A" stroke-width="1.8"/>
+              <path d="M12 6v6l4 2" stroke="#1A1A2E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="clock-hour-hand"/>
+              <path d="M12 12V4" stroke="#D4006A" stroke-width="1.8" stroke-linecap="round" class="clock-minute-hand"/>
+              <circle cx="12" cy="12" r="1.6" fill="#D4006A"/>
+            </svg>
+          </div>
+          <div>
+            <div class="renewal-clock-kicker">Tiempo restante de renovación</div>
+            <div class="renewal-clock-value" id="renewalClockValue">24 meses</div>
+            <div class="renewal-clock-impact neu" id="renewalClockImpact">Margen suficiente para planificar</div>
+            <div class="renewal-clock-caption" id="renewalClockCaption">Calculado con la vigencia ante el IMPI</div>
+          </div>
+        </div>
         <div class="prob-big">
           <div class="prob-big-label">Recomendación de renovar según el modelo predictivo</div>
           <div class="prob-big-bar"><div class="prob-big-fill green" id="analisisBar" style="width:85%"></div></div>
@@ -1264,12 +1322,6 @@
           <div class="var-tooltip"><strong>ReviewScore</strong>Calificación promedio de satisfacción del cliente, en escala 1–5. Top = 4.0–5.0 · Media = 3.0–3.9 · Baja = 1.0–2.9. Refleja la percepción de calidad de la marca en el mercado.</div>
           <div class="var-value" id="v-review">4.2 / 5</div>
           <div class="var-impact pos" id="v-review-impact">Calificación Top — alta satisfacción del cliente</div>
-        </div>
-        <div class="var-card">
-          <div class="var-name">Tiempo Restante de Renovación</div>
-          <div class="var-tooltip"><strong>Tiempo Restante</strong>Meses que faltan para que venza el registro ante el IMPI, calculado desde la fecha de vigencia hasta hoy. Valores negativos indican que la marca ya está vencida.</div>
-          <div class="var-value" id="v-tiempo">24 meses</div>
-          <div class="var-impact neu" id="v-tiempo-impact">Margen suficiente para planificar</div>
         </div>
         <div class="var-card">
           <div class="var-name">Tasa de Devolución</div>
@@ -2170,28 +2222,48 @@
       else if (m.score >= 3.0) { revImpact.textContent = 'Calificación Media — satisfacción aceptable'; revImpact.className = 'var-impact neu'; }
       else { revImpact.textContent = 'Calificación Baja — señal de alerta'; revImpact.className = 'var-impact neg'; }
 
-      // Tiempo restante — usar el recalculado arriba
-      const tiempoImpact = document.getElementById('v-tiempo-impact');
+      // Tiempo restante — pieza destacada con reloj animado
+      const renewalClockCard = document.getElementById('renewalClockCard');
+      const renewalClockValue = document.getElementById('renewalClockValue');
+      const renewalClockImpact = document.getElementById('renewalClockImpact');
+      const renewalClockCaption = document.getElementById('renewalClockCaption');
+      function setRenewalClock(texto, impacto, estado, caption) {
+        renewalClockValue.textContent = texto;
+        renewalClockImpact.textContent = impacto;
+        renewalClockImpact.className = 'renewal-clock-impact ' + estado;
+        renewalClockCard.className = 'renewal-clock-card ' + estado;
+        renewalClockCaption.textContent = caption;
+      }
       const mesesRestantes = tiempoCalc;
       const esVencido = estatusReal === 'VENCIDO' || mesesRestantes < 0;
       if (esVencido) {
-        document.getElementById('v-tiempo').textContent = mesesRestantes < 0
-          ? 'Venció hace ' + Math.abs(mesesRestantes) + ' meses'
-          : 'Marca vencida en el IMPI';
-        tiempoImpact.textContent = 'Estatus vencido — evaluar proceso de renovación';
-        tiempoImpact.className = 'var-impact neg';
+        setRenewalClock(
+          mesesRestantes < 0 ? 'Venció hace ' + Math.abs(mesesRestantes) + ' meses' : 'Marca vencida',
+          'Estatus vencido — evaluar proceso de renovación',
+          'neg',
+          'La fecha de vigencia ya pasó; revisar acción legal/comercial.'
+        );
       } else if (mesesRestantes <= 6) {
-        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
-        tiempoImpact.textContent = 'Crítico — acción inmediata requerida';
-        tiempoImpact.className = 'var-impact neg';
+        setRenewalClock(
+          mesesRestantes + ' meses',
+          'Crítico — acción inmediata requerida',
+          'neg',
+          'Ventana corta para preparar renovación ante el IMPI.'
+        );
       } else if (mesesRestantes <= 12) {
-        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
-        tiempoImpact.textContent = 'Atención — planificar renovación pronto';
-        tiempoImpact.className = 'var-impact neu';
+        setRenewalClock(
+          mesesRestantes + ' meses',
+          'Atención — planificar renovación pronto',
+          'neu',
+          'Conviene calendarizar revisión antes de entrar en riesgo crítico.'
+        );
       } else {
-        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
-        tiempoImpact.textContent = 'Margen suficiente para planificar';
-        tiempoImpact.className = 'var-impact pos';
+        setRenewalClock(
+          mesesRestantes + ' meses',
+          'Margen suficiente para planificar',
+          'pos',
+          'La marca tiene tiempo para preparar la estrategia de renovación.'
+        );
       }
 
       // Tasa de devolución
