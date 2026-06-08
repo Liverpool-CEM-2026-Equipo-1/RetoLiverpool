@@ -397,7 +397,29 @@ def pregunta_roi_revenue_visual_2(mensaje: str) -> bool:
     pide_mejor = any(x in q for x in ["MEJOR", "TOP", "CUAL", "CUALES", "MARCA", "MARCAS"])
     pide_ventas_ranking = any(x in q for x in ["VENTA", "VENTAS"]) and (pide_roi or pide_mejor)
     pide_aprender = any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO", "EXPLICA", "EXPLICAME"])
-    return pide_roi or pide_revenue or pide_ventas_ranking or (pide_mejor and "ROI" in q) or (pregunta_dashboard_visual_2(mensaje) and pide_aprender)
+    return pide_roi or pide_revenue or pide_ventas_ranking or (pide_mejor and "ROI" in q) or (pregunta_visual_2(mensaje) and pide_aprender)
+
+
+def pregunta_conclusion_integrada(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    pide_cierre = any(x in q for x in [
+        "CONCLUSION", "CONCLUSIONES", "EJECUTIVA", "EJECUTIVO",
+        "COMBINANDO", "COMBINA", "INTEGRA", "INTEGRANDO",
+        "RESUMEN EJECUTIVO", "SINTESIS", "CIERRE"
+    ])
+    temas = 0
+    temas += 1 if any(x in q for x in ["LEGAL", "LEGALES", "LITIGIO", "LITIGIOS", "RIESGO"]) else 0
+    temas += 1 if any(x in q for x in ["REVENUE", "SALES", "VENTA", "VENTAS", "INGRESO", "INGRESOS", "ROI"]) else 0
+    temas += 1 if any(x in q for x in ["RENOVACION", "RENOVAR", "VENCIMIENTO", "VENCER"]) else 0
+    return pide_cierre and temas >= 2
+
+
+def pregunta_dashboard_presentacion(mensaje: str) -> bool:
+    q = normalizar_txt(mensaje)
+    pide_aprender = any(x in q for x in ["SOY NUEVO", "NO SE", "NO ENTIENDO", "EXPLICAME", "EXPLICA", "COMO LEER"])
+    pide_presentacion = any(x in q for x in ["PRESENTACION", "EXPOSICION", "PROFESOR", "EXPLICARLO"])
+    pide_dashboard = any(x in q for x in ["DASHBOARD", "DASH", "VISUALES", "VISUAL", "TABLEAU", "TABLEU"])
+    return pide_dashboard and (pide_aprender or pide_presentacion)
 
 
 def pregunta_dashboard_visual_2(mensaje: str) -> bool:
@@ -837,6 +859,18 @@ Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el 
 3. da hallazgos clave con números del contexto,
 4. cierra con acciones recomendadas.
 
+Si el usuario pide una conclusión ejecutiva combinando riesgo legal, revenue y renovación:
+1. abre con una tesis ejecutiva,
+2. usa cifras de vigentes, vencidas, críticas y atención,
+3. menciona revenue/crecimiento como señal de valor comercial,
+4. conecta el riesgo legal con vencimientos y expedientes,
+5. cierra con una recomendación accionable de priorización.
+
+Si el usuario dice que es nuevo y pide explicar el dashboard para presentación:
+1. explica la historia del dashboard en orden: panorama, desempeño comercial, predicción y riesgo,
+2. usa números concretos,
+3. termina con una frase lista para decir al profesor.
+
 {grupo_txt}
 
 {visual_2_tablas_txt}
@@ -1013,12 +1047,75 @@ La base legal disponible reúne **{legal_cache.get('total_expedientes', 0)} expe
 Estos expedientes ayudan a detectar marcas con riesgo legal, antecedentes de oposición, amparo, demanda, sentencia o procedimientos ante autoridad. Para una revisión ejecutiva, conviene cruzar estos casos con vencimientos, valor comercial y prioridad de renovación."""
 
 
+def respuesta_conclusion_integrada(mensaje: str = ""):
+    base = marcas_validas()
+    vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
+    atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+    top = top_roi_revenue_visual_2(3, solo_tableau=False)
+    top_txt = "\n".join([
+        f"- **{nombre_limpio(m.get('nombre'))}**: Revenue Por Lead {n(m.get('revenueLead'), 0):,.2f}, "
+        f"Crecimiento Total Sales {formato_crecimiento_total_sales(m.get('crecimientoTotalSales'))}, "
+        f"probabilidad de renovación {n(m.get('prob'), 0):.1f}%."
+        for m in top
+    ]) or "- No hay ranking comercial disponible."
+    legal_count = legal_cache.get("total_expedientes", 0) if legal_cache else 0
+    docs_count = legal_cache.get("total_archivos", 0) if legal_cache else 0
+
+    return f"""**Conclusión ejecutiva**
+El portafolio debe gestionarse como una decisión combinada de **riesgo legal, valor comercial y renovación**. La prioridad no es renovar todo por igual, sino proteger primero las marcas que todavía están vigentes, tienen vencimiento cercano y además sostienen valor por revenue, crecimiento o conversión.
+
+**Evidencia clave**
+- Portafolio analizado: {len(base):,} registros válidos.
+- Vigentes: {vigentes:,}; vencidas: {vencidas:,}.
+- Riesgo inmediato: {criticas:,} marcas vigentes críticas de 0 a 6 meses.
+- Atención prioritaria: {atencion:,} marcas vigentes entre 6 y 12 meses.
+- Referencia legal disponible: {legal_count:,} expedientes y {docs_count:,} documentos.
+
+**Marcas con señal comercial fuerte**
+{top_txt}
+
+**Recomendación**
+La estrategia recomendada es cruzar el semáforo de vencimiento con revenue y expedientes legales: primero renovar o revisar las vigentes críticas con mayor valor comercial; después calendarizar las de 6 a 12 meses; y dejar las vencidas históricas para una mesa separada legal-comercial. Así la renovación se convierte en una herramienta para evitar pérdida de derechos, proteger ingresos futuros y reducir riesgos de litigio."""
+
+
+def respuesta_dashboard_presentacion_local(mensaje: str = ""):
+    base = marcas_validas()
+    vigentes = sum(1 for m in base if m.get("estatus") == "VIGENTE")
+    vencidas = sum(1 for m in base if m.get("estatus") == "VENCIDO" or n(m.get("tiempo"), 999) < 0)
+    criticas = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 0 <= n(m.get("tiempo"), 999) <= 6)
+    atencion = sum(1 for m in base if m.get("estatus") == "VIGENTE" and 6 < n(m.get("tiempo"), 999) <= 12)
+
+    return f"""**Cómo explicar el dashboard en una presentación**
+Piensa en el dashboard como una historia de decisión: primero muestra el tamaño del portafolio, luego el desempeño comercial y al final el riesgo de renovación.
+
+**1. Panorama general**
+El inicio resume la salud del portafolio: hay {len(base):,} registros válidos, con {vigentes:,} marcas vigentes y {vencidas:,} vencidas. Esta parte sirve para dimensionar el problema.
+
+**2. Desempeño comercial**
+Los visuales de segmentos muestran dónde está el movimiento: Digital concentra 62.4%, Físico 37.6%; por región, Centro lidera con 47.5%, seguido de Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%. Esto ayuda a identificar dónde una marca puede tener más valor comercial.
+
+**3. Modelo predictivo**
+La sección de predicción recomienda si conviene renovar usando variables como conversión, antigüedad, ReviewScore, tasa de devolución, Crecimiento Total Sales y tiempo restante de renovación.
+
+**4. Riesgo legal y renovación**
+El Visual 2 es el más importante para tomar acción: identifica {criticas:,} marcas críticas de 0 a 6 meses y {atencion:,} marcas en atención de 6 a 12 meses.
+
+**Cierre para decirlo al profesor**
+“Este dashboard convierte datos de marcas en una recomendación accionable: qué marcas proteger primero, cuáles tienen valor comercial y dónde existe riesgo legal por vencimiento o expediente”."""
+
+
 def respuesta_local_por_pregunta(mensaje: str):
     q = normalizar_txt(mensaje)
-    if any(x in q for x in ["LEGAL", "LEGALES", "LITIGIO", "LITIGIOS", "JUICIO", "JUICIOS", "DEMANDA", "AMPARO", "NULIDAD", "IMPI", "EXPEDIENTE", "EXPEDIENTES", "CONTROVERSIA"]):
-        return respuesta_legal_local(mensaje)
+    if pregunta_conclusion_integrada(mensaje):
+        return respuesta_conclusion_integrada(mensaje)
+    if pregunta_dashboard_presentacion(mensaje):
+        return respuesta_dashboard_presentacion_local(mensaje)
     if pregunta_roi_revenue_visual_2(mensaje):
         return respuesta_visual_2_roi_dinamica(mensaje)
+    if any(x in q for x in ["LEGAL", "LEGALES", "LITIGIO", "LITIGIOS", "JUICIO", "JUICIOS", "DEMANDA", "AMPARO", "NULIDAD", "IMPI", "EXPEDIENTE", "EXPEDIENTES", "CONTROVERSIA"]):
+        return respuesta_legal_local(mensaje)
     if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "TABLEAU", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO", "REGION", "ORIENTE", "VENTAS", "TRANSACCIONES"]):
         return respuesta_visuales_local(mensaje)
     if any(x in q for x in ["PRIORIDAD", "PRIORITARIA", "PRIORITARIAS", "RENOVAR"]):
@@ -1303,6 +1400,8 @@ Instrucción para esta respuesta:
 - La pregunta puede ser corta, informal o abierta. Interpreta la intención como lo haría ChatGPT y responde con el mejor análisis posible usando RAG, SQL y datos del portafolio.
 - Si el contexto recuperado trae expedientes, visuales o marcas relacionadas, úsalos aunque el usuario no haya escrito la palabra exacta.
 - Si no hay suficiente evidencia exacta, responde con una conclusión prudente y una sugerencia concreta de qué revisar, pero no dejes la respuesta vacía.
+- Si pide conclusión ejecutiva combinando riesgo legal, revenue y renovación, no respondas solo con expedientes legales: integra los tres temas.
+- Si pide explicar el dashboard como presentación, no lo reduzcas a Visual 2: explica el dashboard completo.
 - Si la pregunta es sobre tablas, columnas, KPIs o especificaciones del Visual 2, explica la estructura y cómo se interpreta cada parte.
 - Si la pregunta combina Visual 2, ROI y revenue, usa el ranking calculado del contexto y explica por qué una marca destaca. No respondas solo con definición de ROI.
 - Si el usuario dice que es nuevo o no sabe leer el dashboard, explica en pasos simples antes de dar el ranking.

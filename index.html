@@ -3622,6 +3622,100 @@ ${filas}
 El ROI aquí no es solo ganancia financiera inmediata; es el retorno de renovar/proteger una marca antes de perder valor legal o comercial. Una marca con buen revenue y crecimiento justifica más atención porque perderla o dejarla vencer puede costar más que renovarla a tiempo.`;
     }
 
+    function preguntaConclusionIntegrada(mensaje) {
+      const q = normalizarTextoChat(mensaje);
+      const pideCierre = q.includes('conclusion') ||
+        q.includes('ejecutiva') ||
+        q.includes('ejecutivo') ||
+        q.includes('combinando') ||
+        q.includes('combina') ||
+        q.includes('integra') ||
+        q.includes('resumen ejecutivo') ||
+        q.includes('sintesis');
+      let temas = 0;
+      if (q.includes('legal') || q.includes('litigio') || q.includes('riesgo')) temas += 1;
+      if (q.includes('revenue') || q.includes('sales') || q.includes('venta') || q.includes('ingreso') || q.includes('roi')) temas += 1;
+      if (q.includes('renovacion') || q.includes('renovar') || q.includes('vencimiento') || q.includes('vencer')) temas += 1;
+      return pideCierre && temas >= 2;
+    }
+
+    function preguntaDashboardPresentacion(mensaje) {
+      const q = normalizarTextoChat(mensaje);
+      const pideAprender = q.includes('soy nuevo') ||
+        q.includes('no se') ||
+        q.includes('no entiendo') ||
+        q.includes('explicame') ||
+        q.includes('explica') ||
+        q.includes('como leer');
+      const pidePresentacion = q.includes('presentacion') ||
+        q.includes('exposicion') ||
+        q.includes('profesor') ||
+        q.includes('explicarlo');
+      const pideDashboard = q.includes('dashboard') ||
+        q.includes('dash') ||
+        q.includes('visuales') ||
+        q.includes('visual') ||
+        q.includes('tableau') ||
+        q.includes('tableu');
+      return pideDashboard && (pideAprender || pidePresentacion);
+    }
+
+    function respuestaConclusionIntegrada(mensaje = '') {
+      const base = marcasValidas();
+      const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = base.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
+      const criticas = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6).length;
+      const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
+      const top = topRoiRevenueVisual2(3, false);
+      const legalCount = legalData && legalData.total_expedientes ? legalData.total_expedientes : 0;
+      const docsCount = legalData && legalData.total_archivos ? legalData.total_archivos : 0;
+      const topTxt = top.length
+        ? top.map(m => `- **${nombreLimpio(m.nombre)}**: Revenue Por Lead ${numeroSeguro(m.revenueLead, 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })}, Crecimiento Total Sales ${formatoCrecimientoTotalSales(m.crecimientoTotalSales)}, probabilidad de renovación ${numeroSeguro(m.prob, 0).toFixed(1)}%.`).join('\n')
+        : '- No hay ranking comercial disponible.';
+
+      return `**Conclusión ejecutiva**
+El portafolio debe gestionarse como una decisión combinada de **riesgo legal, valor comercial y renovación**. La prioridad no es renovar todo por igual, sino proteger primero las marcas que todavía están vigentes, tienen vencimiento cercano y además sostienen valor por revenue, crecimiento o conversión.
+
+**Evidencia clave**
+- Portafolio analizado: ${base.length.toLocaleString()} registros válidos.
+- Vigentes: ${vigentes.toLocaleString()}; vencidas: ${vencidas.toLocaleString()}.
+- Riesgo inmediato: ${criticas.toLocaleString()} marcas vigentes críticas de 0 a 6 meses.
+- Atención prioritaria: ${atencion.toLocaleString()} marcas vigentes entre 6 y 12 meses.
+- Referencia legal disponible: ${legalCount.toLocaleString()} expedientes y ${docsCount.toLocaleString()} documentos.
+
+**Marcas con señal comercial fuerte**
+${topTxt}
+
+**Recomendación**
+Cruzar el semáforo de vencimiento con revenue y expedientes legales: primero renovar o revisar las vigentes críticas con mayor valor comercial; después calendarizar las de 6 a 12 meses; y dejar las vencidas históricas para una mesa separada legal-comercial.`;
+    }
+
+    function respuestaDashboardPresentacion(mensaje = '') {
+      const base = marcasValidas();
+      const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = base.filter(m => m.estatus === 'VENCIDO' || numeroSeguro(m.tiempo, 999) < 0).length;
+      const criticas = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) >= 0 && numeroSeguro(m.tiempo, 999) <= 6).length;
+      const atencion = base.filter(m => m.estatus === 'VIGENTE' && numeroSeguro(m.tiempo, 999) > 6 && numeroSeguro(m.tiempo, 999) <= 12).length;
+
+      return `**Cómo explicar el dashboard en una presentación**
+Piensa en el dashboard como una historia de decisión: primero muestra el tamaño del portafolio, luego el desempeño comercial y al final el riesgo de renovación.
+
+**1. Panorama general**
+El inicio resume la salud del portafolio: hay ${base.length.toLocaleString()} registros válidos, con ${vigentes.toLocaleString()} marcas vigentes y ${vencidas.toLocaleString()} vencidas. Esta parte sirve para dimensionar el problema.
+
+**2. Desempeño comercial**
+Los visuales de segmentos muestran dónde está el movimiento: Digital concentra 62.4%, Físico 37.6%; por región, Centro lidera con 47.5%, seguido de Occidente 22.5%, Norte/Oriente 17.5% y Sur 12.5%.
+
+**3. Modelo predictivo**
+La sección de predicción recomienda si conviene renovar usando variables como conversión, antigüedad, ReviewScore, tasa de devolución, Crecimiento Total Sales y tiempo restante de renovación.
+
+**4. Riesgo legal y renovación**
+El Visual 2 es el más importante para tomar acción: identifica ${criticas.toLocaleString()} marcas críticas de 0 a 6 meses y ${atencion.toLocaleString()} marcas en atención de 6 a 12 meses.
+
+**Cierre para decirlo al profesor**
+“Este dashboard convierte datos de marcas en una recomendación accionable: qué marcas proteger primero, cuáles tienen valor comercial y dónde existe riesgo legal por vencimiento o expediente”.`;
+    }
+
     function respuestaVisualesLocal(mensaje = '') {
       const base = marcasValidas();
       const vigentes = base.filter(m => m.estatus === 'VIGENTE').length;
@@ -3959,6 +4053,10 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
         q.includes('transacciones');
 
       const base = marcasValidas();
+
+      if (preguntaConclusionIntegrada(mensaje)) return respuestaConclusionIntegrada(mensaje);
+
+      if (preguntaDashboardPresentacion(mensaje)) return respuestaDashboardPresentacion(mensaje);
 
       const legalLocal = respuestaLegalLocal(mensaje);
       if (legalLocal) return legalLocal;
