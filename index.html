@@ -3751,7 +3751,7 @@ En Riesgo Legal, hay ${criticas.toLocaleString()} marcas vigentes críticas de 0
     function respuestaLegalLocal(mensaje) {
       if (!legalData || !Array.isArray(legalData.expedientes)) return null;
       const q = normalizarTextoChat(mensaje);
-      const legalKeys = ['legal','expediente','juicio','nulidad','oposicion','amparo','infraccion','cesion','demanda','sentencia','alegatos','impi','registro','click','collect','beauty','haus','kuche','burberry','bmw','byd','little','kitchen'];
+      const legalKeys = ['legal','legales','expediente','expedientes','juicio','juicios','litigio','litigios','controversia','controversias','procedimiento','procedimientos','conflicto','conflictos','nulidad','oposicion','oposiciones','amparo','amparos','infraccion','infracciones','cesion','cesiones','demanda','sentencia','alegatos','impi','registro','click','collect','beauty','haus','kuche','burberry','bmw','byd','little','kitchen'];
       const pareceLegal = legalKeys.some(k => q.includes(k));
       if (!pareceLegal) return null;
 
@@ -4010,12 +4010,15 @@ ${dataGrupo ? '\n' + dataGrupo : ''}`;
     }
 
         function respuestaFallbackIA(mensaje, detalle = '') {
-      const resumen = topRenovacionAgrupada(5);
-      const bullets = resumen.length
-        ? resumen.map((m, i) => `${i + 1}. ${m.nombre} | Clases ${m.clases.join(', ')} | ${formatoMeses(m.tiempo)} | Prob. ${m.prob}% | ReviewScore ${m.score}`).join('\n')
-        : 'No encontré marcas prioritarias cargadas.';
+      const resumenPortafolio = generarResumenPortafolio(mensaje);
+      const q = normalizarTextoChat(mensaje);
+      const enfoque = q.includes('legal') || q.includes('litigio') || q.includes('juicio')
+        ? 'Desde la parte legal, conviene cruzar expedientes y riesgo de renovación para detectar marcas que requieren revisión prioritaria.'
+        : q.includes('visual') || q.includes('dashboard') || q.includes('tableau')
+          ? 'Desde el dashboard, la lectura útil es conectar desempeño comercial con riesgo de renovación y protección de marca.'
+          : 'La lectura útil es conectar portafolio, desempeño comercial, riesgo legal y recomendación de renovación.';
 
-      return `**Resumen ejecutivo**\nEstas son las marcas que requieren atención prioritaria por vencimiento, probabilidad de renovación y desempeño.\n\n**Marcas prioritarias**\n${bullets}\n\n**Recomendación**\nPriorizar primero marcas vigentes próximas a vencer, después vigentes de 12 a 24 meses y finalmente vencidas recientes. Las vencidas históricas conviene revisarlas por separado con legal y comercial.`;
+      return `**Lectura con datos disponibles**\n${enfoque}\n\n${resumenPortafolio}\n\n**Siguiente paso recomendado**\nFormula la pregunta con una marca, visual, región, riesgo, litigio o variable específica y puedo aterrizarlo con más detalle.`;
     }
 
     function esErrorGemini(texto) {

@@ -66,33 +66,34 @@ class LiverpoolSQLStore:
                 conn.execute("DELETE FROM marcas")
 
             count = conn.execute("SELECT COUNT(*) FROM marcas").fetchone()[0]
-            if count == 0 and marcas:
-                rows = []
-                for marca in marcas:
-                    if not isinstance(marca, dict):
-                        continue
-                    rows.append(
-                        (
-                            marca.get("nombre", ""),
-                            marca.get("clase", ""),
-                            marca.get("noreg", ""),
-                            marca.get("estatus", ""),
-                            marca.get("vigencia", ""),
-                            n(marca.get("tiempo")),
-                            n(marca.get("prob")),
-                            marca.get("review", ""),
-                            n(marca.get("score")),
-                            marca.get("clasificacion", ""),
-                            marca.get("region", ""),
-                            marca.get("canal", ""),
-                            marca.get("segmento", ""),
-                            n(marca.get("conversion")),
-                            n(marca.get("revenueLead")),
-                            n(marca.get("crecimientoTotalSales")),
-                            n(marca.get("devolucion")),
-                            n(marca.get("antiguedad")),
-                        )
+            rows = []
+            for marca in marcas or []:
+                if not isinstance(marca, dict):
+                    continue
+                rows.append(
+                    (
+                        marca.get("nombre", ""),
+                        marca.get("clase", ""),
+                        marca.get("noreg", ""),
+                        marca.get("estatus", ""),
+                        marca.get("vigencia", ""),
+                        n(marca.get("tiempo")),
+                        n(marca.get("prob")),
+                        marca.get("review", ""),
+                        n(marca.get("score")),
+                        marca.get("clasificacion", ""),
+                        marca.get("region", ""),
+                        marca.get("canal", ""),
+                        marca.get("segmento", ""),
+                        n(marca.get("conversion")),
+                        n(marca.get("revenueLead")),
+                        n(marca.get("crecimientoTotalSales")),
+                        n(marca.get("devolucion")),
+                        n(marca.get("antiguedad")),
                     )
+                )
+            if rows and (force or count != len(rows)):
+                conn.execute("DELETE FROM marcas")
                 conn.executemany(
                     """
                     INSERT INTO marcas (

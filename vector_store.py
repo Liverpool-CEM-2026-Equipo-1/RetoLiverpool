@@ -110,10 +110,11 @@ def legal_a_documentos(legal_data: dict[str, Any]) -> list[tuple[str, str, dict[
     for caso in legal_data.get("expedientes", []) or []:
         base_id = hashlib.sha1(str(caso.get("carpeta", "")).encode("utf-8")).hexdigest()
         texto_caso = f"""
-Expediente legal: {caso.get('carpeta', '')}.
+Expediente legal o litigio marcario: {caso.get('carpeta', '')}.
 Marca o asunto: {caso.get('marca_o_asunto', '')}.
 Temas: {', '.join(caso.get('temas', []) or [])}.
 Resumen: {caso.get('resumen_referencia', '')}.
+Uso en chatbot: responder preguntas sobre litigios, juicios, controversias, procedimientos legales, IMPI, demandas, amparos, oposiciones, nulidades, sentencias y riesgos legales de marcas Liverpool.
 """.strip()
         documentos.append(
             (
@@ -128,11 +129,12 @@ Resumen: {caso.get('resumen_referencia', '')}.
         )
         for i, doc in enumerate(caso.get("documentos", []) or []):
             texto_doc = f"""
-Documento legal: {doc.get('nombre', '')}.
+Documento legal de litigio o procedimiento marcario: {doc.get('nombre', '')}.
 Tipo: {doc.get('tipo_documento', '')}.
 Expediente: {caso.get('carpeta', '')}.
 Marca o asunto: {caso.get('marca_o_asunto', '')}.
 Extracto: {doc.get('texto_muestra', '')}.
+Uso en chatbot: evidencia para responder preguntas abiertas sobre litigios, riesgo legal, defensa marcaria, expedientes y documentos de Liverpool.
 """.strip()
             documentos.append(
                 (
@@ -190,25 +192,6 @@ def deduplicar_documentos(docs: list[tuple[str, str, dict[str, Any]]]) -> list[t
     return unicos
 
 
-
-def leer_marcas_de_sqlite(sqlite_path: str) -> list[dict[str, Any]]:
-    """Lee las marcas directamente desde SQLite — sin necesidad del JSON."""
-    import sqlite3
-    conn = sqlite3.connect(sqlite_path)
-    conn.row_factory = sqlite3.Row
-    try:
-        rows = conn.execute("SELECT * FROM marcas").fetchall()
-        marcas = []
-        for row in rows:
-            m = dict(row)
-            # Mapear nombres de columnas SQLite → nombres que usa marca_a_documento()
-            m["revenueLead"]           = m.pop("revenue_lead", None)
-            m["crecimientoTotalSales"] = m.pop("crecimiento_total_sales", None)
-            marcas.append(m)
-        return marcas
-    finally:
-        conn.close()
-
 class LiverpoolVectorStore:
     def __init__(self, base_dir: str):
         self.base_dir = base_dir
@@ -219,10 +202,7 @@ class LiverpoolVectorStore:
         self.collection = None
         os.makedirs(base_dir, exist_ok=True)
 
-    def build(self, sqlite_path: str, legal_data: dict[str, Any], force: bool = False) -> dict[str, Any]:
-        """Construye la base vectorial leyendo las marcas directamente desde SQLite."""
-        marcas = leer_marcas_de_sqlite(sqlite_path)
-        print(f"[VectorStore] {len(marcas)} marcas leídas de SQLite")
+    def build(self, marcas: list[dict[str, Any]], legal_data: dict[str, Any], force: bool = False) -> dict[str, Any]:
         docs = deduplicar_documentos(construir_documentos(marcas, legal_data))
         try:
             return self._build_chroma(docs, force=force)
@@ -245,10 +225,10 @@ class LiverpoolVectorStore:
             embedding_function=HashingEmbeddingFunction(),
             metadata={"descripcion": "Base vectorial de marcas, visuales y referencias legales Liverpool"},
         )
-        if collection.count() == 0 and docs:
+        if docs and (force or collection.count() < len(docs)):
             for start in range(0, len(docs), 500):
                 batch = docs[start : start + 500]
-                collection.add(
+                collection.upsert(
                     ids=[item[0] for item in batch],
                     documents=[item[1] for item in batch],
                     metadatas=[item[2] for item in batch],
@@ -274,7 +254,7 @@ class LiverpoolVectorStore:
             if force:
                 conn.execute("DELETE FROM vectors")
             count = conn.execute("SELECT COUNT(*) FROM vectors").fetchone()[0]
-            if count == 0 and docs:
+            if docs and (force or count < len(docs)):
                 rows = [
                     (doc_id, document, json.dumps(meta, ensure_ascii=False), json.dumps(embedding_hashing(document)))
                     for doc_id, document, meta in docs

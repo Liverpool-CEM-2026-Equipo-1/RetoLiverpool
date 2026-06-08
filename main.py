@@ -551,8 +551,11 @@ def contexto_legal(pregunta: str, limite_casos: int = 6, limite_docs: int = 6) -
         "LEGAL", "EXPEDIENTE", "EXPEDIENTES", "JUICIO", "JUICIOS", "NULIDAD",
         "OPOSICION", "OPOSICIONES", "AMPARO", "AMPAROS", "INFRACCION",
         "INFRACCIONES", "CESION", "CESIONES", "DEMANDA", "SENTENCIA",
-        "ALEGATOS", "IMPI", "REGISTRO", "CLICK", "COLLECT", "BEAUTY",
-        "HAUS", "KUCHE", "BURBERRY", "BMW", "BYD", "LITTLE", "KITCHEN"
+        "ALEGATOS", "LITIGIO", "LITIGIOS", "LITIGIOSO", "LITIGIOSOS",
+        "CONTROVERSIA", "CONTROVERSIAS", "PROCEDIMIENTO", "PROCEDIMIENTOS",
+        "CONFLICTO", "CONFLICTOS", "CASO", "CASOS", "IMPI", "REGISTRO",
+        "CLICK", "COLLECT", "BEAUTY", "HAUS", "KUCHE", "BURBERRY", "BMW",
+        "BYD", "LITTLE", "KITCHEN"
     }
     stop = {
         "QUE", "CUAL", "CUALES", "COMO", "PARA", "LOS", "LAS", "DEL", "CON",
@@ -623,7 +626,7 @@ Documentos relacionados:
     return "\n".join(partes)
 
 
-def contexto_vectorial(pregunta: str, limite: int = 6) -> str:
+def contexto_vectorial(pregunta: str, limite: int = 10) -> str:
     if vector_store is None:
         return ""
     try:
@@ -964,8 +967,56 @@ En renovación por región, Norte/Oriente está en 84.8%, muy cerca del promedio
 Para tu informe, la lectura clave es: el dashboard no solo muestra ventas o segmentos, también conecta desempeño comercial con protección legal y prioridad de renovación."""
 
 
+def respuesta_legal_local(mensaje: str = ""):
+    if not legal_cache or not legal_cache.get("expedientes"):
+        return """**Litigios y Liverpool**
+No tengo cargada la referencia de expedientes legales en este momento. Para responder sobre litigios, debe estar el archivo legal_references.json junto a main.py."""
+
+    q = normalizar_txt(mensaje)
+    terms = [t for t in q.split() if len(t) >= 4 and t not in {"LIVERPOOL", "LITIGIOS", "LITIGIO"}]
+    scored = []
+    for caso in legal_cache.get("expedientes", []):
+        docs = caso.get("documentos", [])
+        searchable = " ".join([
+            str(caso.get("carpeta", "")),
+            str(caso.get("marca_o_asunto", "")),
+            " ".join(caso.get("temas", [])),
+            str(caso.get("resumen_referencia", "")),
+            " ".join(str(d.get("nombre", "")) for d in docs[:10]),
+            " ".join(str(d.get("texto_muestra", ""))[:350] for d in docs[:5]),
+        ])
+        ns = normalizar_txt(searchable)
+        score = sum(4 for t in terms if t in ns)
+        score += 1 if "LIVERPOOL" in ns else 0
+        if score:
+            scored.append((score, caso))
+
+    casos = [c for _, c in sorted(scored, key=lambda x: x[0], reverse=True)[:5]]
+    if not casos:
+        casos = legal_cache.get("expedientes", [])[:5]
+
+    filas = []
+    for caso in casos:
+        temas = ", ".join(caso.get("temas", [])[:5]) or "tema legal no clasificado"
+        filas.append(
+            f"- **{caso.get('marca_o_asunto', caso.get('carpeta'))}**: {temas}. "
+            f"{caso.get('conteo_archivos', 0)} documentos relacionados."
+        )
+
+    return f"""**Litigios y Liverpool**
+La base legal disponible reúne **{legal_cache.get('total_expedientes', 0)} expedientes** y **{legal_cache.get('total_archivos', 0)} documentos** asociados a marcas o asuntos del portafolio.
+
+**Casos relevantes**
+{chr(10).join(filas)}
+
+**Lectura clave**
+Estos expedientes ayudan a detectar marcas con riesgo legal, antecedentes de oposición, amparo, demanda, sentencia o procedimientos ante autoridad. Para una revisión ejecutiva, conviene cruzar estos casos con vencimientos, valor comercial y prioridad de renovación."""
+
+
 def respuesta_local_por_pregunta(mensaje: str):
     q = normalizar_txt(mensaje)
+    if any(x in q for x in ["LEGAL", "LEGALES", "LITIGIO", "LITIGIOS", "JUICIO", "JUICIOS", "DEMANDA", "AMPARO", "NULIDAD", "IMPI", "EXPEDIENTE", "EXPEDIENTES", "CONTROVERSIA"]):
+        return respuesta_legal_local(mensaje)
     if pregunta_roi_revenue_visual_2(mensaje):
         return respuesta_visual_2_roi_dinamica(mensaje)
     if any(x in q for x in ["VISUAL", "VISUALES", "DASHBOARD", "TABLEAU", "INFORME", "EXPLICAME", "EXPLICA", "NO ENTIENDO", "REGION", "ORIENTE", "VENTAS", "TRANSACCIONES"]):
@@ -998,6 +1049,8 @@ REGLAS:
 - Si el usuario pide explicación o informe, usa subtítulos breves y bullets claros.
 - No empieces siempre con "Resumen ejecutivo"; úsalo solo cuando realmente pida un informe o resumen formal.
 - Si la pregunta es ambigua, contesta con la lectura más útil y sugiere el siguiente paso.
+- No dependas de palabras clave exactas. Si el usuario pregunta algo abierto, corto o informal, interpreta la intención y usa el contexto recuperado, el agente SQL y los datos del portafolio para contestar.
+- Si no existe un dato exacto, no te quedes callado: explica qué sí se puede concluir con la evidencia disponible y qué dato haría falta para ser más preciso.
 
 Extensión:
 - Pregunta puntual: máximo 140 palabras.
@@ -1247,6 +1300,9 @@ async def chat(input: ChatInput):
 Instrucción para esta respuesta:
 - Responde analizando la pregunta con los datos reales del contexto.
 - No uses una plantilla fija.
+- La pregunta puede ser corta, informal o abierta. Interpreta la intención como lo haría ChatGPT y responde con el mejor análisis posible usando RAG, SQL y datos del portafolio.
+- Si el contexto recuperado trae expedientes, visuales o marcas relacionadas, úsalos aunque el usuario no haya escrito la palabra exacta.
+- Si no hay suficiente evidencia exacta, responde con una conclusión prudente y una sugerencia concreta de qué revisar, pero no dejes la respuesta vacía.
 - Si la pregunta es sobre tablas, columnas, KPIs o especificaciones del Visual 2, explica la estructura y cómo se interpreta cada parte.
 - Si la pregunta combina Visual 2, ROI y revenue, usa el ranking calculado del contexto y explica por qué una marca destaca. No respondas solo con definición de ROI.
 - Si el usuario dice que es nuevo o no sabe leer el dashboard, explica en pasos simples antes de dar el ranking.
