@@ -45,8 +45,12 @@ sql_store = None
 def load_assets():
     global model, marcas_cache, legal_cache, vector_store, sql_store
     if joblib is not None and os.path.exists(MODEL_PATH):
-        model = joblib.load(MODEL_PATH)
-        print("Modelo cargado correctamente")
+        try:
+            model = joblib.load(MODEL_PATH)
+            print("Modelo cargado correctamente")
+        except Exception as e:
+            model = None
+            print(f"ADVERTENCIA: No se pudo cargar gradient_boosted_liverpool.joblib: {e}")
     elif joblib is None:
         print("ADVERTENCIA: joblib no está instalado; /predecir usará el modelo del navegador")
     else:
@@ -66,7 +70,18 @@ def load_assets():
     else:
         print("ADVERTENCIA: No se encontró legal_references.json")
 
-    # 1. Primero construir SQLite (fuente de verdad)
+    try:
+        vector_store = LiverpoolVectorStore(VECTOR_DB_PATH)
+        vector_info = vector_store.build(
+            marcas_cache,
+            legal_cache,
+            force=env_limpia("REBUILD_VECTOR_DB", "").lower() in ("1", "true", "si", "sí", "yes"),
+        )
+        print(f"Base vectorial lista: {vector_info}")
+    except Exception as e:
+        vector_store = None
+        print(f"ADVERTENCIA: No se pudo iniciar la base vectorial: {e}")
+
     try:
         sql_store = LiverpoolSQLStore(SQL_DB_PATH)
         sql_info = sql_store.build(
@@ -77,22 +92,6 @@ def load_assets():
     except Exception as e:
         sql_store = None
         print(f"ADVERTENCIA: No se pudo iniciar la base SQL: {e}")
-
-    # 2. Luego construir ChromaDB leyendo desde SQLite (no desde JSON)
-    try:
-        vector_store = LiverpoolVectorStore(VECTOR_DB_PATH)
-        sqlite_fuente = sql_store.sqlite_path if sql_store else None
-        if sqlite_fuente is None:
-            raise RuntimeError("SQLite no disponible para construir la base vectorial")
-        vector_info = vector_store.build(
-            sqlite_fuente,
-            legal_cache,
-            force=env_limpia("REBUILD_VECTOR_DB", "").lower() in ("1", "true", "si", "sí", "yes"),
-        )
-        print(f"Base vectorial lista: {vector_info}")
-    except Exception as e:
-        vector_store = None
-        print(f"ADVERTENCIA: No se pudo iniciar la base vectorial: {e}")
 
 class MarcaInput(BaseModel):
     ticket_promedio: float = 200.0
