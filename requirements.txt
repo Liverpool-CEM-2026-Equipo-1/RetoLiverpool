@@ -1,8 +1,15 @@
-fastapi
-uvicorn
-joblib
-scikit-learn==1.6.1
-pandas
-numpy
-pydantic
-httpx
+# Liverpool · Inteligencia de Marcas — requirements.txt
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+httpx==0.27.0
+pydantic==2.7.4
+python-dotenv==1.0.1
+
+# Base vectorial (embeddings por hashing — sin sentence-transformers)
+chromadb==0.5.0
+
+# Modelo predictivo Gradient Boosting
+scikit-learn==1.5.0
+joblib==1.4.2
+numpy==1.26.4
+pandas==2.2.2

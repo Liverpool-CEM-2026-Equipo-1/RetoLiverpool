@@ -7,6 +7,9 @@ import json
 import re
 from typing import Optional
 
+from sql_store import LiverpoolSQLStore
+from vector_store import LiverpoolVectorStore
+
 try:
     import joblib
 except ImportError:
@@ -30,13 +33,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "gradient_boosted_liverpool.joblib")
 DATA_PATH = os.path.join(BASE_DIR, "marcas_data.json")
 LEGAL_PATH = os.path.join(BASE_DIR, "legal_references.json")
+VECTOR_DB_PATH = os.path.join(BASE_DIR, "vector_db")
+SQL_DB_PATH = os.path.join(BASE_DIR, "sql_db")
 model = None
 marcas_cache = []
 legal_cache = {}
+vector_store = None
+sql_store = None
 
 @app.on_event("startup")
 def load_assets():
-    global model, marcas_cache, legal_cache
+    global model, marcas_cache, legal_cache, vector_store, sql_store
     if joblib is not None and os.path.exists(MODEL_PATH):
         model = joblib.load(MODEL_PATH)
         print("Modelo cargado correctamente")
@@ -58,6 +65,34 @@ def load_assets():
         print(f"legal_references.json cargado: {legal_cache.get('total_expedientes', 0)} expedientes")
     else:
         print("ADVERTENCIA: No se encontró legal_references.json")
+
+    # 1. Primero construir SQLite (fuente de verdad)
+    try:
+        sql_store = LiverpoolSQLStore(SQL_DB_PATH)
+        sql_info = sql_store.build(
+            marcas_cache,
+            force=env_limpia("REBUILD_SQL_DB", "").lower() in ("1", "true", "si", "sí", "yes"),
+        )
+        print(f"Base SQL lista: {sql_info}")
+    except Exception as e:
+        sql_store = None
+        print(f"ADVERTENCIA: No se pudo iniciar la base SQL: {e}")
+
+    # 2. Luego construir ChromaDB leyendo desde SQLite (no desde JSON)
+    try:
+        vector_store = LiverpoolVectorStore(VECTOR_DB_PATH)
+        sqlite_fuente = sql_store.sqlite_path if sql_store else None
+        if sqlite_fuente is None:
+            raise RuntimeError("SQLite no disponible para construir la base vectorial")
+        vector_info = vector_store.build(
+            sqlite_fuente,
+            legal_cache,
+            force=env_limpia("REBUILD_VECTOR_DB", "").lower() in ("1", "true", "si", "sí", "yes"),
+        )
+        print(f"Base vectorial lista: {vector_info}")
+    except Exception as e:
+        vector_store = None
+        print(f"ADVERTENCIA: No se pudo iniciar la base vectorial: {e}")
 
 class MarcaInput(BaseModel):
     ticket_promedio: float = 200.0
@@ -82,6 +117,16 @@ class BatchInput(BaseModel):
 class ChatInput(BaseModel):
     mensaje: str
     historial: list = []
+
+
+class VectorSearchInput(BaseModel):
+    consulta: str
+    limite: int = 6
+
+
+class SQLQueryInput(BaseModel):
+    consulta: str
+    limite: int = 8
 
 
 def env_limpia(nombre: str, default: str = "") -> str:
@@ -579,6 +624,69 @@ Documentos relacionados:
     return "\n".join(partes)
 
 
+def contexto_vectorial(pregunta: str, limite: int = 6) -> str:
+    if vector_store is None:
+        return ""
+    try:
+        resultados = vector_store.search(pregunta, k=limite)
+    except Exception as e:
+        print(f"Base vectorial no respondió: {e}")
+        return ""
+    if not resultados:
+        return ""
+
+    bloques = []
+    for i, item in enumerate(resultados, 1):
+        meta = item.get("metadata") or {}
+        tipo = meta.get("tipo", "contexto")
+        score = item.get("score")
+        score_txt = f" | similitud {score:.3f}" if isinstance(score, (int, float)) else ""
+        documento = str(item.get("documento", "")).strip()
+        bloques.append(f"{i}. Tipo: {tipo}{score_txt}\n{documento[:900]}")
+
+    backend = "desconocido"
+    try:
+        backend = vector_store.status().get("backend", "desconocido")
+    except Exception:
+        pass
+
+    return f"""
+Contexto recuperado desde base de datos vectorial ({backend}):
+{chr(10).join(bloques)}
+
+Regla: usa este contexto vectorial para complementar la respuesta cuando sea relevante. Si contradice una cifra exacta del contexto tabular, prioriza la cifra exacta del portafolio.
+"""
+
+
+def contexto_sql(pregunta: str, limite: int = 8) -> str:
+    if sql_store is None:
+        return ""
+    try:
+        data = sql_store.query_agent(pregunta, limite=limite)
+    except Exception as e:
+        print(f"Agente SQL no respondió: {e}")
+        return ""
+
+    resultados = data.get("resultados") or []
+    if not resultados:
+        return ""
+
+    filas = []
+    for i, row in enumerate(resultados[:limite], 1):
+        partes = [f"{key}: {value}" for key, value in row.items()]
+        filas.append(f"{i}. " + " | ".join(partes))
+
+    return f"""
+Contexto recuperado por agente SQL:
+- Tipo de consulta: {data.get("tipo")}
+- SQL ejecutado: {data.get("consulta_sql")}
+- Resultados:
+{chr(10).join(filas)}
+
+Regla: usa el agente SQL para conteos, rankings, filtros, grupos por región/canal/estatus y consultas estructuradas. Puedes combinar este resultado con el contexto vectorial.
+"""
+
+
 def contexto_marca_grupo(pregunta: str, limite: int = 15) -> str:
     grupo = marcas_por_pregunta(pregunta)
     if not grupo:
@@ -676,6 +784,8 @@ def contexto_portafolio(pregunta: str = ""):
     ])
     grupo_txt = contexto_marca_grupo(pregunta)
     legal_txt = contexto_legal(pregunta)
+    vector_txt = contexto_vectorial(pregunta)
+    sql_txt = contexto_sql(pregunta)
     visual_2_tablas_txt = contexto_visual_2_tablas(pregunta)
     visual_2_roi_revenue_txt = contexto_visual_2_roi_revenue(pregunta)
     return f"""Datos reales disponibles del portafolio Liverpool:
@@ -731,11 +841,16 @@ Si el usuario pide "explica los visuales", "hazme un informe" o "no entiendo el 
 
 {visual_2_roi_revenue_txt}
 
+{vector_txt}
+
+{sql_txt}
+
 {legal_txt}
 
 Reglas de respuesta:
 - Puedes responder preguntas sobre marcas, visuales, predicción, riesgo legal, segmentos, tendencias, ventas/transacciones y Tableau.
 - También puedes responder sobre expedientes legales y marcarios usando la referencia legal indexada.
+- Cuando la pregunta pida conteos, rankings, filtros, regiones, revenue, riesgo o prioridad, combina la salida del agente SQL con la recuperación vectorial si ambos aportan evidencia.
 - No digas que no tienes datos de visuales si el dato aparece en el contexto anterior.
 - Si el usuario pide porcentaje de ventas por región, usa los porcentajes regionales del visual de Segmentos.
 - Regla de negocio: para urgencia operativa prioriza marcas VIGENTES próximas a vencer. Las marcas vencidas históricas se revisan aparte y no deben mezclarse como urgencia inmediata."""
@@ -997,6 +1112,8 @@ async def llamar_openai(prompt: str, historial: list) -> Optional[str]:
 
 @app.get("/")
 def root():
+    vector_status = vector_store.status() if vector_store is not None else {"ready": False, "backend": "none", "documentos": 0}
+    sql_status = sql_store.status() if sql_store is not None else {"ready": False, "backend": "sqlite", "registros": 0}
     return {
         "status": "ok",
         "mensaje": "Liverpool Marcas API funcionando",
@@ -1006,6 +1123,87 @@ def root():
         "openai_configurado": bool(env_limpia("OPENAI_API_KEY")),
         "expedientes_legales": legal_cache.get("total_expedientes", 0) if legal_cache else 0,
         "archivos_legales": legal_cache.get("total_archivos", 0) if legal_cache else 0,
+        "base_vectorial": vector_status,
+        "base_sql": sql_status,
+    }
+
+
+@app.get("/vector-status")
+def vector_status():
+    if vector_store is None:
+        return {"ready": False, "backend": "none", "documentos": 0}
+    return vector_store.status()
+
+
+@app.post("/vector-search")
+def vector_search(input: VectorSearchInput):
+    if vector_store is None:
+        return {
+            "status": {"ready": False, "backend": "none", "documentos": 0},
+            "resultados": [],
+        }
+    limite = max(1, min(int(input.limite or 6), 12))
+    return {
+        "status": vector_store.status(),
+        "resultados": vector_store.search(input.consulta, k=limite),
+    }
+
+
+@app.get("/sql-status")
+def sql_status():
+    if sql_store is None:
+        return {"ready": False, "backend": "sqlite", "registros": 0}
+    return sql_store.status()
+
+
+@app.post("/sql-query")
+def sql_query(input: SQLQueryInput):
+    if sql_store is None:
+        return {
+            "status": {"ready": False, "backend": "sqlite", "registros": 0},
+            "resultados": [],
+        }
+    limite = max(1, min(int(input.limite or 8), 20))
+    return {
+        "status": sql_store.status(),
+        "respuesta_sql": sql_store.query_agent(input.consulta, limite=limite),
+    }
+
+
+@app.get("/agent-status")
+def agent_status():
+    vector_status_data = vector_store.status() if vector_store is not None else {"ready": False, "backend": "none", "documentos": 0}
+    sql_status_data = sql_store.status() if sql_store is not None else {"ready": False, "backend": "sqlite", "registros": 0}
+    return {
+        "status": "ok",
+        "patron_implementacion": "orquestador",
+        "combina_salida_de_varios_agentes": True,
+        "frontend_simple": "index.html y demo_agentes.html",
+        "puede_correr": "localhost o nube",
+        "agentes": {
+            "indexacion": {
+                "descripcion": "Almacena documentos del portafolio, visuales y referencias en una base de datos vectorial.",
+                "base_vectorial": vector_status_data,
+            },
+            "recuperacion": {
+                "descripcion": "Busca información semántica en la base de datos vectorial.",
+                "endpoint": "/vector-search",
+            },
+            "sql": {
+                "descripcion": "Busca información estructurada en una base de datos SQL SQLite.",
+                "base_sql": sql_status_data,
+                "endpoint": "/sql-query",
+            },
+            "generativo": {
+                "descripcion": "Redacta la respuesta final con Gemini y OpenAI como respaldo.",
+                "gemini_configurado": bool(env_limpia("GEMINI_API_KEY")),
+                "openai_configurado": bool(env_limpia("OPENAI_API_KEY")),
+            },
+            "predictivo": {
+                "descripcion": "Usa el modelo Gradient Boosting para recomendar renovación.",
+                "modelo_cargado": model is not None,
+            },
+        },
     }
 
 
