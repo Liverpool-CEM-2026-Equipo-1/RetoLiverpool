@@ -1,0 +1,2547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liverpool · Inteligencia de Marcas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink:        #D4006A;
+      --pink-light:  #F0338A;
+      --pink-soft:   #FAE6F2;
+      --purple-soft: #EDE8F8;
+      --lavender:    #C9C2F0;
+      --green:       #12A670;
+      --green-bg:    #E6F7F1;
+      --red:         #E53E3E;
+      --red-bg:      #FFF5F5;
+      --amber:       #D97706;
+      --amber-bg:    #FFFBEB;
+      --text:        #1A1A2E;
+      --text-muted:  #6B6B8A;
+      --border:      #E2DFF5;
+      --white:       #FFFFFF;
+      --bg-grad-1:   #EEE9FF;
+      --bg-grad-2:   #F9E8F4;
+      --bg-grad-3:   #F0F4FF;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 50%, var(--bg-grad-3) 100%);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 14px; }
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 20px; color: var(--pink);
+    }
+    .nav-divider { width: 1px; height: 22px; background: var(--border); }
+    .nav-subtitle { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all 0.2s; cursor: pointer;
+    }
+    .nav-links a:hover { background: var(--purple-soft); color: var(--text); }
+    .nav-links a.active { color: var(--pink); border-bottom: 2px solid var(--pink); border-radius: 0; padding-bottom: 4px; }
+
+    /* DROPDOWN */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-trigger {
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      padding: 6px 14px; border-radius: 8px; transition: all 0.2s; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; user-select: none;
+    }
+    .nav-dropdown-trigger:hover { background: var(--purple-soft); color: var(--text); }
+    .nav-dropdown-trigger.active { color: var(--pink); border-bottom: 2px solid var(--pink); border-radius: 0; padding-bottom: 4px; }
+    .nav-dropdown-trigger svg { transition: transform 0.2s; }
+    .nav-dropdown.open .nav-dropdown-trigger svg { transform: rotate(180deg); }
+    .nav-dropdown-menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 0;
+      background: white; border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(180,120,200,0.15); min-width: 200px; z-index: 200;
+      overflow: hidden;
+    }
+    .nav-dropdown.open .nav-dropdown-menu { display: block; }
+    .nav-dropdown-menu a {
+      display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      text-decoration: none; border-radius: 0; transition: all 0.15s; cursor: pointer;
+    }
+    .nav-dropdown-menu a:hover { background: var(--purple-soft); color: var(--pink); }
+    .nav-dropdown-menu a .menu-icon {
+      width: 28px; height: 28px; border-radius: 7px; background: var(--purple-soft);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nav-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--pink); color: white;
+      font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      font-family: 'Sora', sans-serif;
+    }
+    .user-info { text-align: right; }
+    .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .user-role { font-size: 11px; color: var(--text-muted); }
+
+    /* PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* HOME PAGE */
+    .hero { text-align: center; padding: 56px 24px 32px; }
+    .hero h1 {
+      font-family: 'Sora', sans-serif; font-size: 52px; font-weight: 800;
+      color: var(--text); letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.1;
+    }
+    .hero p { font-size: 18px; color: var(--text-muted); margin-bottom: 28px; }
+
+    /* TABS one-to-one / batch */
+    .mode-tabs {
+      display: flex; justify-content: center; gap: 0; margin-bottom: 20px;
+    }
+    .mode-tab {
+      padding: 10px 28px; font-size: 14px; font-weight: 600; font-family: 'Sora', sans-serif;
+      border: 1.5px solid var(--border); background: white; color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .mode-tab:first-child { border-radius: 10px 0 0 10px; }
+    .mode-tab:last-child { border-radius: 0 10px 10px 0; border-left: none; }
+    .mode-tab.active { background: var(--pink); color: white; border-color: var(--pink); }
+
+    /* ONE TO ONE */
+    .search-wrapper {
+      display: flex; align-items: center; max-width: 640px; margin: 0 auto 32px;
+      background: var(--white); border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(180,120,200,0.13);
+      overflow: hidden; border: 1.5px solid var(--border); transition: all 0.2s;
+    }
+    .search-wrapper:focus-within { border-color: var(--pink); box-shadow: 0 4px 32px rgba(212,0,106,0.15); }
+    .search-wrapper input {
+      flex: 1; border: none; outline: none; font-size: 15px; font-family: 'Inter', sans-serif;
+      color: var(--text); padding: 16px 20px; background: transparent;
+    }
+    .search-wrapper input::placeholder { color: #B0ACC8; }
+    .btn-analizar {
+      display: flex; align-items: center; gap: 8px; background: var(--pink); color: white;
+      border: none; padding: 14px 28px; font-size: 15px; font-weight: 600;
+      font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s;
+      white-space: nowrap; border-radius: 0 13px 13px 0;
+    }
+    .btn-analizar:hover { background: var(--pink-light); }
+
+    /* BATCH */
+    .batch-wrapper {
+      max-width: 640px; margin: 0 auto 32px; display: none;
+    }
+    .batch-wrapper.active { display: block; }
+    .batch-drop {
+      background: white; border: 2px dashed var(--border); border-radius: 16px;
+      padding: 40px 24px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .batch-drop:hover { border-color: var(--pink); background: var(--pink-soft); }
+    .batch-drop p { font-size: 15px; color: var(--text-muted); margin-top: 12px; }
+    .batch-drop span { font-size: 13px; color: var(--text-muted); }
+    .batch-drop input[type="file"] { display: none; }
+    .btn-pink {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--pink); color: white; border: none; padding: 12px 24px;
+      font-size: 14px; font-weight: 600; font-family: 'Sora', sans-serif;
+      cursor: pointer; border-radius: 10px; margin-top: 16px; transition: all 0.2s;
+    }
+    .btn-pink:hover { background: var(--pink-light); }
+
+    /* CARD */
+    .card-wrapper { display: flex; justify-content: center; padding: 0 24px 32px; }
+    .marca-card {
+      background: var(--white); border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(180,120,200,0.12);
+      border: 1.5px solid var(--border); width: 100%; max-width: 640px;
+      padding: 28px 32px 24px; animation: fadeUp 0.4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-top { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+    .brand-icon {
+      width: 72px; height: 72px; border-radius: 14px; background: var(--purple-soft);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .brand-info { flex: 1; }
+    .brand-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 2px; }
+    .brand-name { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .brand-class { font-size: 13px; color: var(--text-muted); }
+    .brand-status { text-align: right; }
+    .status-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 700; font-family: 'Sora', sans-serif;
+    }
+    .badge-vigente { background: var(--green-bg); color: var(--green); border: 1.5px solid #A8E8D0; }
+    .badge-vencido { background: var(--red-bg); color: var(--red); border: 1.5px solid #FEB2B2; }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .badge-vigente .badge-dot { background: var(--green); }
+    .badge-vencido .badge-dot { background: var(--red); }
+    .vigencia-date { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+    .vigencia-date span { font-weight: 600; color: var(--text); }
+    .divider { height: 1px; background: var(--border); margin: 0 0 16px; }
+    .recomendacion-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .rec-label { font-size: 15px; font-weight: 600; color: var(--text); }
+    .rec-value-renovar { font-size: 15px; font-weight: 700; color: var(--green); font-family: 'Sora', sans-serif; }
+    .rec-value-no { font-size: 15px; font-weight: 700; color: var(--red); font-family: 'Sora', sans-serif; }
+    .prob-bar-wrapper { margin-bottom: 16px; }
+    .prob-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .prob-bar { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+    .prob-fill.green { background: var(--green); }
+    .prob-fill.red { background: var(--red); }
+    .prob-fill.amber { background: var(--amber); }
+    .rec-value-evaluar { color: var(--amber); font-weight: 700; }
+    .prob-pct { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-outline {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1.5px solid var(--border); background: white; border-radius: 12px;
+      padding: 13px 16px; font-size: 14px; font-weight: 500; color: var(--text);
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--pink); color: var(--pink); background: var(--pink-soft); }
+
+    /* BATCH RESULTS */
+    .batch-results { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
+    #batchContent { width: 100%; overflow-x: hidden; }
+    .batch-charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; width: 100%; box-sizing: border-box; }
+    .bc-card { background: white; border-radius: 16px; border: 1.5px solid var(--border); padding: 20px 22px; box-shadow: 0 4px 20px rgba(180,120,200,.08); }
+    .bc-card h4 { font-family:'Sora',sans-serif; font-size:14px; font-weight:700; color:var(--text); margin:0 0 16px; }
+    .bc-bar-row { display:flex; align-items:center; gap:10px; margin:7px 0; }
+    .bc-label { font-size:12px; color:var(--text-muted); width:96px; flex-shrink:0; text-align:right; }
+    .bc-track { flex:1; height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
+    .bc-fill { height:100%; border-radius:5px; transition:width .6s ease; }
+    .bc-val { font-size:12px; font-weight:600; color:var(--text); width:32px; }
+    .bc-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .bc-kpi { border-radius:10px; padding:12px 14px; text-align:center; background:var(--purple-soft); }
+    .bc-kpi-val { font-family:'Sora',sans-serif; font-size:22px; font-weight:800; margin:0; }
+    .bc-kpi-lbl { font-size:11px; color:var(--text-muted); margin:2px 0 0; }
+    .bc-donut-wrap { display:flex; align-items:center; justify-content:center; gap:20px; }
+    .bc-legend { display:flex; flex-direction:column; gap:9px; }
+    .bc-legend-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
+    .bc-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+    .bc-legend-n { font-weight:700; color:var(--text); margin-left:auto; padding-left:8px; }
+    .batch-table-wrap { width: 100%; overflow-x: auto; border-radius: 16px; box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
+    .batch-results table { width: 100%; min-width: 600px; border-collapse: collapse; background: white; }
+    .batch-results th { white-space: nowrap; }
+    .batch-results td { white-space: nowrap; }
+    .batch-results td:first-child { white-space: normal; max-width: 200px; word-break: break-word; }
+    .batch-results th { background: var(--pink); color: white; padding: 12px 16px; text-align: left; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; }
+    .batch-results td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .batch-results tr:last-child td { border-bottom: none; }
+    .badge-sm {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+      border-radius: 999px; font-size: 12px; font-weight: 600; font-family: 'Sora', sans-serif;
+    }
+    .badge-sm.green { background: var(--green-bg); color: var(--green); }
+    .badge-sm.red { background: var(--red-bg); color: var(--red); }
+
+    /* BOTTOM NAV */
+    .bottom-nav { display: flex; justify-content: center; padding: 0 24px 48px; }
+    .bottom-nav-card {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: rgba(255,255,255,0.7); border: 1.5px solid var(--border);
+      padding: 14px 28px; font-size: 14px; font-weight: 500; color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
+    }
+    .bottom-nav-card:first-child { border-radius: 14px 0 0 14px; }
+    .bottom-nav-card:last-child { border-radius: 0 14px 14px 0; }
+    .bottom-nav-card + .bottom-nav-card { border-left: none; }
+    .bottom-nav-card:hover { background: white; color: var(--pink); border-color: var(--pink); z-index: 1; }
+    .bottom-nav-card svg { width: 16px; height: 16px; }
+
+    /* INNER PAGES */
+    .inner-page { padding: 40px 48px; max-width: 1100px; margin: 0 auto; }
+    .page-header { margin-bottom: 32px; }
+    .page-header h2 { font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+    .page-header p { font-size: 15px; color: var(--text-muted); }
+
+    /* PORTAFOLIO */
+    .filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .filter-select {
+      padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text);
+      background: white; cursor: pointer; outline: none;
+    }
+    .filter-select:focus { border-color: var(--pink); }
+    .portfolio-table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
+    .portfolio-table th { background: var(--pink); color: white; padding: 14px 16px; text-align: left; font-size: 13px; font-weight: 600; font-family: 'Sora', sans-serif; }
+    .portfolio-table td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .portfolio-table tr:last-child td { border-bottom: none; }
+    .portfolio-table tr:hover td { background: var(--purple-soft); }
+
+    /* STATS GRID */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card {
+      background: white; border-radius: 16px; padding: 20px 24px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 12px rgba(180,120,200,0.08);
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
+    .stat-value { font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 800; color: var(--text); }
+    .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* CHARTS */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+    .chart-card {
+      background: white; border-radius: 16px; padding: 24px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 12px rgba(180,120,200,0.08);
+    }
+    .chart-card h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+    .bar-chart { display: flex; flex-direction: column; gap: 12px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { font-size: 12px; color: var(--text-muted); width: 100px; text-align: right; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 10px; background: var(--purple-soft); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: var(--pink); }
+    .bar-val { font-size: 12px; font-weight: 600; color: var(--text); width: 40px; }
+    .donut-wrapper { display: flex; align-items: center; gap: 24px; }
+    .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* RIESGO */
+    .riesgo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .riesgo-card {
+      background: white; border-radius: 16px; padding: 20px 24px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 12px rgba(180,120,200,0.08);
+      border-left: 4px solid;
+    }
+    .riesgo-card.rojo { border-left-color: var(--red); }
+    .riesgo-card.amarillo { border-left-color: var(--amber); }
+    .riesgo-card.verde { border-left-color: var(--green); }
+    .riesgo-nombre { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .riesgo-venc { font-size: 12px; color: var(--text-muted); }
+    .riesgo-badge {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+      border-radius: 999px; font-size: 11px; font-weight: 700; margin-top: 8px;
+      font-family: 'Sora', sans-serif;
+    }
+    .riesgo-badge.rojo { background: var(--red-bg); color: var(--red); }
+    .riesgo-badge.amarillo { background: var(--amber-bg); color: var(--amber); }
+    .riesgo-badge.verde { background: var(--green-bg); color: var(--green); }
+
+    /* ANALISIS COMPLETO */
+    .analisis-page { padding: 40px 48px; max-width: 800px; margin: 0 auto; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+      color: var(--text-muted); cursor: pointer; margin-bottom: 24px; transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--pink); }
+    .analisis-header { background: white; border-radius: 20px; padding: 28px 32px; margin-bottom: 20px; border: 1.5px solid var(--border); box-shadow: 0 4px 24px rgba(180,120,200,0.1); }
+    .analisis-brand { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .prob-big { margin: 20px 0 0; }
+    .prob-big-label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .prob-big-bar { height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+    .prob-big-fill { height: 100%; border-radius: 999px; transition: width 0.8s ease; }
+    .prob-big-fill.green { background: linear-gradient(90deg, #12A670, #0ED488); }
+    .prob-big-fill.red { background: linear-gradient(90deg, #E53E3E, #FC8181); }
+    .prob-big-pct { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; }
+    .variables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .var-card {
+      background: white; border-radius: 14px; padding: 16px 20px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 8px rgba(180,120,200,0.06);
+      position: relative; cursor: default; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .var-card:hover { border-color: var(--pink); box-shadow: 0 4px 20px rgba(212,0,106,0.12); }
+    .var-tooltip {
+      display: none; position: absolute; bottom: calc(100% + 10px); left: 50%;
+      transform: translateX(-50%); background: #1a1a2e; color: white;
+      font-size: 12px; line-height: 1.5; padding: 10px 14px; border-radius: 10px;
+      width: 240px; z-index: 999; pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .var-tooltip::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: #1a1a2e;
+    }
+    .var-tooltip strong { color: var(--pink-light, #F472B6); display: block; margin-bottom: 4px; }
+    .var-card:hover .var-tooltip { display: block; }
+    .var-name { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .var-value { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+    .var-impact { font-size: 11px; font-weight: 600; margin-top: 4px; }
+    .var-impact.pos { color: var(--green); }
+    .var-impact.neg { color: var(--red); }
+    .var-impact.neu { color: var(--text-muted); }
+    .razon-card {
+      background: white; border-radius: 16px; padding: 20px 24px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 8px rgba(180,120,200,0.06);
+    }
+    .razon-card h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+    .razon-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    /* TABLEAU PLACEHOLDER */
+    .tableau-placeholder {
+      background: white; border-radius: 20px; padding: 80px 40px; text-align: center;
+      border: 2px dashed var(--border); margin: 32px 0;
+    }
+    .tableau-placeholder h3 { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+    .tableau-placeholder p { font-size: 14px; color: var(--text-muted); }
+
+    /* SEGMENTOS */
+    .seg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .seg-card {
+      background: white; border-radius: 16px; padding: 20px 24px;
+      border: 1.5px solid var(--border); box-shadow: 0 2px 12px rgba(180,120,200,0.08);
+    }
+    .seg-title { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+    .seg-bar-group { display: flex; flex-direction: column; gap: 10px; }
+    .seg-bar-row { display: flex; align-items: center; gap: 10px; }
+    .seg-bar-label { font-size: 12px; color: var(--text-muted); width: 90px; flex-shrink: 0; }
+    .seg-bar-track { flex: 1; height: 8px; background: var(--purple-soft); border-radius: 999px; overflow: hidden; }
+    .seg-bar-fill { height: 100%; border-radius: 999px; }
+    .seg-bar-val { font-size: 12px; font-weight: 600; color: var(--text); width: 35px; text-align: right; }
+
+    .hidden { display: none !important; }
+
+    /* DROPDOWN RESULTADOS */
+    .search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(180,120,200,0.15);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 200;
+      animation: fadeUp 0.2s ease both;
+    }
+    .search-result-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      text-align: left;
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--purple-soft); }
+    .result-nombre { font-size: 14px; font-weight: 600; color: var(--text); }
+    .result-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .result-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .result-badge.green { background: var(--green-bg); color: var(--green); }
+    .result-badge.red { background: var(--red-bg); color: var(--red); }
+    .search-no-results { padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+  </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <img src="data:image/jpeg;base64,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" alt="Liverpool" style="height:32px;width:auto;object-fit:contain;" />
+      </div>
+      <div class="nav-divider"></div>
+      <span class="nav-subtitle">Inteligencia de Marcas</span>
+    </div>
+    <div class="nav-links">
+      <a onclick="showPage('inicio')" class="active" id="nav-inicio">Inicio</a>
+      <a onclick="showPage('prediccion')" id="nav-prediccion">Predicción</a>
+      <div class="nav-dropdown" id="dropdown-descubrimiento">
+        <div class="nav-dropdown-trigger" id="nav-descubrimiento-trigger" onclick="toggleDropdown()">
+          Visuales
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="nav-dropdown-menu">
+          <a onclick="showPage('descriptivo'); closeDropdown()">
+            <span class="menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </span>
+            Visual 1
+          </a>
+          <a onclick="showPage('predictivo'); closeDropdown()">
+            <span class="menu-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            Visual 2
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-user">
+      <div class="user-info">
+        <div class="user-name">Ana Martínez ∨</div>
+        <div class="user-role">Área Legal</div>
+      </div>
+      <div class="avatar">AM</div>
+    </div>
+  </nav>
+
+  <!-- INICIO -->
+  <div class="page active" id="page-inicio">
+    <!-- HERO -->
+    <section style="display:flex;align-items:center;justify-content:space-between;padding:64px 64px 48px;max-width:1200px;margin:0 auto;gap:48px;">
+      <div style="flex:1;max-width:520px;">
+        <h1 style="font-family:'Sora',sans-serif;font-size:48px;font-weight:800;color:var(--text);line-height:1.1;margin-bottom:20px;letter-spacing:-0.02em;">
+          Inteligencia que protege y potencia nuestras <span style="color:var(--pink)">marcas</span>
+        </h1>
+        <p style="font-size:17px;color:var(--text-muted);line-height:1.6;margin-bottom:32px;">
+          Utilizamos modelos de Machine Learning para predecir renovaciones, identificar riesgos legales y optimizar el desempeño de nuestro portafolio de marcas.
+        </p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <button onclick="showPage('prediccion')" style="background:var(--pink);color:white;border:none;padding:14px 28px;font-size:15px;font-weight:600;font-family:'Sora',sans-serif;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='var(--pink-light)'" onmouseout="this.style.background='var(--pink)'">
+            Ir a Predicción →
+          </button>
+          <button onclick="showPage('descriptivo')" style="background:white;color:var(--pink);border:1.5px solid var(--pink);padding:14px 28px;font-size:15px;font-weight:600;font-family:'Sora',sans-serif;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='var(--pink-soft)'" onmouseout="this.style.background='white'">
+            Ver Visuales →
+          </button>
+        </div>
+      </div>
+      <div style="flex:1;max-width:480px;display:flex;justify-content:center;">
+        <div style="position:relative;width:100%;max-width:420px;">
+          <!-- Dashboard illustration -->
+          <div style="background:white;border-radius:20px;box-shadow:0 20px 60px rgba(180,120,200,0.2);border:1.5px solid var(--border);padding:24px;position:relative;">
+            <div style="display:flex;gap:10px;margin-bottom:20px;">
+              <div style="background:var(--purple-soft);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--text)">13,527</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Marcas totales</div>
+              </div>
+              <div style="background:var(--green-bg);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--green)">9,384</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Vigentes</div>
+              </div>
+              <div style="background:var(--red-bg);border-radius:12px;padding:14px;flex:1;text-align:center;">
+                <div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--red)">4,143</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Vencidas</div>
+              </div>
+            </div>
+            <!-- Mini bar chart -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-weight:500;">Distribución por Review</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Top</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:36%;height:100%;background:var(--pink);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">36%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Media</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:45%;height:100%;background:var(--lavender);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">45%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:12px;color:var(--text-muted);width:40px;">Baja</span>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="width:19%;height:100%;background:#C9C2F0;border-radius:4px;"></div></div>
+                  <span style="font-size:12px;font-weight:600;color:var(--text);width:32px;">19%</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,var(--pink),#8B5CF6);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:white;font-family:'Sora',sans-serif;">Modelo Predictivo</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.8);">Gradient Boosting · Accuracy ~90%</div>
+              </div>
+              <span style="margin-left:auto;background:rgba(255,255,255,0.2);color:white;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;">Activo</span>
+            </div>
+          </div>
+          <!-- Floating badges -->
+          <div style="position:absolute;top:-16px;right:-16px;background:white;border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(180,120,200,0.2);border:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">Protección activa</span>
+          </div>
+          <div style="position:absolute;bottom:-16px;left:-16px;background:white;border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(180,120,200,0.2);border:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">Análisis en tiempo real</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURE CARDS -->
+    <section style="padding:0 64px 40px;max-width:1200px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
+        <div onclick="showPage('portafolio')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:22px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:var(--purple-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Portafolio</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Explora y filtra las 13,527 marcas del portafolio por estatus, review y actividad comercial.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ver portafolio →</div>
+        </div>
+        <div onclick="showPage('segmentos')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:22px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:var(--purple-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Segmentos</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Analiza el comportamiento por generación, canal y región: Millennial, Gen Z, Digital, Centro.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ver segmentos →</div>
+        </div>
+        <div onclick="showPage('tendencias')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:22px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:var(--purple-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Tendencias</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Distribución de Review, Clasificación de marca y tasas de renovación por canal y región.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ver tendencias →</div>
+        </div>
+        <div onclick="showPage('riesgo')" style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:22px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--pink)';this.style.boxShadow='0 8px 32px rgba(212,0,106,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;background:#FFF0F6;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);margin-bottom:6px;">Riesgo Legal</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Semáforo de marcas vencidas y próximas a vencer. 4,597 en estado crítico requieren atención.</div>
+          <div style="color:var(--pink);font-size:13px;font-weight:600;">Ver riesgo →</div>
+        </div>
+      </div>
+      <!-- Bottom stat bar -->
+      <div style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:20px 28px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--purple-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+          <div><div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--text);">13,527</div><div style="font-size:12px;color:var(--text-muted);">Marcas totales</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--green-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div><div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--green);">9,384</div><div style="font-size:12px;color:var(--text-muted);">Marcas vigentes</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;background:var(--red-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div><div style="font-size:22px;font-weight:800;font-family:'Sora',sans-serif;color:var(--red);">4,143</div><div style="font-size:12px;color:var(--text-muted);">Marcas vencidas</div></div>
+        </div>
+        <div style="width:1px;height:40px;background:var(--border);"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
+          <div style="width:36px;height:36px;background:var(--purple-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M18 2v4h4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;font-family:'Sora',sans-serif;color:var(--text);">Modelo Predictivo</div>
+            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;color:var(--pink);font-weight:600;">Gradient Boosting</span> <span style="background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;">Activo</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:20px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text-muted);">💡 <strong style="color:var(--text);">Decisiones más inteligentes, marcas más fuertes.</strong> Transformamos datos en recomendaciones para maximizar el valor de nuestro portafolio.</span>
+      </div>
+    </section>
+
+
+
+
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICCION -->
+  <div class="page" id="page-prediccion">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <section class="hero">
+      <h1>Consulta tu marca</h1>
+      <p>Analiza vigencia y recibe una recomendación clara</p>
+
+      <div class="mode-tabs">
+        <div class="mode-tab active" id="tab-oto" onclick="setMode('oto')">One to One</div>
+        <div class="mode-tab" id="tab-batch" onclick="setMode('batch')">Batch</div>
+      </div>
+
+      <!-- ONE TO ONE -->
+      <div id="pred-oto-section">
+        <div style="position:relative;max-width:640px;margin:0 auto 32px;">
+          <div class="search-wrapper" style="margin:0">
+            <input type="text" id="searchInput" placeholder="Escribe el nombre de una marca" oninput="analizar()" />
+            <button class="btn-analizar" onclick="analizar()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              Analizar
+            </button>
+          </div>
+          <div class="search-results hidden" id="searchResults"></div>
+        </div>
+      </div>
+
+      <!-- BATCH -->
+      <div class="batch-wrapper" id="pred-batch-section">
+        <div class="batch-drop" onclick="document.getElementById('fileInput2').click()">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <p>Arrastra tu archivo Excel o haz clic para seleccionar</p>
+          <span>Columnas requeridas: DENOMINACIÓN, Clase, Estatus de Marca, Fecha Venc.</span>
+          <input type="file" id="fileInput2" accept=".xlsx,.csv" onchange="processBatch(event)" />
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD RESULTADO ONE TO ONE -->
+    <div class="card-wrapper" id="cardWrapper">
+      <!-- Spinner de carga -->
+      <div class="marca-card" id="marcaSpinner" style="display:none;">
+        <div class="spinner-wrap">
+          <div class="spinner"></div>
+          <span class="spinner-text" id="spinnerText">Prediciendo...</span>
+        </div>
+      </div>
+      <div class="marca-card" id="marcaCard">
+        <div class="card-top">
+          <div class="brand-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+              <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+          </div>
+          <div class="brand-info">
+            <div class="brand-label">Marca:</div>
+            <div class="brand-name" id="brandName">JUST WALK OUT</div>
+            <div class="brand-class" id="brandClass">Clase: 9</div>
+          </div>
+          <div class="brand-status">
+            <div class="status-label">Estatus:</div>
+            <div class="badge badge-vigente" id="statusBadge">
+              <div class="badge-dot"></div>
+              <span id="statusText">VIGENTE</span>
+            </div>
+            <div class="vigencia-date">Vigencia: <span id="vigenciaDate">12/07/2026</span></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="recomendacion-row">
+          <span class="rec-label">Recomendación:</span>
+          <span id="recValue" class="rec-value-renovar">Renovar</span>
+        </div>
+        <div class="prob-bar-wrapper">
+          <div class="prob-label">Probabilidad de renovar</div>
+          <div class="prob-bar"><div class="prob-fill green" id="probFill" style="width:85%"></div></div>
+          <div class="prob-pct" id="probPct" style="color:var(--green)">85%</div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-outline" onclick="showAnalisis()">Ver análisis completo →</button>
+          <button class="btn-outline" onclick="buscarOtra()">Buscar otra marca →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BATCH RESULTADOS -->
+    <div class="batch-results hidden" id="batchResults">
+      <!-- Spinner batch -->
+      <div id="batchSpinner" style="display:none;text-align:center;padding:48px 0;">
+        <div class="spinner" style="margin:0 auto 16px;"></div>
+        <p class="spinner-text" id="batchSpinnerText">Leyendo archivo...</p>
+      </div>
+
+      <div id="batchContent" style="display:none;width:100%;max-width:960px;margin:0 auto;">
+        <h3 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Resultados del análisis batch</h3>
+
+        <!-- GRÁFICAS PRIMERO -->
+        <div class="batch-charts" id="batchCharts">
+        <!-- Fila 1: Resumen + Donut + Estatus/Clases -->
+        <div class="bc-card">
+          <h4>Resumen</h4>
+          <div class="bc-kpi-grid">
+            <div class="bc-kpi"><p class="bc-kpi-val" id="bcTotal" style="color:var(--text)">—</p><p class="bc-kpi-lbl">Analizadas</p></div>
+            <div class="bc-kpi" style="background:var(--green-bg)"><p class="bc-kpi-val" id="bcRenovar" style="color:var(--green)">—</p><p class="bc-kpi-lbl">Renovar</p></div>
+            <div class="bc-kpi" style="background:#FFF0F6"><p class="bc-kpi-val" id="bcNoRenovar" style="color:var(--red)">—</p><p class="bc-kpi-lbl">No Renovar</p></div>
+            <div class="bc-kpi" style="background:var(--purple-soft)"><p class="bc-kpi-val" id="bcPromProb" style="color:#8B5CF6">—</p><p class="bc-kpi-lbl">Prob. promedio</p></div>
+          </div>
+        </div>
+        <div class="bc-card">
+          <h4>Recomendación</h4>
+          <div class="bc-donut-wrap">
+            <svg id="bcDonut" width="120" height="120" viewBox="0 0 120 120"></svg>
+            <div class="bc-legend" id="bcDonutLegend"></div>
+          </div>
+        </div>
+        <div class="bc-card">
+          <h4>Estatus</h4>
+          <div id="bcEstatusBars" style="margin-bottom:14px"></div>
+          <h4>Top clases</h4>
+          <div id="bcClaseBars"></div>
+        </div>
+        <!-- Fila 2: Gráfica de línea probabilidades -->
+        <div class="bc-card" style="grid-column:1/-1;">
+          <h4>Probabilidad de renovar por marca</h4>
+          <div style="position:relative;width:100%;overflow-x:auto;">
+            <canvas id="bcLineChart" style="width:100%;height:200px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- ANALISIS COMPLETO -->
+  <div class="page" id="page-analisis">
+    <div class="analisis-page">
+      <div class="back-btn" onclick="showPage('prediccion')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Volver al inicio
+      </div>
+      <div class="analisis-header">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="analisis-brand" id="analisisBrand">JUST WALK OUT</div>
+          <div class="badge badge-vigente" id="analisisStatus"><div class="badge-dot"></div><span>VIGENTE</span></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted)">Clase: 9 · Vigencia: <span id="analisisVig">12/07/2026</span></div>
+        <div class="prob-big">
+          <div class="prob-big-label">Probabilidad de renovar según el modelo predictivo</div>
+          <div class="prob-big-bar"><div class="prob-big-fill green" id="analisisBar" style="width:85%"></div></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+            <span class="prob-big-pct" id="analisisPct" style="color:var(--green)">85%</span>
+            <span id="analisisRec" style="font-size:14px;font-weight:600;color:var(--green)">Se recomienda Renovar</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="variables-grid">
+        <div class="var-card">
+          <div class="var-name">Antigüedad de Marca</div>
+          <div class="var-tooltip"><strong>Antigüedad de Marca</strong>Años desde el registro inicial de la marca en el IMPI. A mayor antigüedad, mayor historial de renovaciones previas, lo que el modelo interpreta como señal de continuidad.</div>
+          <div class="var-value" id="v-antiguedad">10 años</div>
+          <div class="var-impact pos" id="v-antiguedad-impact">Factor positivo — mayor antigüedad correlaciona con renovación</div>
+        </div>
+        <div class="var-card">
+          <div class="var-name">Tasa de Conversión</div>
+          <div class="var-tooltip"><strong>Tasa de Conversión</strong>Porcentaje de visitantes o leads que completan una compra. Se calcula como: Ventas ÷ Visitas × 100. Una tasa alta indica que la marca genera demanda activa.</div>
+          <div class="var-value" id="v-conversion">8.5%</div>
+          <div class="var-impact pos" id="v-conversion-impact">Por encima del promedio (3.5%)</div>
+        </div>
+        <div class="var-card">
+          <div class="var-name">Clasificación de Marca</div>
+          <div class="var-tooltip"><strong>Clasificación de Marca</strong>Variable con mayor peso en el modelo predictivo. Segmenta las marcas en Top (35%), Media (45%) y Baja (20%) según su percentil de desempeño comercial general.</div>
+          <div class="var-value" id="v-clasificacion">Top</div>
+          <div class="var-impact pos" id="v-clasificacion-impact">Alto desempeño comercial</div>
+        </div>
+        <div class="var-card">
+          <div class="var-name">ReviewScore</div>
+          <div class="var-tooltip"><strong>ReviewScore</strong>Calificación promedio de satisfacción del cliente, en escala 1–5. Top = 4.0–5.0 · Media = 3.0–3.9 · Baja = 1.0–2.9. Refleja la percepción de calidad de la marca en el mercado.</div>
+          <div class="var-value" id="v-review">4.2 / 5</div>
+          <div class="var-impact pos" id="v-review-impact">Calificación Top — alta satisfacción del cliente</div>
+        </div>
+        <div class="var-card">
+          <div class="var-name">Tiempo Restante de Renovación</div>
+          <div class="var-tooltip"><strong>Tiempo Restante</strong>Meses que faltan para que venza el registro ante el IMPI, calculado desde la fecha de vigencia hasta hoy. Valores negativos indican que la marca ya está vencida.</div>
+          <div class="var-value" id="v-tiempo">24 meses</div>
+          <div class="var-impact neu" id="v-tiempo-impact">Margen suficiente para planificar</div>
+        </div>
+        <div class="var-card">
+          <div class="var-name">Tasa de Devolución</div>
+          <div class="var-tooltip"><strong>Tasa de Devolución</strong>Porcentaje de productos vendidos que fueron devueltos. Se calcula como: Devoluciones ÷ Ventas totales × 100. Una tasa alta refleja problemas de calidad o expectativas no cumplidas.</div>
+          <div class="var-value" id="v-devolucion">0.05%</div>
+          <div class="var-impact pos" id="v-devolucion-impact">Baja tasa — señal positiva de calidad</div>
+        </div>
+      </div>
+
+      <div class="razon-card">
+        <h3>¿Por qué se recomienda esta decisión?</h3>
+        <p id="razonTexto">Esta marca muestra un sólido desempeño comercial con alta tasa de conversión y calificación Top. Su antigüedad y baja tasa de devolución son indicadores de madurez y calidad sostenida. El modelo predictivo asigna una alta probabilidad de renovación basándose principalmente en la antigüedad de la marca, la tasa de conversión y su clasificación comercial — las tres variables de mayor peso en el modelo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTAFOLIO -->
+  <div class="page" id="page-portafolio">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div class="inner-page">
+      <div class="page-header">
+        <h2>Portafolio de Marcas</h2>
+        <p>Explora y filtra todas las marcas del portafolio de electrónicos Liverpool</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Marcas</div>
+          <div class="stat-value">13,527</div>
+          <div class="stat-sub">En el portafolio</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Marcas Vigentes</div>
+          <div class="stat-value" style="color:var(--green)">9,384</div>
+          <div class="stat-sub">69.4% del total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Marcas Vencidas</div>
+          <div class="stat-value" style="color:var(--red)">4,143</div>
+          <div class="stat-sub">30.6% del total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Con Ventas</div>
+          <div class="stat-value" style="color:var(--pink)">2,008</div>
+          <div class="stat-sub">Marcas activas comercialmente</div>
+        </div>
+      </div>
+      <div class="filters">
+        <select class="filter-select" onchange="filtrarPortafolio()" id="filterEstatus">
+          <option value="">Todos los estatus</option>
+          <option value="VIGENTE">Vigente</option>
+          <option value="VENCIDO">Vencido</option>
+        </select>
+        <select class="filter-select" onchange="filtrarPortafolio()" id="filterReview">
+          <option value="">Todos los reviews</option>
+          <option value="Top">Top</option>
+          <option value="Media">Media</option>
+          <option value="Baja">Baja</option>
+        </select>
+        <select class="filter-select" onchange="filtrarPortafolio()" id="filterVentas">
+          <option value="">Todas</option>
+          <option value="si">Con ventas</option>
+          <option value="no">Sin ventas</option>
+        </select>
+      </div>
+      <table class="portfolio-table" id="portfolioTable">
+        <thead>
+          <tr>
+            <th>Denominación</th>
+            <th>Clase</th>
+            <th>Estatus</th>
+            <th>Vigencia</th>
+            <th>Review</th>
+            <th>ReviewScore</th>
+            <th>Tuvo Ventas</th>
+          </tr>
+        </thead>
+        <tbody id="portfolioBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- SEGMENTOS -->
+  <div class="page" id="page-segmentos">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div class="inner-page">
+      <div class="page-header">
+        <h2>Segmentos de Clientes</h2>
+        <p>Análisis de comportamiento de compra por generación, canal y región</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Segmento líder</div>
+          <div class="stat-value" style="color:var(--pink)" id="segLider">—</div>
+          <div class="stat-sub" id="segLiderPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Canal dominante</div>
+          <div class="stat-value" style="color:var(--pink)" id="segCanal">—</div>
+          <div class="stat-sub" id="segCanalPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Región principal</div>
+          <div class="stat-value" style="color:var(--pink)" id="segRegion">—</div>
+          <div class="stat-sub" id="segRegionPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tasa de renovación</div>
+          <div class="stat-value" style="color:var(--green)" id="segRenovo">—</div>
+          <div class="stat-sub">Promedio general</div>
+        </div>
+      </div>
+      <div class="charts-grid" id="segCharts">
+        <div class="chart-card">
+          <h3>Ventas por Generación</h3>
+          <div class="bar-chart" id="barGeneracion"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Ventas por Canal</h3>
+          <div class="bar-chart" id="barCanal"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Ventas por Región</h3>
+          <div class="bar-chart" id="barRegion"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Renovación por Segmento</h3>
+          <div class="bar-chart" id="barRenovacion"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- TENDENCIAS -->
+  <div class="page" id="page-tendencias">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div class="inner-page">
+      <div class="page-header">
+        <h2>Tendencias</h2>
+        <p>Evolución de ventas, revenue y comportamiento por región y canal</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Review Top</div>
+          <div class="stat-value" style="color:var(--pink)" id="tendRevTop">—</div>
+          <div class="stat-sub">de marcas con calificación alta</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Review Media</div>
+          <div class="stat-value" style="color:var(--amber)" id="tendRevMed">—</div>
+          <div class="stat-sub">línea base del mercado</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Review Baja</div>
+          <div class="stat-value" style="color:var(--red)" id="tendRevBaj">—</div>
+          <div class="stat-sub">señal de alerta</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Clasificación Top</div>
+          <div class="stat-value" style="color:var(--green)" id="tendClsTop">—</div>
+          <div class="stat-sub">marcas de alto desempeño</div>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Distribución de Review</h3>
+          <div class="bar-chart" id="barReview"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Clasificación de Marca</h3>
+          <div class="bar-chart" id="barClasificacion"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Renovación por Canal</h3>
+          <div class="bar-chart" id="barRenovCanal"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Renovación por Región</h3>
+          <div class="bar-chart" id="barRenovRegion"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- RIESGO LEGAL -->
+  <div class="page" id="page-riesgo">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div class="inner-page">
+      <div class="page-header">
+        <h2>Riesgo Legal</h2>
+        <p>Semáforo de marcas por tiempo restante de renovación</p>
+      </div>
+
+      <!-- Buscador en riesgo -->
+      <div style="max-width:500px;margin-bottom:24px;">
+        <div class="search-wrapper" style="margin:0">
+          <input type="text" id="riesgoSearch" placeholder="Buscar marca en semáforo..." oninput="filtrarRiesgo()" />
+        </div>
+      </div>
+
+      <div class="stats-grid" id="riesgoStats">
+        <div class="stat-card" style="border-left:4px solid var(--red)">
+          <div class="stat-label">Crítico — menos de 6 meses</div>
+          <div class="stat-value" style="color:var(--red)" id="countRojo">—</div>
+          <div class="stat-sub">Acción inmediata requerida</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--amber)">
+          <div class="stat-label">Atención — 6 a 12 meses</div>
+          <div class="stat-value" style="color:var(--amber)" id="countAmarillo">—</div>
+          <div class="stat-sub">Planificar renovación pronto</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--green)">
+          <div class="stat-label">Estable — más de 12 meses</div>
+          <div class="stat-value" style="color:var(--green)" id="countVerde">—</div>
+          <div class="stat-sub">Sin urgencia inmediata</div>
+        </div>
+      </div>
+
+      <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--red)">Crítico — Acción inmediata</h3>
+      <div class="riesgo-grid" style="margin-bottom:28px" id="gridRojo"></div>
+
+      <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--amber)">Atención — Planificar pronto</h3>
+      <div class="riesgo-grid" style="margin-bottom:28px" id="gridAmarillo"></div>
+
+      <h3 style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--green)">Estable — Sin urgencia</h3>
+      <div class="riesgo-grid" id="gridVerde"></div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCRIPTIVO -->
+  <div class="page" id="page-descriptivo">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div style="padding:24px 64px 48px;">
+      <h2 style="font-family:'Sora',sans-serif;font-size:28px;font-weight:800;color:var(--text);margin-bottom:20px;">Visual 1</h2>
+      <!-- Tableau embed — altura fija grande para ver todo el dashboard -->
+      <div style="width:100%;border-radius:16px;border:1.5px solid var(--border);overflow:hidden;background:white;">
+        <div class='tableauPlaceholder' id='viz_visual1' style='position:relative;width:100%;'>
+          <noscript>
+            <a href='https://public.tableau.com/views/Segmentov1/Dashboard1'>
+              <img alt='Dashboard 1' src='https://public.tableau.com/static/images/Se/Segmentov1/Dashboard1/1_rss.png' style='border:none;width:100%;' />
+            </a>
+          </noscript>
+          <object class='tableauViz' style='display:none;'>
+            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+            <param name='embed_code_version' value='3' />
+            <param name='site_root' value='' />
+            <param name='name' value='Segmentov1/Dashboard1' />
+            <param name='tabs' value='no' />
+            <param name='toolbar' value='yes' />
+            <param name='language' value='es-ES' />
+          </object>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICTIVO -->
+  <div class="page" id="page-predictivo">
+    <div style="max-width:1200px;margin:0 auto;padding:24px 64px 0;">
+      <div class="back-btn" onclick="showPage('inicio')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al inicio
+      </div>
+    </div>
+    <div class="inner-page">
+      <div class="page-header">
+        <h2>Visual 2</h2>
+        
+      </div>
+      <div class="tableau-placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C9C2F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        <h3>Dashboard Predictivo de Tableau próximamente</h3>
+        <p>Aquí se integrará el dashboard predictivo de Tableau Public</p>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bottom-nav-card" onclick="showPage('portafolio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        Portafolio
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('segmentos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Segmentos
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('tendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        </svg>
+        Tendencias
+      </div>
+      <div class="bottom-nav-card" onclick="showPage('riesgo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Riesgo Legal
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DATOS SIMULADOS DE MARCAS (representativos del dataset)
+    const API_URL = "https://liverpool-marcas.onrender.com";
+
+    // ── Gradient Boosting model running in-browser ───────────────────────────
+    let GB_MODEL = null;
+
+    fetch('model_gb.json')
+      .then(r => r.json())
+      .then(m => { GB_MODEL = m; console.log('Modelo GB cargado en browser'); })
+      .catch(() => console.warn('model_gb.json no encontrado — usando backend'));
+
+    const ENCODE = {
+      clasificacion: {"Baja": 0, "Media": 1, "Top": 2},
+      region:        {"Centro": 0, "Norte/Oriente": 1, "Occidente": 2, "Sur": 3},
+      canal:         {"Digital": 0, "Fisico": 1},
+      segmento:      {"Baby Boomer": 0, "Gen X": 1, "Gen Z": 2, "Millennial": 3},
+      estrategico:   {"ESTRATÉGICA": 0, "NO ESTRATÉGICA": 1},
+      prioridad:     {"NO": 0, "SI": 1},
+      review:        {"Baja": 0, "Media": 1, "Top": 2},
+    };
+
+    function gbPredict(inp) {
+      if (!GB_MODEL) return null;
+      // Build feature vector in exact model order
+      const X = [
+        inp.ticket_promedio,
+        inp.tasa_devolucion,
+        inp.revenue_por_lead,
+        inp.tasa_conversion,
+        inp.antiguedad_marca,
+        inp.tiempo_restante,
+        inp.review_score,
+        ENCODE.clasificacion[inp.clasificacion_marca] ?? 1,
+        ENCODE.region[inp.region] ?? 0,
+        ENCODE.canal[inp.canal] ?? 0,
+        ENCODE.segmento[inp.segmento] ?? 3,
+        ENCODE.estrategico[inp.estatus_estrategico] ?? 1,
+        ENCODE.prioridad[inp.prioridad_negocio] ?? 0,
+        ENCODE.review[inp.review] ?? 1,
+      ];
+      // Run all trees
+      let score = GB_MODEL.init_pred;
+      for (const tree of GB_MODEL.trees) {
+        let node = 0;
+        while (tree.children_left[node] !== -1) {
+          node = X[tree.feature[node]] <= tree.threshold[node]
+            ? tree.children_left[node]
+            : tree.children_right[node];
+        }
+        score += GB_MODEL.learning_rate * tree.value[node];
+      }
+      // Sigmoid
+      const prob = 1 / (1 + Math.exp(-score));
+      return Math.round(prob * 1000) / 10; // 0-100 with 1 decimal
+    }
+    let marcasData = [];
+
+    // Cargar datos reales desde JSON
+    fetch('marcas_data.json')
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) throw new Error('Empty data');
+        marcasData = data;
+        console.log('marcas_data.json cargado:', data.length, 'registros');
+        onMarcasLoaded();
+      })
+      .catch(e => {
+        console.error('Error cargando marcas_data.json:', e);
+        // Show error banner so user knows what's wrong
+        const banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:#E24B4A;color:white;text-align:center;padding:10px;z-index:9999;font-size:13px;';
+        banner.textContent = '⚠️ Error cargando marcas_data.json — verifica que el archivo esté en el repositorio';
+        document.body.appendChild(banner);
+      });
+
+    function onMarcasLoaded() {
+      try {
+        const active = document.querySelector('.page.active');
+        const pid = active ? active.id : '';
+        if (pid === 'page-portafolio') renderPortafolio(marcasData);
+        else if (pid === 'page-riesgo') renderRiesgo();
+        else if (pid === 'page-segmentos') renderSegmentos();
+        else if (pid === 'page-tendencias') renderTendencias();
+      } catch(e) { console.error('Render error:', e); }
+    }
+
+    const _placeholder = [
+      { nombre: 'JUST WALK OUT', clase: 9, estatus: 'VIGENTE', vigencia: '12/07/2026', review: 'Top', score: 4.5, tuvoVentas: 'si', antiguedad: 10, conversion: 8.5, clasificacion: 'Top', devolucion: 0.05, tiempo: 24, prob: 98 },
+      { nombre: 'SUBURBIA', clase: 9, estatus: 'VIGENTE', vigencia: '15/06/2026', review: 'Top', score: 4.8, tuvoVentas: 'si', antiguedad: 25, conversion: 9.2, clasificacion: 'Top', devolucion: 0.03, tiempo: 1, prob: 99 },
+      { nombre: 'GALERÍAS LIVERPOOL', clase: 9, estatus: 'VIGENTE', vigencia: '03/07/2026', review: 'Media', score: 3.5, tuvoVentas: 'si', antiguedad: 30, conversion: 5.1, clasificacion: 'Media', devolucion: 0.08, tiempo: 2, prob: 95 },
+      { nombre: 'MASTERTECH', clase: 9, estatus: 'VIGENTE', vigencia: '20/03/2029', review: 'Top', score: 4.2, tuvoVentas: 'si', antiguedad: 8, conversion: 7.3, clasificacion: 'Top', devolucion: 0.04, tiempo: 34, prob: 97 },
+      { nombre: 'BEST STYLE', clase: 9, estatus: 'VIGENTE', vigencia: '28/07/2026', review: 'Media', score: 3.2, tuvoVentas: 'si', antiguedad: 5, conversion: 3.8, clasificacion: 'Media', devolucion: 0.12, tiempo: 2, prob: 72 },
+      { nombre: 'ME ENCANTA', clase: 9, estatus: 'VIGENTE', vigencia: '03/01/2027', review: 'Baja', score: 2.1, tuvoVentas: 'si', antiguedad: 3, conversion: 1.2, clasificacion: 'Baja', devolucion: 0.25, tiempo: 8, prob: 28 },
+      { nombre: 'WIND', clase: 9, estatus: 'VIGENTE', vigencia: '19/08/2026', review: 'Media', score: 3.6, tuvoVentas: 'si', antiguedad: 7, conversion: 4.5, clasificacion: 'Media', devolucion: 0.09, tiempo: 3, prob: 81 },
+      { nombre: 'COSMO & COMPANY', clase: 9, estatus: 'VIGENTE', vigencia: '15/11/2026', review: 'Top', score: 4.1, tuvoVentas: 'si', antiguedad: 12, conversion: 6.8, clasificacion: 'Top', devolucion: 0.06, tiempo: 6, prob: 94 },
+      { nombre: 'BABY WEEKEND', clase: 9, estatus: 'VENCIDO', vigencia: '01/01/2024', review: 'Baja', score: 1.8, tuvoVentas: 'no', antiguedad: 2, conversion: 0.5, clasificacion: 'Baja', devolucion: 0.30, tiempo: 0, prob: 12 },
+      { nombre: 'NONSTOP', clase: 9, estatus: 'VENCIDO', vigencia: '15/03/2024', review: 'Media', score: 3.0, tuvoVentas: 'no', antiguedad: 4, conversion: 2.1, clasificacion: 'Media', devolucion: 0.15, tiempo: 0, prob: 45 },
+      { nombre: 'QUE GUSTO VERTE', clase: 9, estatus: 'VIGENTE', vigencia: '22/09/2027', review: 'Top', score: 4.4, tuvoVentas: 'si', antiguedad: 9, conversion: 7.9, clasificacion: 'Top', devolucion: 0.04, tiempo: 16, prob: 96 },
+      { nombre: 'SB SUBURBIA', clase: 9, estatus: 'VIGENTE', vigencia: '30/06/2027', review: 'Media', score: 3.3, tuvoVentas: 'si', antiguedad: 6, conversion: 3.2, clasificacion: 'Media', devolucion: 0.11, tiempo: 13, prob: 68 },
+    ];
+
+    let currentMarca = null;
+    let currentMatches = [];
+
+    // NAV
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+      const trigger = document.getElementById('nav-descubrimiento-trigger');
+      if (trigger) trigger.classList.remove('active');
+
+      const pageEl = document.getElementById('page-' + page);
+      if (pageEl) pageEl.classList.add('active');
+
+      const navEl = document.getElementById('nav-' + page);
+      if (navEl) navEl.classList.add('active');
+
+      // Dropdown trigger active state for descriptivo/predictivo
+      if ((page === 'descriptivo' || page === 'predictivo') && trigger) {
+        trigger.classList.add('active');
+      }
+
+      if (page === 'portafolio') { if (marcasData.length) renderPortafolio(marcasData); }
+      if (page === 'riesgo')     { if (marcasData.length) renderRiesgo(); }
+      if (page === 'segmentos')  { if (marcasData.length) renderSegmentos(); }
+      if (page === 'tendencias') { if (marcasData.length) renderTendencias(); }
+      if (page === 'descriptivo') { setTimeout(initTableau, 100); }
+      closeDropdown();
+      window.scrollTo(0, 0);
+    }
+
+    function toggleDropdown() {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      dd.classList.toggle('open');
+    }
+
+    function closeDropdown() {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      if (dd) dd.classList.remove('open');
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const dd = document.getElementById('dropdown-descubrimiento');
+      if (dd && !dd.contains(e.target)) closeDropdown();
+    });
+
+    // MODO ONE TO ONE / BATCH
+    function setMode(mode) {
+      const tabOto = document.getElementById('tab-oto');
+      const tabBatch = document.getElementById('tab-batch');
+      if (tabOto) tabOto.classList.toggle('active', mode === 'oto');
+      if (tabBatch) tabBatch.classList.toggle('active', mode === 'batch');
+      const otoSec = document.getElementById('pred-oto-section');
+      const batchSec = document.getElementById('pred-batch-section');
+      if (otoSec) otoSec.style.display = mode === 'oto' ? 'block' : 'none';
+      if (batchSec) batchSec.classList.toggle('active', mode === 'batch');
+      const cw = document.getElementById('cardWrapper');
+      if (cw) cw.style.display = mode === 'oto' ? 'flex' : 'none';
+      const br = document.getElementById('batchResults');
+      if (br) br.classList.add('hidden');
+    }
+
+    // BUSQUEDA EN TIEMPO REAL — muestra dropdown
+    function analizar() {
+      const input = document.getElementById('searchInput').value.trim().toUpperCase();
+      const resultsEl = document.getElementById('searchResults');
+
+      if (!input || input.length < 2) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+
+      const matches = marcasData.filter(m => m.nombre.includes(input)).slice(0, 100);
+
+      if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="search-no-results">No se encontró ninguna marca con ese nombre</div>';
+        resultsEl.classList.remove('hidden');
+        return;
+      }
+
+      resultsEl.innerHTML = matches.map((m, i) => {
+        // Estatus real desde tiempo del JSON (ya recalculado desde fecha)
+        const estatusReal = m.tiempo < 0 ? 'VENCIDO' : m.estatus;
+        const tiempoLabel = m.tiempo < 0
+          ? `Venció hace ${Math.abs(Math.round(m.tiempo))}m`
+          : `Vence en ${Math.round(m.tiempo)}m`;
+        const claseLabel = String(m.clase).includes(',') ? `Clases: ${m.clase}` : `Clase: ${m.clase}`;
+        return `<div class="search-result-item" onclick="seleccionarMarca(${i})">
+          <div class="result-nombre">${m.nombre}
+            <span class="result-badge ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span>
+          </div>
+          <div class="result-meta">${claseLabel} · NoReg: ${m.noreg || 'N/A'} · ${m.vigencia} · ${tiempoLabel}</div>
+        </div>`;
+      }).join('');
+
+      // Store matches for selection
+      window._searchMatches = matches;
+      resultsEl.classList.remove('hidden');
+    }
+
+    async function seleccionarMarca(index) {
+      const marca = window._searchMatches[index];
+      document.getElementById('searchInput').value = marca.nombre;
+      document.getElementById('searchResults').classList.add('hidden');
+
+      // ── Calcular estatus y tiempo SIEMPRE desde la fecha de vigencia real ──
+      const today = new Date();
+      let tiempoReal  = typeof marca.tiempo === 'number' ? marca.tiempo : 0;
+      let estatusReal = marca.estatus || 'VIGENTE';
+      if (marca.vigencia && marca.vigencia !== '—' && marca.vigencia !== 'N/A') {
+        const p = marca.vigencia.split('/');
+        if (p.length === 3) {
+          const fv = new Date(+p[2], +p[1]-1, +p[0]);
+          const diffDias = (fv - today) / (1000*60*60*24);
+          tiempoReal  = Math.round(diffDias / 30.44 * 10) / 10;
+          estatusReal = diffDias < 0 ? 'VENCIDO' : 'VIGENTE';
+        }
+      }
+      currentMarca = { ...marca, estatus: estatusReal, tiempo: tiempoReal };
+      currentMatches = [currentMarca];
+
+      // Mostrar datos con estatus recalculado
+      document.getElementById('brandName').textContent = marca.nombre;
+      const claseStr = String(marca.clase).includes(',') ? 'Clases: ' + marca.clase : 'Clase: ' + marca.clase;
+      document.getElementById('brandClass').textContent = claseStr;
+      document.getElementById('vigenciaDate').textContent = marca.vigencia;
+
+      const badge      = document.getElementById('statusBadge');
+      const statusText = document.getElementById('statusText');
+      if (estatusReal === 'VIGENTE') {
+        badge.className = 'badge badge-vigente';
+        statusText.textContent = 'VIGENTE';
+      } else {
+        badge.className = 'badge badge-vencido';
+        statusText.textContent = 'VENCIDO';
+      }
+
+      // Mostrar spinner, ocultar card
+      document.getElementById('cardWrapper').style.display = 'flex';
+      document.getElementById('marcaCard').style.display = 'none';
+      document.getElementById('marcaSpinner').style.display = 'block';
+      const spinnerTexts = ['Prediciendo...', 'Analizando variables...', 'Consultando modelo...', 'Calculando probabilidad...'];
+      let spinIdx = 0;
+      document.getElementById('spinnerText').textContent = spinnerTexts[0];
+      const spinInterval = setInterval(() => {
+        spinIdx = (spinIdx + 1) % spinnerTexts.length;
+        document.getElementById('spinnerText').textContent = spinnerTexts[spinIdx];
+      }, 600);
+
+      const recEl = document.getElementById('recValue');
+      recEl.textContent = '...';
+      document.getElementById('probFill').style.width = '0%';
+      document.getElementById('probPct').textContent = '...';
+
+      // Parámetros del modelo
+      const modelInput = {
+        ticket_promedio:     marca.ticketPromedio || 200,
+        tasa_devolucion:     marca.devolucion     || 0.1,
+        revenue_por_lead:    marca.revenueLead    || 500,
+        tasa_conversion:     marca.conversion     || 3.5,
+        antiguedad_marca:    marca.antiguedad     || 10,
+        tiempo_restante:     tiempoReal,
+        review_score:        marca.score          || 3.5,
+        clasificacion_marca: marca.clasificacion  || 'Media',
+        region:              marca.region         || 'Centro',
+        canal:               marca.canal          || 'Digital',
+        segmento:            marca.segmento       || 'Millennial',
+        estatus_estrategico: marca.estrategico    || 'NO ESTRATÉGICA',
+        prioridad_negocio:   marca.prioridad      || 'NO',
+        review:              marca.review         || 'Media',
+      };
+
+      // Intentar modelo en browser primero (instantáneo)
+      const probBrowser = gbPredict(modelInput);
+
+      function mostrarResultado(prob) {
+        clearInterval(spinInterval);
+        document.getElementById('marcaSpinner').style.display = 'none';
+        const card = document.getElementById('marcaCard');
+        card.style.display = 'block';
+        card.style.animation = 'none';
+
+        currentMarca.prob = prob;
+        const renueva  = prob >= 50;
+        const label    = renueva ? 'Renovar' : 'No Renovar';
+        const colorKey = renueva ? 'green' : 'red';
+        recEl.textContent = label;
+        recEl.className   = renueva ? 'rec-value-renovar' : 'rec-value-no';
+        document.getElementById('probFill').style.width = prob + '%';
+        document.getElementById('probFill').className   = 'prob-fill ' + colorKey;
+        document.getElementById('probPct').textContent  = prob + '%';
+        document.getElementById('probPct').style.color  = 'var(--' + colorKey + ')';
+      }
+
+      if (probBrowser !== null) {
+        // Modelo browser disponible — resultado instantáneo
+        mostrarResultado(probBrowser);
+      } else {
+        // Fallback: backend
+        try {
+          const response = await fetch(API_URL + '/predecir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(modelInput),
+            signal: AbortSignal.timeout(8000)
+          });
+          const data = await response.json();
+          mostrarResultado(data.probabilidad_renovar);
+        } catch(e) {
+          // Sin backend ni modelo: estimación por variables clave
+          const clsScore  = modelInput.clasificacion_marca === 'Top' ? 40 : modelInput.clasificacion_marca === 'Media' ? 20 : 0;
+          const antScore  = Math.min(modelInput.antiguedad_marca * 1.0, 28);
+          const convScore = Math.min(modelInput.tasa_conversion * 1.5, 13);
+          const tScore    = tiempoReal >= 0 ? 8 : 0;
+          const devPen    = modelInput.tasa_devolucion * 30;
+          const est = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + tScore - devPen)));
+          mostrarResultado(est);
+        }
+      }
+
+      // Si hay múltiples registros mostrar nota
+      if (matches.length > 1) {
+        document.getElementById('brandClass').textContent = 
+          'Clase: ' + marca.clase + ' · ' + matches.length + ' registros encontrados';
+      }
+
+      const card = document.getElementById('marcaCard');
+      card.style.animation = 'none';
+      void card.offsetWidth;
+      card.style.animation = 'fadeUp 0.4s ease both';
+    }
+
+    // VER ANALISIS COMPLETO
+    function showAnalisis() {
+      if (!currentMarca) return;
+      // Reset spinner state before navigating
+      document.getElementById('marcaSpinner').style.display = 'none';
+      document.getElementById('marcaCard').style.display = 'block';
+      const m = currentMarca;
+      document.getElementById('analisisBrand').textContent = m.nombre;
+      document.getElementById('analisisVig').textContent = m.vigencia;
+      document.getElementById('analisisBar').style.width = m.prob + '%';
+      document.getElementById('analisisBar').className = 'prob-big-fill ' + (m.prob >= 50 ? 'green' : 'red');
+      document.getElementById('analisisPct').textContent = m.prob + '%';
+      document.getElementById('analisisPct').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
+      // analisisRec se actualiza abajo con lógica de vencido
+
+      // Recalcular desde vigencia real (fuente de verdad)
+      let tiempoCalc  = typeof m.tiempo === 'number' ? m.tiempo : 0;
+      let estatusReal = m.estatus || 'VIGENTE';
+      if (m.vigencia && m.vigencia !== '—' && m.vigencia !== 'N/A') {
+        const p2 = m.vigencia.split('/');
+        if (p2.length === 3) {
+          const fv2 = new Date(+p2[2], +p2[1]-1, +p2[0]);
+          const diff2 = (fv2 - new Date()) / (1000*60*60*24);
+          tiempoCalc  = Math.round(diff2 / 30.44 * 10) / 10;
+          estatusReal = diff2 < 0 ? 'VENCIDO' : 'VIGENTE';
+        }
+      }
+
+      const status = document.getElementById('analisisStatus');
+      status.className = 'badge ' + (estatusReal === 'VIGENTE' ? 'badge-vigente' : 'badge-vencido');
+      status.innerHTML = `<div class="badge-dot"></div><span>${estatusReal}</span>`;
+
+      // Antigüedad
+      document.getElementById('v-antiguedad').textContent = m.antiguedad + ' años';
+      const antImpact = document.getElementById('v-antiguedad-impact');
+      if (m.antiguedad >= 15) { antImpact.textContent = 'Factor muy positivo — marca consolidada'; antImpact.className = 'var-impact pos'; }
+      else if (m.antiguedad >= 5) { antImpact.textContent = 'Factor positivo — marca en crecimiento'; antImpact.className = 'var-impact pos'; }
+      else { antImpact.textContent = 'Marca nueva — historial limitado'; antImpact.className = 'var-impact neu'; }
+
+      // Tasa de conversión
+      document.getElementById('v-conversion').textContent = m.conversion.toFixed(2) + '%';
+      const convImpact = document.getElementById('v-conversion-impact');
+      if (m.conversion >= 5) { convImpact.textContent = 'Por encima del promedio (3.5%) — señal positiva'; convImpact.className = 'var-impact pos'; }
+      else if (m.conversion >= 3.5) { convImpact.textContent = 'Cerca del promedio del mercado (3.5%)'; convImpact.className = 'var-impact neu'; }
+      else { convImpact.textContent = 'Por debajo del promedio (3.5%) — oportunidad de mejora'; convImpact.className = 'var-impact neg'; }
+
+      // Clasificación
+      document.getElementById('v-clasificacion').textContent = m.clasificacion;
+      const clasImpact = document.getElementById('v-clasificacion-impact');
+      if (m.clasificacion === 'Top') { clasImpact.textContent = 'Alto desempeño comercial'; clasImpact.className = 'var-impact pos'; }
+      else if (m.clasificacion === 'Media') { clasImpact.textContent = 'Desempeño promedio del mercado'; clasImpact.className = 'var-impact neu'; }
+      else { clasImpact.textContent = 'Bajo desempeño — requiere atención'; clasImpact.className = 'var-impact neg'; }
+
+      // ReviewScore
+      document.getElementById('v-review').textContent = m.score.toFixed(2) + ' / 5';
+      const revImpact = document.getElementById('v-review-impact');
+      if (m.score >= 4.0) { revImpact.textContent = 'Calificación Top — alta satisfacción del cliente'; revImpact.className = 'var-impact pos'; }
+      else if (m.score >= 3.0) { revImpact.textContent = 'Calificación Media — satisfacción aceptable'; revImpact.className = 'var-impact neu'; }
+      else { revImpact.textContent = 'Calificación Baja — señal de alerta'; revImpact.className = 'var-impact neg'; }
+
+      // Tiempo restante — usar el recalculado arriba
+      const tiempoImpact = document.getElementById('v-tiempo-impact');
+      const mesesRestantes = tiempoCalc;
+      const esVencido = estatusReal === 'VENCIDO' || mesesRestantes < 0;
+      if (esVencido) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes < 0
+          ? 'Venció hace ' + Math.abs(mesesRestantes) + ' meses'
+          : 'Marca vencida en el IMPI';
+        tiempoImpact.textContent = 'Estatus vencido — evaluar proceso de renovación';
+        tiempoImpact.className = 'var-impact neg';
+      } else if (mesesRestantes <= 6) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Crítico — acción inmediata requerida';
+        tiempoImpact.className = 'var-impact neg';
+      } else if (mesesRestantes <= 12) {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Atención — planificar renovación pronto';
+        tiempoImpact.className = 'var-impact neu';
+      } else {
+        document.getElementById('v-tiempo').textContent = mesesRestantes + ' meses';
+        tiempoImpact.textContent = 'Margen suficiente para planificar';
+        tiempoImpact.className = 'var-impact pos';
+      }
+
+      // Tasa de devolución
+      document.getElementById('v-devolucion').textContent = m.devolucion.toFixed(3) + '%';
+      const devImpact = document.getElementById('v-devolucion-impact');
+      if (m.devolucion <= 0.05) { devImpact.textContent = 'Muy baja tasa — excelente señal de calidad'; devImpact.className = 'var-impact pos'; }
+      else if (m.devolucion <= 0.15) { devImpact.textContent = 'Baja tasa — señal positiva de calidad'; devImpact.className = 'var-impact pos'; }
+      else if (m.devolucion <= 0.30) { devImpact.textContent = 'Tasa moderada — dentro del rango normal'; devImpact.className = 'var-impact neu'; }
+      else { devImpact.textContent = 'Tasa alta — señal de alerta'; devImpact.className = 'var-impact neg'; }
+
+      // Recomendación cuando está vencido
+      const esVencidoRec = estatusReal === 'VENCIDO';
+      let recTexto = '';
+      if (esVencidoRec && m.prob >= 50) recTexto = 'Se recomienda Evaluar Renovación (marca vencida)';
+      else if (esVencidoRec && m.prob < 50) recTexto = 'No se recomienda Renovar (marca vencida)';
+      else if (m.prob >= 50) recTexto = 'Se recomienda Renovar';
+      else recTexto = 'No se recomienda Renovar';
+      document.getElementById('analisisRec').textContent = recTexto;
+      document.getElementById('analisisRec').style.color = m.prob >= 50 ? 'var(--green)' : 'var(--red)';
+
+      const razones = {
+        Top: `Esta marca muestra un sólido desempeño comercial con alta tasa de conversión y calificación Top. Su antigüedad y baja tasa de devolución son indicadores de madurez y calidad sostenida. El modelo predictivo asigna una alta probabilidad de renovación basándose principalmente en la antigüedad de la marca, la tasa de conversión y su clasificación comercial — las tres variables de mayor peso en el modelo.`,
+        Media: `Esta marca presenta un desempeño intermedio con oportunidades de mejora. Su tasa de conversión se encuentra cerca del promedio del mercado y su calificación Media indica estabilidad. El modelo sugiere una probabilidad moderada-alta de renovación, aunque se recomienda monitorear la tendencia de la tasa de devolución.`,
+        Baja: `Esta marca muestra señales de riesgo con baja tasa de conversión y calificación insuficiente. La antigüedad limitada y la alta tasa de devolución son factores negativos que reducen la probabilidad de renovación según el modelo. Se recomienda una revisión estratégica antes de tomar la decisión de renovar.`
+      };
+
+      document.getElementById('razonTexto').textContent = razones[m.review] || razones.Media;
+      showPage('analisis');
+    }
+
+    // BUSCAR OTRA
+    function buscarOtra() {
+      showPage('prediccion');
+      setTimeout(() => {
+        const si = document.getElementById('searchInput');
+        if (si) { si.value = ''; si.focus(); }
+      }, 100);
+    }
+
+    // BATCH
+    function processBatch(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Show spinner immediately
+      document.getElementById('batchResults').classList.remove('hidden');
+      document.getElementById('batchSpinner').style.display = 'block';
+      document.getElementById('batchContent').style.display = 'none';
+
+      const batchTexts = ['Leyendo archivo...', 'Procesando marcas...', 'Calculando predicciones...', 'Casi listo...'];
+      let batchIdx = 0;
+      document.getElementById('batchSpinnerText').textContent = batchTexts[0];
+      const batchInterval = setInterval(() => {
+        batchIdx = (batchIdx + 1) % batchTexts.length;
+        document.getElementById('batchSpinnerText').textContent = batchTexts[batchIdx];
+      }, 700);
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Parse Excel with SheetJS
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!rows.length) { alert('El archivo está vacío o no tiene el formato correcto.'); return; }
+
+        // Build lookup from JSON by NoReg for fast match
+        const lookup = {};
+        marcasData.forEach(m => { lookup[String(m.noreg)] = m; });
+
+        // Parse cada fila extrayendo todas las variables disponibles
+        const parsedRows = rows.map(row => {
+          const noreg   = String(row['No. Reg.'] || row['NoReg'] || row['noreg'] || '').trim();
+          const nombre  = String(row['DENOMINACIÓN'] || row['Denominación'] || row['nombre'] || row['Marca'] || '').trim();
+          const clase   = String(row['Clase'] || row['clase'] || '').trim();
+          const vigencia= String(row['Fecha Venc.'] || row['Vigencia'] || row['vigencia'] || '').trim();
+          const estatus = String(row['Estatus de Marca'] || row['estatus'] || 'VIGENTE').trim().toUpperCase();
+          const match   = lookup[noreg];
+
+          // Variables del modelo — de la columna del Excel si existen, si no del JSON match, si no default
+          const score   = parseFloat(row['ReviewScore']           || (match && match.score)        || 3.5);
+          const review  = String(row['Review']                    || (match && match.review)       || 'Media');
+          const ant     = parseFloat(row['Antiguedad']            || (match && match.antiguedad)   || 10);
+          const conv    = parseFloat(row['Tasa de conversión']    || (match && match.conversion)   || 3);
+          const cls     = String(row['Clasificación de Marca']    || (match && match.clasificacion)|| 'Media');
+          const dev     = parseFloat(row['Tasa de devolución']    || (match && match.devolucion)   || 0.1);
+          const tiempo  = parseFloat(row['Tiempo restante']       || (match && match.tiempo)       || 12);
+          const region  = String(row['Region']                    || (match && match.region)       || 'Centro');
+          const canal   = String(row['Canal']                     || (match && match.canal)        || 'Digital');
+          const segmento= String(row['Segmento']                  || (match && match.segmento)     || 'Millennial');
+
+          return { noreg, nombre, clase, vigencia, estatus, score, review, ant, conv, cls, dev, tiempo, region, canal, segmento, match };
+        }).filter(r => r.nombre);
+
+        // Calcular con modelo en browser (instantáneo)
+        const resultados = parsedRows.map(r => {
+          const inp = {
+            ticket_promedio:     500,
+            tasa_devolucion:     r.dev,
+            revenue_por_lead:    500,
+            tasa_conversion:     r.conv,
+            antiguedad_marca:    r.ant,
+            tiempo_restante:     r.tiempo,
+            review_score:        r.score,
+            clasificacion_marca: r.cls,
+            region:              r.region,
+            canal:               r.canal,
+            segmento:            r.segmento,
+            estatus_estrategico: 'NO ESTRATÉGICA',
+            prioridad_negocio:   'NO',
+            review:              r.review,
+          };
+          const probBrowser = gbPredict(inp);
+          let prob;
+          if (probBrowser !== null) {
+            prob = probBrowser;
+          } else if (r.match) {
+            prob = r.match.prob;
+          } else {
+            const clsScore  = r.cls === 'Top' ? 40 : r.cls === 'Media' ? 20 : 0;
+            const antScore  = Math.min(r.ant * 1.0, 28);
+            const convScore = Math.min(r.conv * 1.5, 13);
+            const tScore    = r.tiempo >= 0 ? 8 : 0;
+            const devPen    = r.dev * 30;
+            prob = Math.min(95, Math.max(5, Math.round(clsScore + antScore + convScore + tScore - devPen)));
+          }
+          return { ...r, prob };
+        });
+
+        // Show results
+        clearInterval(batchInterval);
+        document.getElementById('batchSpinner').style.display = 'none';
+        const bc = document.getElementById('batchContent');
+        bc.style.display = 'block';
+
+        if (!resultados || resultados.length === 0) {
+          bc.innerHTML = '<p style="color:var(--red);padding:24px;text-align:center;">No se encontraron marcas. Verifica que el archivo tenga la columna DENOMINACIÓN.</p>';
+          return;
+        }
+
+        renderBatchTable(resultados);
+        renderBatchCharts(resultados);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderBatchTable(resultados) {
+      const tbody = document.getElementById('batchTableBody');
+      tbody.innerHTML = '';
+      const today = new Date();
+
+      resultados.forEach(m => {
+        let estatusReal = m.estatus || 'VIGENTE';
+        if (m.vigencia && m.vigencia !== '—') {
+          const parts = m.vigencia.split('/');
+          if (parts.length === 3) {
+            const fv = new Date(+parts[2], +parts[1]-1, +parts[0]);
+            estatusReal = fv < today ? 'VENCIDO' : 'VIGENTE';
+          }
+        }
+        // Simple: verde Renovar, rojo No Renovar
+        const renueva  = m.prob >= 50;
+        const label    = renueva ? 'Renovar' : 'No Renovar';
+        const probColor= renueva ? 'var(--green)' : 'var(--red)';
+        const badgeCls = renueva ? 'green' : 'red';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight:600">${m.nombre}</td>
+          <td>${m.clase}</td>
+          <td><span class="badge-sm ${estatusReal === 'VIGENTE' ? 'green' : 'red'}">${estatusReal}</span></td>
+          <td>${m.vigencia || '—'}</td>
+          <td><span class="badge-sm ${badgeCls}">${label}</span></td>
+          <td style="font-weight:600;color:${probColor}">${m.prob}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderBatchCharts(data) {
+      if (!data || data.length === 0) return;
+      
+      const today = new Date();
+      data = data.map(m => {
+        let estatusReal = m.estatus || 'VIGENTE';
+        if (m.vigencia && m.vigencia !== '—') {
+          const p = m.vigencia.split('/');
+          if (p.length === 3) {
+            const fv = new Date(+p[2], +p[1]-1, +p[0]);
+            estatusReal = fv < today ? 'VENCIDO' : 'VIGENTE';
+          }
+        }
+        return { ...m, estatusReal };
+      });
+
+      const total     = data.length;
+      const renovar   = data.filter(m => m.prob >= 50).length;
+      const noRenovar = total - renovar;
+      const promProb  = total ? Math.round(data.reduce((s,m) => s+(m.prob||0), 0) / total) : 0;
+
+      // KPIs — set directly
+      const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      setEl('bcTotal',    total);
+      setEl('bcRenovar',  renovar);
+      setEl('bcNoRenovar',noRenovar);
+      setEl('bcPromProb', promProb + '%');
+
+      // Donut - verde Renovar, rojo No Renovar
+      const donutData = [
+        { label:'Renovar',    n: renovar,   color:'#1D9E75' },
+        { label:'No Renovar', n: noRenovar, color:'#E24B4A' },
+      ];
+      const cx=60, cy=60, r=44, sw=18, circ=2*Math.PI*r;
+      let offset=0, paths='';
+      donutData.forEach(d => {
+        if (d.n === 0) return;
+        const dash = (d.n/total)*circ;
+        paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}"
+          stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}"
+          stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+        offset += dash;
+      });
+      paths += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+        font-size="14" font-weight="800" font-family="Sora,sans-serif" fill="#1a1a2e">
+        ${total ? Math.round(renovar/total*100) : 0}%</text>
+        <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="9" fill="#888">Renovar</text>`;
+      document.getElementById('bcDonut').innerHTML = paths;
+      document.getElementById('bcDonutLegend').innerHTML = donutData.map(d =>
+        `<div class="bc-legend-row"><span class="bc-dot" style="background:${d.color}"></span>
+         <span>${d.label}</span><span class="bc-legend-n">${d.n}</span></div>`
+      ).join('');
+
+      // Estatus usando estatusReal recalculado
+      const vig  = data.filter(m => m.estatusReal === 'VIGENTE').length;
+      const venc = data.filter(m => m.estatusReal === 'VENCIDO').length;
+      const maxE = Math.max(1, vig, venc);
+      document.getElementById('bcEstatusBars').innerHTML = [
+        {l:'VIGENTE', n:vig,  c:'#1D9E75'},
+        {l:'VENCIDO', n:venc, c:'#E24B4A'},
+      ].map(e=>`<div class="bc-bar-row">
+        <span class="bc-label">${e.l}</span>
+        <div class="bc-track"><div class="bc-fill" style="width:${Math.round(e.n/maxE*100)}%;background:${e.c}"></div></div>
+        <span class="bc-val">${e.n}</span></div>`).join('');
+
+      // Top clases
+      const cc = {};
+      data.forEach(m => {
+        const cls = String(m.clase).split(',')[0].trim();
+        if (cls) cc[cls] = (cc[cls]||0) + 1;
+      });
+      const top = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const maxC = top[0]?.[1]||1;
+      const cols = ['#D4006A','#F0338A','#8B5CF6','#534AB7','#C9C2F0'];
+      document.getElementById('bcClaseBars').innerHTML = top.map(([cl,n],i)=>
+        `<div class="bc-bar-row">
+          <span class="bc-label">Clase ${cl}</span>
+          <div class="bc-track"><div class="bc-fill" style="width:${Math.round(n/maxC*100)}%;background:${cols[i]}"></div></div>
+          <span class="bc-val">${n}</span></div>`
+      ).join('');
+
+      // Línea chart: probabilidades por marca (ordenadas)
+      const canvas = document.getElementById('bcLineChart');
+      if (!canvas) return;
+      const sorted = [...data].sort((a,b) => b.prob - a.prob);
+      // Force canvas dimensions based on parent
+      const W = Math.max(canvas.parentElement.offsetWidth || 0, document.body.offsetWidth - 120, 600);
+      const H = 200;
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+
+      // Grid lines
+      ctx.strokeStyle = '#EDE8F8';
+      ctx.lineWidth = 1;
+      [25, 50, 75, 100].forEach(v => {
+        const y = H - 32 - ((v/100) * (H-48));
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W-10, y); ctx.stroke();
+        ctx.fillStyle = '#B4B2A9'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText(v+'%', 36, y+4);
+      });
+
+      // Threshold line at 50%
+      const y50 = H - 32 - (0.5 * (H-48));
+      ctx.strokeStyle = '#C9C2F0'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(40, y50); ctx.lineTo(W-10, y50); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Data points
+      const n = sorted.length;
+      const xStep = n > 1 ? (W - 60) / (n-1) : W - 60;
+
+      // Line
+      ctx.lineWidth = 2.5;
+      sorted.forEach((m, i) => {
+        const x = 40 + i * xStep;
+        const y = H - 32 - ((m.prob/100) * (H-48));
+        const color = m.prob >= 50 ? '#1D9E75' : '#E24B4A';
+        if (i === 0) { ctx.beginPath(); ctx.strokeStyle = color; ctx.moveTo(x, y); }
+        else {
+          const prevColor = sorted[i-1].prob >= 50 ? '#1D9E75' : '#E24B4A';
+          if (color !== prevColor) { ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = color; ctx.moveTo(x, y); }
+          else ctx.lineTo(x, y);
+        }
+        if (i === n-1) ctx.stroke();
+      });
+
+      // Dots
+      sorted.forEach((m, i) => {
+        const x = 40 + i * xStep;
+        const y = H - 32 - ((m.prob/100) * (H-48));
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI*2);
+        ctx.fillStyle = m.prob >= 50 ? '#1D9E75' : '#E24B4A';
+        ctx.fill();
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      // X labels (show every few)
+      ctx.fillStyle = '#B4B2A9'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      const step = Math.ceil(n / 10);
+      sorted.forEach((m, i) => {
+        if (i % step === 0 || i === n-1) {
+          const x = 40 + i * xStep;
+          const label = m.nombre.split(' ')[0].slice(0,8);
+          ctx.fillText(label, x, H-10);
+        }
+      });
+    }
+
+    // PORTAFOLIO
+    function renderPortafolio(data) {
+      // Stats are hardcoded in HTML — only render table
+
+      const tbody = document.getElementById('portfolioBody');
+      tbody.innerHTML = '';
+      data.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight:600">${m.nombre}</td>
+          <td>${m.clase}</td>
+          <td><span class="badge-sm ${m.estatus === 'VIGENTE' ? 'green' : 'red'}">${m.estatus}</span></td>
+          <td>${m.vigencia}</td>
+          <td><span class="badge-sm ${m.review === 'Top' ? 'green' : m.review === 'Baja' ? 'red' : ''}" style="${m.review === 'Media' ? 'background:var(--amber-bg);color:var(--amber)' : ''}">${m.review}</span></td>
+          <td>${m.score}</td>
+          <td><span class="badge-sm ${m.tuvoVentas === 'si' ? 'green' : 'red'}">${m.tuvoVentas === 'si' ? 'Sí' : 'No'}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filtrarPortafolio() {
+      const estatus = document.getElementById('filterEstatus').value;
+      const review = document.getElementById('filterReview').value;
+      const ventas = document.getElementById('filterVentas').value;
+      const filtrado = marcasData.filter(m =>
+        (!estatus || m.estatus === estatus) &&
+        (!review || m.review === review) &&
+        (!ventas || m.tuvoVentas === ventas)
+      );
+      renderPortafolio(filtrado);
+    }
+
+    // KEYBOARD Y LIVE SEARCH
+    document.getElementById('searchInput').addEventListener('input', () => analizar());
+    document.getElementById('searchInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') analizar();
+      if (e.key === 'Escape') document.getElementById('searchResults').classList.add('hidden');
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-wrapper') && !e.target.closest('.search-results')) {
+        document.getElementById('searchResults').classList.add('hidden');
+      }
+    });
+
+    // RENDER RIESGO LEGAL CON DATOS REALES
+    function renderRiesgo(filtro='') {
+      const busqueda = filtro.toUpperCase();
+      // For display counts: always use full dataset; for cards: use filtered
+      const todasParaContar = busqueda
+        ? marcasData.filter(m => m.nombre.includes(busqueda))
+        : marcasData;
+      const vigentesParaContar = todasParaContar.filter(m => m.estatus === 'VIGENTE');
+
+      const rojos   = vigentesParaContar.filter(m => m.tiempo >= 0 && m.tiempo <= 6).sort((a,b) => a.tiempo - b.tiempo);
+      const amarillos = vigentesParaContar.filter(m => m.tiempo > 6 && m.tiempo <= 12).sort((a,b) => a.tiempo - b.tiempo);
+      const verdes  = vigentesParaContar.filter(m => m.tiempo > 12).sort((a,b) => a.tiempo - b.tiempo);
+      const vencidas = todasParaContar.filter(m => m.tiempo < 0 || m.estatus === 'VENCIDO');
+
+      document.getElementById('countRojo').textContent = (rojos.length + vencidas.length).toLocaleString();
+      document.getElementById('countAmarillo').textContent = amarillos.length.toLocaleString();
+      document.getElementById('countVerde').textContent = verdes.length.toLocaleString();
+
+      function tarjeta(m, tipo) {
+        const clase = tipo === 'rojo' ? 'rojo' : tipo === 'amarillo' ? 'amarillo' : 'verde';
+        const badge = tipo === 'rojo' ? 'Crítico' : tipo === 'amarillo' ? 'Atención' : 'Estable';
+        const tiempoTexto = m.tiempo < 0 || m.estatus === 'VENCIDO'
+          ? 'Marca vencida'
+          : m.tiempo === 0 ? 'Vence este mes'
+          : m.tiempo === 1 ? '1 mes restante'
+          : m.tiempo + ' meses restantes';
+        return `
+          <div class="riesgo-card ${clase}" onclick="buscarDesdeSemaforo('${m.nombre.replace(/'/g,"\'")}')">
+            <div class="riesgo-nombre">${m.nombre}</div>
+            <div class="riesgo-venc">Clase: ${m.clase} · NoReg: ${m.noreg || 'N/A'} · Vence: ${m.vigencia} · ${tiempoTexto}</div>
+            <div class="riesgo-badge ${clase}">${badge}</div>
+          </div>`;
+      }
+
+      const todasRojas = [...vencidas, ...rojos];
+      document.getElementById('gridRojo').innerHTML = todasRojas.slice(0, 20).map(m => tarjeta(m, 'rojo')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+      document.getElementById('gridAmarillo').innerHTML = amarillos.slice(0, 20).map(m => tarjeta(m, 'amarillo')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+      document.getElementById('gridVerde').innerHTML = verdes.slice(0, 20).map(m => tarjeta(m, 'verde')).join('') || '<p style="color:var(--text-muted);font-size:13px">Sin marcas en esta categoría</p>';
+    }
+
+    function filtrarRiesgo() {
+      const val = document.getElementById('riesgoSearch').value;
+      renderRiesgo(val);
+    }
+
+    // ── HELPER: build a bar row ──────────────────────────────────────────────
+    function barRow(label, pct, color, maxPct) {
+      const width = maxPct > 0 ? Math.round(pct / maxPct * 100) : 0;
+      return `<div class="bar-row">
+        <span class="bar-label">${label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
+        <span class="bar-val">${pct.toFixed(1)}%</span>
+      </div>`;
+    }
+
+    // ── SEGMENTOS ────────────────────────────────────────────────────────────
+    function renderSegmentos() {
+      if (!marcasData || marcasData.length === 0) return;
+
+      // These metrics come from the real Ventas data embedded in the JSON stats
+      // Using the real computed values from the Excel source
+      const SEG = {
+        'Millennial': 40.1, 'Gen Z': 30.0, 'Gen X': 19.9, 'Baby Boomer': 10.0
+      };
+      const CANAL = { 'Digital': 62.4, 'Físico': 37.6 };
+      const REGION = { 'Centro': 47.5, 'Occidente': 22.5, 'Norte/Oriente': 17.5, 'Sur': 12.5 };
+      const RENOV_SEG = { 'Millennial': 84.9, 'Gen Z': 84.9, 'Gen X': 84.8, 'Baby Boomer': 85.1 };
+      const RENOV_CANAL = { 'Digital': 84.9, 'Físico': 84.8 };
+      const RENOV_REGION = { 'Centro': 85.0, 'Occidente': 84.7, 'Norte/Oriente': 84.8, 'Sur': 85.0 };
+      const RENOV_GLOBAL = 84.9;
+
+      // Stat cards
+      document.getElementById('segLider').textContent = 'Millennial';
+      document.getElementById('segLiderPct').textContent = '40.1% de las transacciones';
+      document.getElementById('segCanal').textContent = 'Digital';
+      document.getElementById('segCanalPct').textContent = '62.4% de las ventas';
+      document.getElementById('segRegion').textContent = 'Centro';
+      document.getElementById('segRegionPct').textContent = '47.5% de las transacciones';
+      document.getElementById('segRenovo').textContent = RENOV_GLOBAL.toFixed(1) + '%';
+
+      // Bar charts
+      const colores = ['#D4006A','#F0338A','#C9C2F0','#EDE8F8'];
+      const maxSeg = Math.max(...Object.values(SEG));
+      document.getElementById('barGeneracion').innerHTML =
+        Object.entries(SEG).map(([k,v],i) => barRow(k, v, colores[i], maxSeg)).join('');
+
+      const maxCan = Math.max(...Object.values(CANAL));
+      document.getElementById('barCanal').innerHTML =
+        Object.entries(CANAL).map(([k,v],i) => barRow(k, v, i===0?'#D4006A':'#C9C2F0', maxCan)).join('');
+
+      const maxReg = Math.max(...Object.values(REGION));
+      document.getElementById('barRegion').innerHTML =
+        Object.entries(REGION).map(([k,v],i) => barRow(k, v, colores[i], maxReg)).join('');
+
+      const maxRenov = Math.max(...Object.values(RENOV_SEG));
+      document.getElementById('barRenovacion').innerHTML =
+        Object.entries(RENOV_SEG).map(([k,v]) => barRow(k, v, '#12A670', maxRenov)).join('');
+    }
+
+    // ── TENDENCIAS ───────────────────────────────────────────────────────────
+    function renderTendencias() {
+      if (!marcasData || marcasData.length === 0) return;
+
+      // Review distribution computed from real marcasData JSON
+      const total = marcasData.length;
+      const revTop = marcasData.filter(m => m.review === 'Top').length;
+      const revMed = marcasData.filter(m => m.review === 'Media').length;
+      const revBaj = marcasData.filter(m => m.review === 'Baja').length;
+      const revTopPct = revTop / total * 100;
+      const revMedPct = revMed / total * 100;
+      const revBajPct = revBaj / total * 100;
+
+      // Clasificacion by percentile definition (Top 35%, Media 45%, Baja 20%)
+      const clsTopPct = 35.0;
+      const clsMedPct = 45.0;
+      const clsBajPct = 20.0;
+
+      // Real renovation rates by canal and region (from Ventas data)
+      const RENOV_CANAL = { 'Digital': 84.9, 'Físico': 84.8 };
+      const RENOV_REGION = { 'Centro': 85.0, 'Occidente': 84.7, 'Norte/Oriente': 84.8, 'Sur': 85.0 };
+
+      // Stat cards
+      document.getElementById('tendRevTop').textContent = revTopPct.toFixed(1) + '%';
+      document.getElementById('tendRevMed').textContent = revMedPct.toFixed(1) + '%';
+      document.getElementById('tendRevBaj').textContent = revBajPct.toFixed(1) + '%';
+      document.getElementById('tendClsTop').textContent = clsTopPct.toFixed(0) + '%';
+
+      // Bar: Review
+      const maxRev = Math.max(revTopPct, revMedPct, revBajPct);
+      document.getElementById('barReview').innerHTML = [
+        barRow('Top',   revTopPct, '#12A670', maxRev),
+        barRow('Media', revMedPct, '#D97706', maxRev),
+        barRow('Baja',  revBajPct, '#E53E3E', maxRev),
+      ].join('');
+
+      // Bar: Clasificacion
+      const maxCls = Math.max(clsTopPct, clsMedPct, clsBajPct);
+      document.getElementById('barClasificacion').innerHTML = [
+        barRow('Top',   clsTopPct, '#D4006A', maxCls),
+        barRow('Media', clsMedPct, '#F0338A', maxCls),
+        barRow('Baja',  clsBajPct, '#C9C2F0', maxCls),
+      ].join('');
+
+      // Bar: Renovacion por canal
+      const maxRC = Math.max(...Object.values(RENOV_CANAL));
+      document.getElementById('barRenovCanal').innerHTML =
+        Object.entries(RENOV_CANAL).map(([k,v]) => barRow(k, v, '#12A670', maxRC)).join('');
+
+      // Bar: Renovacion por region
+      const maxRR = Math.max(...Object.values(RENOV_REGION));
+      document.getElementById('barRenovRegion').innerHTML =
+        Object.entries(RENOV_REGION).map(([k,v]) => barRow(k, v, '#12A670', maxRR)).join('');
+    }
+
+    function buscarDesdeSemaforo(nombre) {
+      showPage('prediccion');
+      document.getElementById('searchInput').value = nombre;
+      analizar();
+    }
+
+    // INIT
+    setMode('oto');
+  </script>
+
+  <!-- CHAT IA FLOTANTE -->
+  <style>
+    .chat-fab {
+      position: fixed; bottom: 28px; right: 28px; z-index: 999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--pink); color: white; border: none;
+      box-shadow: 0 4px 20px rgba(212,0,106,0.4);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .chat-fab:hover { background: var(--pink-light); transform: scale(1.08); }
+    .chat-panel {
+      position: fixed; bottom: 96px; right: 28px; z-index: 999;
+      width: 360px; max-height: 520px; background: white;
+      border-radius: 20px; box-shadow: 0 8px 40px rgba(180,120,200,0.2);
+      border: 1.5px solid var(--border);
+      display: none; flex-direction: column; overflow: hidden;
+      animation: fadeUp 0.25s ease both;
+    }
+    .chat-panel.open { display: flex; }
+    .chat-header {
+      background: var(--pink); color: white;
+      padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14px;
+    }
+    .chat-header-dot { width: 8px; height: 8px; border-radius: 50%; background: #0ED488; flex-shrink:0; }
+    .chat-header-info { display: flex; flex-direction: column; }
+    .chat-header-sub { font-size: 11px; font-weight: 400; opacity: 0.85; }
+    .chat-close { margin-left: auto; cursor: pointer; opacity: 0.8; font-size: 20px; line-height:1; }
+    .chat-close:hover { opacity: 1; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px; min-height: 200px;
+    }
+    .chat-msg {
+      max-width: 85%; padding: 10px 14px; border-radius: 14px;
+      font-size: 13px; line-height: 1.5;
+    }
+    .chat-msg.bot { background: var(--purple-soft); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.user { background: var(--pink); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-msg.loading { background: var(--purple-soft); color: var(--text-muted); align-self: flex-start; font-style: italic; }
+    .chat-input-row {
+      display: flex; gap: 8px; padding: 12px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .chat-input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 9px 12px; font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; color: var(--text);
+    }
+    .chat-input:focus { border-color: var(--pink); }
+    .chat-send {
+      background: var(--pink); color: white; border: none;
+      border-radius: 10px; padding: 9px 14px; cursor: pointer;
+      font-size: 16px; transition: background 0.2s;
+    }
+    .chat-send:hover { background: var(--pink-light); }
+    .chat-suggestions {
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px;
+    }
+    .chat-sug {
+      background: var(--pink-soft); color: var(--pink); border: 1px solid var(--pink);
+      border-radius: 999px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .chat-sug:hover { background: var(--pink); color: white; }
+  </style>
+
+  <!-- FAB -->
+  <button class="chat-fab" onclick="toggleChat()" title="Asistente IA">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  </button>
+
+  <!-- PANEL -->
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <div class="chat-header-dot"></div>
+      <div class="chat-header-info">
+        <span>Asistente IA</span>
+        <span class="chat-header-sub">Experto en marcas Liverpool</span>
+      </div>
+      <span class="chat-close" onclick="toggleChat()">×</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg bot">¡Hola! Soy tu asistente experto en marcas Liverpool. Puedo ayudarte con análisis de vigencia, renovaciones, métricas comerciales y recomendaciones estratégicas. ¿En qué te puedo ayudar?</div>
+    </div>
+    <div class="chat-suggestions">
+      <span class="chat-sug" onclick="enviarSugerencia('¿Qué marcas vencen en los próximos 6 meses?')">Marcas por vencer</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuáles son las marcas con mayor ReviewScore?')">Mejor ReviewScore</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuántas marcas están en riesgo crítico?')">Riesgo crítico</span>
+      <span class="chat-sug" onclick="enviarSugerencia('¿Cuáles son las marcas con mayor probabilidad de renovar?')">Top renovación</span>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter') enviarChat()" />
+      <button class="chat-send" onclick="enviarChat()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    let chatHistorial = [];
+    let chatAbierto = false;
+
+    function toggleChat() {
+      chatAbierto = !chatAbierto;
+      document.getElementById('chatPanel').classList.toggle('open', chatAbierto);
+      if (chatAbierto) document.getElementById('chatInput').focus();
+    }
+
+    function enviarSugerencia(texto) {
+      document.getElementById('chatInput').value = texto;
+      enviarChat();
+    }
+
+    function generarResumenPortafolio(pregunta) {
+      if (!marcasData || marcasData.length === 0) return '';
+      
+      const hoy = new Date();
+      const vigentes = marcasData.filter(m => m.estatus === 'VIGENTE').length;
+      const vencidas = marcasData.filter(m => m.estatus === 'VENCIDO').length;
+      const criticas = marcasData.filter(m => m.tiempo >= 0 && m.tiempo <= 6).length;
+      const atencion = marcasData.filter(m => m.tiempo > 6 && m.tiempo <= 12).length;
+      const conVentas = marcasData.filter(m => m.tuvoVentas === 'si').length;
+      
+      const reviewTop = marcasData.filter(m => m.review === 'Top').length;
+      const reviewMedia = marcasData.filter(m => m.review === 'Media').length;
+      const reviewBaja = marcasData.filter(m => m.review === 'Baja').length;
+
+      // Top 10 mayor probabilidad renovar
+      const topRenovar = [...marcasData]
+        .filter(m => m.estatus === 'VIGENTE')
+        .sort((a,b) => b.prob - a.prob)
+        .slice(0,10)
+        .map(m => `${m.nombre} (${m.prob}%, Clase ${m.clase})`)
+        .join(', ');
+
+      // Top 10 mayor riesgo
+      const topRiesgo = [...marcasData]
+        .filter(m => m.tiempo >= 0 && m.tiempo <= 6)
+        .sort((a,b) => a.tiempo - b.tiempo)
+        .slice(0,10)
+        .map(m => `${m.nombre} (vence en ${m.tiempo} meses, Clase ${m.clase})`)
+        .join(', ');
+
+      // Top ReviewScore
+      const topReview = [...marcasData]
+        .sort((a,b) => b.score - a.score)
+        .slice(0,10)
+        .map(m => `${m.nombre} (score ${m.score}, Clase ${m.clase})`)
+        .join(', ');
+
+      // Si pregunta por marca específica, incluir sus datos
+      let dataMarca = '';
+      const palabras = pregunta.toUpperCase().split(' ');
+      const marcaEncontrada = marcasData.find(m => 
+        palabras.some(p => p.length > 3 && m.nombre.includes(p))
+      );
+      if (marcaEncontrada) {
+        dataMarca = `
+DATOS ESPECÍFICOS DE LA MARCA MENCIONADA:
+Nombre: ${marcaEncontrada.nombre}
+Clase: ${marcaEncontrada.clase} | NoReg: ${marcaEncontrada.noreg}
+Estatus: ${marcaEncontrada.estatus} | Vigencia: ${marcaEncontrada.vigencia}
+ReviewScore: ${marcaEncontrada.score} (${marcaEncontrada.review})
+Clasificación Comercial: ${marcaEncontrada.clasificacion}
+Tasa Conversión: ${marcaEncontrada.conversion}% | Tasa Devolución: ${marcaEncontrada.devolucion}%
+Antigüedad: ${marcaEncontrada.antiguedad} años
+Tiempo restante renovación: ${marcaEncontrada.tiempo} meses
+Probabilidad de renovar (modelo): ${marcaEncontrada.prob}%
+Región: ${marcaEncontrada.region} | Canal: ${marcaEncontrada.canal} | Segmento: ${marcaEncontrada.segmento}`;
+      }
+
+      return `RESUMEN DEL PORTAFOLIO LIVERPOOL (datos reales):
+Total marcas: ${marcasData.length.toLocaleString()}
+Vigentes: ${vigentes.toLocaleString()} | Vencidas: ${vencidas.toLocaleString()}
+Con actividad comercial: ${conVentas.toLocaleString()}
+Marcas críticas (menos 6 meses): ${criticas} | En atención (6-12 meses): ${atencion}
+Review Top: ${reviewTop} | Review Media: ${reviewMedia} | Review Baja: ${reviewBaja}
+
+TOP 10 MAYOR PROBABILIDAD DE RENOVAR: ${topRenovar}
+TOP 10 EN RIESGO CRÍTICO (próximas a vencer): ${topRiesgo}
+TOP 10 MEJOR REVIEWSCORE: ${topReview}
+${dataMarca}`;
+    }
+
+    async function enviarChat() {
+      const input = document.getElementById('chatInput');
+      const mensaje = input.value.trim();
+      if (!mensaje) return;
+
+      input.value = '';
+      agregarMensaje(mensaje, 'user');
+
+      const loading = agregarMensaje('Analizando datos...', 'loading');
+
+      chatHistorial.push({ role: 'user', content: mensaje });
+
+      const resumen = generarResumenPortafolio(mensaje);
+      const mensajeConContexto = resumen 
+        ? `Contexto del portafolio:
+${resumen}
+
+Pregunta del usuario: ${mensaje}`
+        : mensaje;
+
+      try {
+        const res = await fetch(API_URL + '/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensaje: mensajeConContexto, historial: chatHistorial.slice(-4) })
+        });
+        const data = await res.json();
+        loading.remove();
+        const respuesta = data.respuesta || 'No pude procesar tu pregunta.';
+        agregarMensaje(respuesta, 'bot');
+        chatHistorial.push({ role: 'model', content: respuesta });
+      } catch(e) {
+        loading.remove();
+        agregarMensaje('Error al conectar con el asistente. Verifica tu conexión.', 'bot');
+      }
+    }
+
+    function renderMarkdown(texto) {
+      return texto
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>')
+        .replace(/•/g, '&bull;');
+    }
+
+    function agregarMensaje(texto, tipo) {
+      const msgs = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg ' + tipo;
+      if (tipo === 'bot') {
+        div.innerHTML = renderMarkdown(texto);
+      } else {
+        div.textContent = texto;
+      }
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+  </script>
+  <script type='text/javascript'>
+    function initTableau() {
+      var divEl = document.getElementById('viz_visual1');
+      if (!divEl || divEl.dataset.loaded) return;
+      divEl.dataset.loaded = 'true';
+      var vizEl = divEl.getElementsByTagName('object')[0];
+      // Size to full viewport height minus nav bar (~60px), so dashboard fits without scroll
+      var h = Math.max(700, window.innerHeight - 180);
+      vizEl.style.width  = '100%';
+      vizEl.style.height = h + 'px';
+      divEl.style.height = h + 'px';
+      var scriptEl = document.createElement('script');
+      scriptEl.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+      vizEl.parentNode.insertBefore(scriptEl, vizEl);
+    }
+    // Init when Visual 1 is shown
+    const _origShowPage = showPage;
+    // Hook into page navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      // If already on descriptivo, init immediately
+      if (document.getElementById('page-descriptivo').classList.contains('active')) {
+        initTableau();
+      }
+    });
+  </script>
+</body>
+</html>
