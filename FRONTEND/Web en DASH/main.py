@@ -18,7 +18,11 @@ app.layout = html.Div([
     html.Nav([
         html.Div([
             html.Div([
-                html.Span("Liverpool · Inteligencia de Marcas", className="nav-logo"),
+                html.Img(
+                    src="/assets/images/liverpool-logo.png",
+                    style={"height": "36px", "width": "auto", "display": "block"}
+                ),
+                html.Span("Inteligencia de Marcas", className="nav-logo"),
             ], className="nav-brand"),
         ]),
         html.Div([
